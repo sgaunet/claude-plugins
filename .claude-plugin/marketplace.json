@@ -1,6 +1,8 @@
 {
   "name": "Sylvain-Marketplace",
-  "description": "A marketplace for Sylvain's Claude plugins.",
+  "metadata": {
+    "description": "Specialized Claude Code agents for DevOps infrastructure, software engineering workflows, and Go development. Includes proactive agents for IaC, CI/CD, database optimization, code review, debugging, documentation, and more."
+  },
   "owner": {
     "name": "Sylvain",
     "email": "1552102+sgaunet@users.noreply.github.com"
