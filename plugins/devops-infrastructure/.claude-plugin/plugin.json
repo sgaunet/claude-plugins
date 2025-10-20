@@ -1,0 +1,9 @@
+{
+  "name": "devops-infrastructure",
+  "version": "0.1.0",
+  "description": "Infrastructure as Code, CI/CD pipelines, and database specialists for DevOps workflows",
+  "author": {
+    "name": "Sylvain",
+    "email": "1552102+sgaunet@users.noreply.github.com"
+  }
+}

@@ -1,0 +1,16 @@
+# https://taskfile.dev
+version: '3'
+
+tasks:
+  default:
+    desc: "List all tasks"
+    cmds:
+      - task -a
+
+  check:
+    desc: "Validate all plugins and marketplace"
+    cmds:
+      - claude plugin validate plugins/devops-infrastructure
+      - claude plugin validate plugins/software-engineering
+      - claude plugin validate plugins/go-specialist
+      - claude plugin validate .
