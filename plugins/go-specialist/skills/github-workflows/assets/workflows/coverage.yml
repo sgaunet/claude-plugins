@@ -1,0 +1,91 @@
+# Coverage Badge Workflow
+# Generates test coverage badge on main branch pushes
+# Badge is committed to repository and can be displayed in README
+# CUSTOMIZE: Adjust coverage threshold and repository references
+
+name: Generate coverage badges
+
+on:
+  push:
+    branches: [main]  # CUSTOMIZE: Change if using different default branch
+
+permissions:
+  contents: write  # Required to commit badge file
+
+jobs:
+  generate-badges:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # Setup Go environment
+      # CUSTOMIZE: Adjust Go version to match your project
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: 1.24.x  # CUSTOMIZE: Use your Go version
+
+      # Run tests with coverage
+      # CUSTOMIZE: Adjust coverage commands for your project structure
+      - name: coverage
+        id: coverage
+        run: |
+          go mod download
+          go generate ./...
+
+          # Run tests with coverage for all packages
+          go test -coverpkg=./... -coverprofile=profile.cov ./...
+
+          # Remove cmd package from coverage (mains typically aren't tested)
+          # CUSTOMIZE: Remove this line if you want to include cmd in coverage
+          sed -i '/cmd/d' profile.cov
+
+          # Calculate total coverage percentage
+          total=$(go tool cover -func profile.cov | grep '^total:' | awk '{print $3}' | sed "s/%//")
+          rm profile.cov
+
+          # Export coverage value for badge generation
+          echo "COVERAGE_VALUE=${total}" >> $GITHUB_ENV
+
+      # Checkout badge generation action
+      # CUSTOMIZE: Replace with your own badge action if preferred
+      - uses: actions/checkout@v5
+        with:
+          repository: sgaunet/gh-action-badge
+          path: gh-action-badge
+          ref: main
+          fetch-depth: 1
+
+      # Generate coverage badge
+      # CUSTOMIZE: Adjust coverage threshold and badge styling
+      - name: Generate coverage badge
+        id: coverage-badge
+        uses: ./gh-action-badge/.github/actions/gh-action-coverage
+        with:
+          limit-coverage: "70"  # CUSTOMIZE: Coverage threshold (badge turns red below this)
+          badge-label: "coverage"  # CUSTOMIZE: Badge label text
+          badge-filename: "coverage-badge.svg"  # CUSTOMIZE: Output filename
+          badge-value: "${COVERAGE_VALUE}"
+
+      # Output badge URL for verification
+      - name: Print url of badge
+        run: |
+          echo "Badge URL: ${{ steps.coverage-badge.outputs.badge-url }}"
+
+# Usage in README.md:
+# ![Coverage](https://raw.githubusercontent.com/OWNER/REPO/main/coverage-badge.svg)
+
+# Optional: Only run on specific paths
+# on:
+#   push:
+#     branches: [main]
+#     paths:
+#       - '**.go'
+#       - 'go.mod'
+#       - 'go.sum'
+
+# Optional: Upload coverage to codecov.io
+# - name: Upload to Codecov
+#   uses: codecov/codecov-action@v4
+#   with:
+#     files: ./profile.cov

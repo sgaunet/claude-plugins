@@ -1,0 +1,143 @@
+# Release Workflow
+# Creates production releases when Git tags are pushed
+# Publishes binaries, Docker images, and package distributions
+# Docs: https://goreleaser.com
+# CUSTOMIZE: Adjust Go version, tag patterns, and registry settings
+
+name: release
+
+on:
+  push:
+    # Trigger on all tags
+    tags:
+      - '**'  # All tags (v1.0.0, v2.1.3, etc.)
+
+    # Alternative: Only semantic version tags
+    # tags:
+    #   - 'v[0-9]+.[0-9]+.[0-9]+'
+
+    # Alternative: Multiple tag patterns
+    # tags:
+    #   - 'v*'
+    #   - 'release-*'
+
+permissions:
+  contents: write   # Required to create GitHub releases
+  packages: write   # Required to publish Docker images to GHCR
+
+jobs:
+  goreleaser-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0  # Required for GoReleaser changelog generation
+
+      # Setup Go environment
+      # CUSTOMIZE: Adjust Go version to match your project
+      - name: Install Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '>=1.24'  # CUSTOMIZE: Use your Go version
+
+      # Install Task runner
+      # Task provides consistent build commands across local and CI
+      - name: Install task
+        uses: jaxxstorm/action-install-gh-release@v2.1.0
+        with:
+          repo: go-task/task
+          # tag: v3.39.0  # Optionally pin specific version
+
+      # Install GoReleaser
+      # CUSTOMIZE: Pin to specific version for reproducible builds
+      - name: Install goreleaser
+        uses: jaxxstorm/action-install-gh-release@v2.1.0
+        with:
+          repo: goreleaser/goreleaser
+          # tag: v2.5.0  # Optionally pin specific version
+
+      # Setup QEMU for multi-platform Docker builds
+      # Enables building ARM images on x86_64 runners
+      # Required for: linux/arm64, linux/arm/v7, linux/arm/v6
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      # Setup Docker Buildx for advanced build features
+      # Required for multi-platform Docker images
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Login to GitHub Container Registry
+      # Automatically uses GITHUB_TOKEN for authentication
+      # CUSTOMIZE: Add additional registries if publishing to multiple registries
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Optional: Login to Docker Hub
+      # - name: Login to Docker Hub
+      #   uses: docker/login-action@v3
+      #   with:
+      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Optional: Login to private registry
+      # - name: Login to Private Registry
+      #   uses: docker/login-action@v3
+      #   with:
+      #     registry: registry.example.com
+      #     username: ${{ secrets.REGISTRY_USERNAME }}
+      #     password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      # Create production release
+      # Requires: Taskfile.yml with 'release' task defined
+      # Example task: goreleaser release --clean
+      - name: Create release
+        shell: /usr/bin/bash {0}
+        run: |
+          task release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Uncomment if using GoReleaser Pro
+          # GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+          # Uncomment if publishing to Homebrew tap
+          # HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+
+      # Optional: Create GitHub release notes summary
+      # - name: Generate release notes
+      #   uses: actions/github-script@v7
+      #   with:
+      #     script: |
+      #       const release = await github.rest.repos.getReleaseByTag({
+      #         owner: context.repo.owner,
+      #         repo: context.repo.repo,
+      #         tag: context.ref.replace('refs/tags/', '')
+      #       });
+      #       console.log(`Release created: ${release.data.html_url}`);
+
+      # Optional: Notify on release
+      # - name: Notify Slack
+      #   uses: slackapi/slack-github-action@v1
+      #   with:
+      #     payload: |
+      #       {
+      #         "text": "New release: ${{ github.ref_name }}"
+      #       }
+      #   env:
+      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+# Release artifacts published:
+# - GitHub Release with binaries for all platforms
+# - Docker images to GitHub Container Registry
+# - Homebrew formula (if configured in .goreleaser.yml)
+# - Checksums and signatures
+
+# Usage:
+# 1. Create and push tag: git tag -a v1.0.0 -m "Release v1.0.0" && git push origin v1.0.0
+# 2. Workflow triggers automatically
+# 3. Check progress: https://github.com/OWNER/REPO/actions
+# 4. View release: https://github.com/OWNER/REPO/releases

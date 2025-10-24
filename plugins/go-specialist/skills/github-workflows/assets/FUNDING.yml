@@ -1,0 +1,23 @@
+# GitHub Sponsors Configuration
+# Displays "Sponsor" button on repository page
+# Docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/displaying-a-sponsor-button-in-your-repository
+
+# CUSTOMIZE: Replace with your funding platform usernames
+# Uncomment and configure the platforms you use
+
+# GitHub Sponsors
+github: [YOUR_GITHUB_USERNAME]
+
+# Other funding platforms (uncomment to enable)
+# patreon: YOUR_PATREON_USERNAME
+# open_collective: YOUR_COLLECTIVE_NAME
+# ko_fi: YOUR_KOFI_USERNAME
+# tidelift: npm/YOUR_PACKAGE_NAME
+# community_bridge: YOUR_PROJECT_NAME
+# liberapay: YOUR_LIBERAPAY_USERNAME
+# issuehunt: YOUR_ISSUEHUNT_USERNAME
+# lfx_crowdfunding: YOUR_PROJECT_NAME
+# polar: YOUR_POLAR_USERNAME
+
+# Custom sponsorship URLs (max 4)
+# custom: ["https://www.buymeacoffee.com/username", "https://your-sponsor-page.com"]

@@ -1,0 +1,113 @@
+# Snapshot Build Workflow
+# Tests release process on every push without publishing artifacts
+# Validates GoReleaser config, Docker builds, and cross-compilation
+# Catches release issues before tagging
+# Docs: https://goreleaser.com
+
+name: snapshot
+
+on:
+  push:
+    # Optionally limit to specific branches
+    # branches: [main, develop]
+
+    # Optionally skip on tag pushes (since release.yml handles those)
+    tags-ignore:
+      - '**'
+
+permissions:
+  contents: read
+
+jobs:
+  goreleaser-snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0  # Required for GoReleaser changelog
+
+      # Setup Go environment
+      # CUSTOMIZE: Adjust Go version to match your project
+      - name: Install Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '>=1.24'  # CUSTOMIZE: Use your Go version
+
+      # Install Task runner
+      # Task provides consistent build commands across local and CI
+      - name: Install task
+        uses: jaxxstorm/action-install-gh-release@v2.1.0
+        with:
+          repo: go-task/task
+          cache: true  # Cache for faster builds
+          # tag: v3.39.0  # Optionally pin specific version
+
+      # Install GoReleaser
+      # CUSTOMIZE: Pin to specific version if needed
+      - name: Install goreleaser
+        uses: jaxxstorm/action-install-gh-release@v2.1.0
+        with:
+          repo: goreleaser/goreleaser
+          cache: true
+          # tag: v2.5.0  # Optionally pin specific version
+
+      # Setup QEMU for multi-platform Docker builds
+      # Enables building ARM images on x86 runners
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      # Setup Docker Buildx for advanced build features
+      # Required for multi-platform Docker images
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Login to GitHub Container Registry
+      # Required even for snapshot builds if testing Docker functionality
+      # CUSTOMIZE: Add additional registries if needed
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Create snapshot build
+      # This runs GoReleaser in snapshot mode (no publishing)
+      # Requires: Taskfile.yml with 'snapshot' task defined
+      # Example task: goreleaser release --snapshot --clean --skip=publish
+      - name: Create snapshot release
+        shell: /usr/bin/bash {0}
+        run: |
+          task snapshot
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Uncomment if using GoReleaser Pro
+          # GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+
+# Optional: Skip Docker builds in snapshot for faster CI
+# Modify Taskfile.yml:
+# snapshot:
+#   cmds:
+#     - goreleaser release --snapshot --clean --skip=publish,docker
+
+# Optional: Cache Go modules
+# - name: Cache Go modules
+#   uses: actions/cache@v4
+#   with:
+#     path: ~/go/pkg/mod
+#     key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+#     restore-keys: |
+#       ${{ runner.os }}-go-
+
+# Optional: Upload snapshot artifacts for testing
+# - name: Upload snapshot artifacts
+#   uses: actions/upload-artifact@v4
+#   with:
+#     name: snapshot
+#     path: dist/
+
+# Optional: Cancel outdated runs to save CI minutes
+# concurrency:
+#   group: ${{ github.workflow }}-${{ github.ref }}
+#   cancel-in-progress: true

@@ -1,0 +1,71 @@
+# Linter Workflow
+# Runs golangci-lint on every push to validate code quality
+# Docs: https://golangci-lint.run
+
+name: linter
+
+on:
+  push:
+    # Optionally ignore documentation changes
+    # paths-ignore:
+    #   - '**.md'
+    #   - 'docs/**'
+  # Optionally run on pull requests
+  # pull_request:
+  #   branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  linter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # Setup Go environment
+      # CUSTOMIZE: Adjust Go version to match your project
+      - uses: actions/setup-go@v6
+        with:
+          go-version: stable  # Options: stable, 1.24, 1.24.x, >=1.23
+
+      # Install Task runner
+      # Task provides consistent build commands across local and CI
+      - name: Install task
+        uses: jaxxstorm/action-install-gh-release@v2.1.0
+        with:
+          repo: go-task/task
+          cache: enable  # Cache binary for faster subsequent runs
+          # tag: v3.39.0  # Optionally pin specific version
+
+      # Install golangci-lint
+      # CUSTOMIZE: Update version as needed
+      - name: Install golangci-lint
+        uses: jaxxstorm/action-install-gh-release@v2.1.0
+        with:
+          repo: golangci/golangci-lint
+          tag: v2.2.2  # CUSTOMIZE: Use latest or pin to specific version
+          cache: enable
+          binaries-location: golangci-lint-2.2.2-linux-amd64
+
+      # Run linter via Task
+      # Requires: Taskfile.yml with 'linter' task defined
+      # Example task: golangci-lint run --timeout=5m ./...
+      - name: Run linter
+        shell: /usr/bin/bash {0}
+        run: |
+          task linter
+
+# Optional: Add linter annotations
+# This posts linter findings as PR comments
+# - name: golangci-lint
+#   uses: golangci/golangci-lint-action@v6
+#   with:
+#     version: v2.2.2
+#     args: --timeout=5m
+
+# Optional: Cancel outdated runs
+# Saves CI minutes by canceling previous runs on new pushes
+# concurrency:
+#   group: ${{ github.workflow }}-${{ github.ref }}
+#   cancel-in-progress: true

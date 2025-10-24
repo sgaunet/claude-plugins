@@ -1,0 +1,102 @@
+# Dependabot Configuration
+# Automated dependency updates for security and maintenance
+# Docs: https://docs.github.com/en/code-security/dependabot
+# CUSTOMIZE: Adjust update frequency, limits, and package ecosystems
+
+version: 2
+
+updates:
+  # Go module dependencies
+  # Updates dependencies in go.mod and go.sum
+  - package-ecosystem: gomod
+    directory: "/"  # Root directory (change if go.mod is elsewhere)
+    schedule:
+      interval: monthly  # Options: daily, weekly, monthly
+      # time: "04:00"  # Optional: Specify time (UTC)
+      # day: "monday"  # Optional: Day for weekly updates
+    open-pull-requests-limit: 10  # Max concurrent PRs
+
+    # Optional: Group updates
+    # groups:
+    #   minor-updates:
+    #     patterns:
+    #       - "*"
+    #     update-types:
+    #       - "minor"
+    #       - "patch"
+
+    # Optional: Ignore specific packages
+    # ignore:
+    #   - dependency-name: "github.com/example/package"
+    #     versions: ["2.x"]
+
+    # Optional: Custom labels
+    # labels:
+    #   - "dependencies"
+    #   - "go"
+
+    # Optional: Custom commit message
+    # commit-message:
+    #   prefix: "chore"
+    #   prefix-development: "chore"
+    #   include: "scope"
+
+  # Docker base images
+  # Scans Dockerfile(s) for base image updates
+  - package-ecosystem: docker
+    directory: "/"  # Searches all Dockerfiles recursively
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 10
+
+    # Optional: Multiple Dockerfiles
+    # Add more entries for different directories:
+    # - package-ecosystem: docker
+    #   directory: "/docker"
+    #   schedule:
+    #     interval: monthly
+
+  # GitHub Actions
+  # Updates action versions in workflow files
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 10
+
+    # Optional: Group GitHub Actions updates
+    # groups:
+    #   github-actions:
+    #     patterns:
+    #       - "*"
+
+# Additional package ecosystems (uncomment if needed):
+
+# NPM (if using Node.js)
+# - package-ecosystem: npm
+#   directory: "/"
+#   schedule:
+#     interval: weekly
+#   open-pull-requests-limit: 10
+
+# pip (if using Python)
+# - package-ecosystem: pip
+#   directory: "/"
+#   schedule:
+#     interval: weekly
+#   open-pull-requests-limit: 10
+
+# Terraform (if using Infrastructure as Code)
+# - package-ecosystem: terraform
+#   directory: "/"
+#   schedule:
+#     interval: monthly
+#   open-pull-requests-limit: 5
+
+# Best Practices:
+# 1. Enable auto-merge for low-risk updates:
+#    Settings → Branches → Branch protection → Allow auto-merge
+# 2. Review security updates immediately
+# 3. Group minor/patch updates to reduce PR noise
+# 4. Use weekly updates for active development
+# 5. Monitor Dependabot alerts: Security → Dependabot alerts
