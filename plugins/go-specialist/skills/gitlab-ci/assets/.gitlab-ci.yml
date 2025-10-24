@@ -1,0 +1,139 @@
+# GitLab CI/CD Pipeline for Go Projects
+# This pipeline provides:
+# - Unit testing on every push
+# - Optional coverage reporting
+# - Snapshot builds (test releases without publishing)
+# - Production releases on Git tags
+#
+# Prerequisites:
+# - Go project with go.mod
+# - .goreleaser.yml configuration
+# - GitLab Runner with Docker executor
+# - (Optional) Taskfile.yml for build commands
+#
+# Built-in GitLab variables used:
+# - CI_REGISTRY: GitLab Container Registry URL
+# - CI_REGISTRY_IMAGE: Full image path (registry.gitlab.com/owner/project)
+# - CI_REGISTRY_USER: Registry username (gitlab-ci-token)
+# - CI_JOB_TOKEN: Automatically generated authentication token
+#
+# Custom variables (optional, set in Settings → CI/CD → Variables):
+# - EXTERNAL_CI_REGISTRY: External registry URL (e.g., docker.io)
+# - EXTERNAL_CI_REGISTRY_USER: External registry username
+# - EXTERNAL_CI_REGISTRY_PASSWORD: External registry password (mark as protected & masked)
+
+# Reusable Docker configuration snippet
+# Configures authentication for GitLab Container Registry and optional external registry
+.snippets:
+  config-docker-script: |
+    test ! -d $HOME/.docker && mkdir $HOME/.docker
+    if [ -z "$EXTERNAL_CI_REGISTRY" ] || [ -z "$EXTERNAL_CI_REGISTRY_USER" ] || [ -z "$EXTERNAL_CI_REGISTRY_PASSWORD" ]
+    then
+      echo "INFO: No EXTERNAL REGISTRY SETUP"
+      echo "{ \"auths\": { \"${CI_REGISTRY}\": { \"username\": \"${CI_REGISTRY_USER}\", \"password\": \"${CI_JOB_TOKEN}\" } } }" > "$HOME/.docker/config.json"
+    else
+      CI_REGISTRY_AUTH=$(echo -n ${CI_REGISTRY_USER}:${CI_JOB_TOKEN} | base64 | tr -d "\n")
+      EXTERNAL_CI_REGISTRY_AUTH=$(echo -n ${EXTERNAL_CI_REGISTRY_USER}:${EXTERNAL_CI_REGISTRY_PASSWORD} | base64 | tr -d "\n")
+
+      echo -e "{ \"auths\": { \"${CI_REGISTRY}\": \n{ \"auth\": \"${CI_REGISTRY_AUTH}\" } ,\n\
+                  \"${EXTERNAL_CI_REGISTRY}\": \n{ \"auth\": \"${EXTERNAL_CI_REGISTRY_AUTH}\" } }}" > "$HOME/.docker/config.json"
+    fi
+
+# Pipeline stages
+stages:
+  - build
+  - test
+  - release
+  - deploy
+
+# Global variables for Docker-in-Docker
+variables:
+  DOCKER_HOST: tcp://docker:2375/
+
+# Unit Tests
+# Runs on every push to validate code changes
+unit-tests:
+  stage: test
+  services:
+    - docker:20.10.16-dind  # Docker-in-Docker service for containerized tests
+  image:
+    name: golang:1.25.1  # CUSTOMIZE: Update to your Go version
+    entrypoint: [""]
+  script:
+    - go generate ./...  # Generate code if needed
+    - go test -v ./...   # Run all tests
+    # CUSTOMIZE: Add test flags as needed
+    # - go test -v -race ./...                    # Add race detection
+    # - go test -v -coverprofile=coverage.out ./... # Generate coverage
+  tags:
+    - gitlab-org-docker  # CUSTOMIZE: Update to match your runner tags
+
+# Coverage Reporting (Optional)
+# Generates test coverage reports and displays coverage percentage
+# Uncomment this job to enable coverage tracking and GitLab coverage badge
+# coverage:
+#   stage: test
+#   services:
+#     - docker:20.10.16-dind
+#   image:
+#     name: golang:1.25.1  # CUSTOMIZE: Update to your Go version
+#     entrypoint: [""]
+#   script:
+#     - go generate ./...
+#     - go test -coverpkg=./... -coverprofile=profile.cov ./...
+#     # CUSTOMIZE: Exclude specific packages from coverage if needed
+#     # - sed -i '/cmd\//d' profile.cov           # Exclude all cmd packages
+#     # - sed -i '/internal\/mocks/d' profile.cov # Exclude mock implementations
+#     # - sed -i '/pkg\/generated/d' profile.cov  # Exclude generated code
+#     - go tool cover -func profile.cov
+#     - rm profile.cov
+#   coverage: '/^total:\s+\(statements\)\s+\d+\.\d+%/'  # Regex to extract coverage percentage
+#   tags:
+#     - gitlab-org-docker  # CUSTOMIZE: Update to match your runner tags
+
+# Build Snapshot
+# Tests the release build process on every push without publishing
+# Validates GoReleaser configuration and Docker builds before tagging
+build-snapshot:
+  stage: build
+  image:
+    name: goreleaser/goreleaser:v2.12.0  # CUSTOMIZE: Update GoReleaser version
+    entrypoint: ['']
+  services:
+    - docker:20.10.16-dind  # Docker-in-Docker for container builds
+  variables:
+    # Disable shallow cloning so GoReleaser can generate changelog
+    GIT_DEPTH: 0
+  script:
+    - !reference [ .snippets, config-docker-script ]  # Configure Docker authentication
+    - goreleaser --snapshot --clean  # Create snapshot build (no publish)
+    # OPTIONAL: Create development tags for testing
+    # - docker tag ${CI_REGISTRY_IMAGE}:latest-amd64 ${CI_REGISTRY_IMAGE}:dev
+    # - docker push ${CI_REGISTRY_IMAGE}:dev
+  tags:
+    - gitlab-org-docker  # CUSTOMIZE: Update to match your runner tags
+
+# Build Release
+# Creates production releases on Git tag push
+# Publishes binaries, Docker images to GitLab Container Registry, and GitLab Release
+build-release:
+  stage: release
+  image:
+    name: goreleaser/goreleaser:v2.12.0  # CUSTOMIZE: Update GoReleaser version
+    entrypoint: ['']
+  only:
+    - tags  # Only run on Git tag push
+    # CUSTOMIZE: Filter specific tag patterns
+    # - /^v\d+\.\d+\.\d+$/  # Only semantic version tags (v1.2.3)
+  services:
+    - docker:20.10.16-dind  # Docker-in-Docker for multi-arch builds
+  variables:
+    # Disable shallow cloning so GoReleaser can generate changelog
+    GIT_DEPTH: 0
+  script:
+    - !reference [ .snippets, config-docker-script ]  # Configure Docker authentication
+    - goreleaser --clean  # Create full release with Docker images and binaries
+    # CUSTOMIZE: Add post-release actions if needed
+    # - echo "Released version ${CI_COMMIT_TAG}"
+  tags:
+    - gitlab-org-docker  # CUSTOMIZE: Update to match your runner tags
