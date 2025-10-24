@@ -1,0 +1,309 @@
+# GoReleaser Configuration Template
+# Replace PROJECT_NAME, REGISTRY_URL, and OWNER with your actual values
+# Docs: https://goreleaser.com
+
+version: 2
+
+# Project name used in releases, archives, and Docker images
+# CUSTOMIZE: Replace with your project name (lowercase, no spaces)
+project_name: "PROJECT_NAME"
+
+# Hooks to run before building
+before:
+  hooks:
+    # Download dependencies
+    - go mod download
+    # Run code generation if using go:generate
+    - go generate ./...
+
+# Build configuration
+builds:
+  - # Disable CGO for static binaries (recommended)
+    env:
+      - CGO_ENABLED=0
+
+    # CUSTOMIZE: Directory containing main.go
+    # Use "." if main.go is in root, "cmd" if in cmd/, etc.
+    dir: cmd
+
+    # Inject version information at build time
+    # CUSTOMIZE: Adjust variable name if your main package uses different variable
+    ldflags:
+      - -X main.version={{.Version}}
+      # Optional: Add more build info
+      # - -X main.commit={{.Commit}}
+      # - -X main.date={{.Date}}
+      # - -s -w  # Strip debug info for smaller binaries
+
+    # Target operating systems
+    # Options: linux, darwin (macOS), windows, freebsd, openbsd, netbsd
+    goos:
+      - linux
+      - darwin
+      # - windows  # Uncomment if Windows support needed
+
+    # Target architectures
+    # Options: amd64, arm64, arm, 386, ppc64le, s390x
+    goarch:
+      - amd64   # x86_64: Most servers, desktops
+      - arm     # ARM 32-bit: Raspberry Pi, embedded
+      - arm64   # ARM 64-bit: Apple Silicon, AWS Graviton, modern ARM
+
+    # ARM variants (only applies when goarch includes "arm")
+    # Options: "5", "6", "7"
+    goarm:
+      - "6"  # ARMv6: Raspberry Pi Zero/1
+      - "7"  # ARMv7: Raspberry Pi 2/3/4
+
+    # Optional: Ignore specific combinations
+    # ignore:
+    #   - goos: darwin
+    #     goarch: arm
+    #   - goos: windows
+    #     goarch: arm64
+
+# Archive configuration
+archives:
+  - # Archive naming: PROJECT_NAME_v1.0.0_linux_amd64
+    name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
+
+    # Archive format (binary = no compression, faster)
+    # Options: tar.gz, zip, binary
+    formats: ["binary"]
+
+    # Alternative: Use compressed archives
+    # formats: ["tar.gz"]
+    # format_overrides:
+    #   - goos: windows
+    #     format: zip
+
+# Generate checksums file for verification
+checksum:
+  name_template: 'checksums.txt'
+  algorithm: sha256  # Options: sha256, sha512, sha1, md5
+
+# Changelog configuration
+changelog:
+  sort: asc  # Ascending order (oldest to newest)
+  filters:
+    exclude:
+      # Exclude commits that don't affect users
+      - '^docs:'        # Documentation updates
+      - '^test:'        # Test-only changes
+      - '^ci:'          # CI configuration
+      - '^chore:'       # Maintenance tasks
+      # - '^style:'     # Code style changes
+      # - '^refactor:'  # Refactoring
+
+# Docker image builds (multi-architecture)
+# CUSTOMIZE: Update registry URLs and authentication
+dockers:
+  # AMD64 / x86_64 image
+  - use: buildx
+    goos: linux
+    goarch: amd64
+
+    # Image naming templates
+    # CUSTOMIZE: Replace REGISTRY_URL and OWNER
+    # Examples:
+    #   - GitHub: ghcr.io/OWNER/PROJECT_NAME
+    #   - GitLab: registry.gitlab.com/OWNER/PROJECT_NAME
+    #   - Docker Hub: docker.io/OWNER/PROJECT_NAME
+    image_templates:
+      - "REGISTRY_URL/OWNER/{{ .ProjectName }}:{{ .Version }}-amd64"
+      - "REGISTRY_URL/OWNER/{{ .ProjectName }}:latest-amd64"
+
+    # Build flags for docker buildx
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.source={{.GitURL}}"
+
+    # Copy additional files into build context
+    # CUSTOMIZE: Add any files/directories needed in Docker image
+    extra_files:
+      - resources
+
+  # ARM64v8 / aarch64 image (Apple Silicon, AWS Graviton)
+  - use: buildx
+    goos: linux
+    goarch: arm64
+    image_templates:
+      - "REGISTRY_URL/OWNER/{{ .ProjectName }}:{{ .Version }}-arm64v8"
+      - "REGISTRY_URL/OWNER/{{ .ProjectName }}:latest-arm64v8"
+    build_flag_templates:
+      - "--platform=linux/arm64/v8"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.source={{.GitURL}}"
+    extra_files:
+      - resources
+
+  # ARMv6 image (Raspberry Pi Zero/1)
+  - use: buildx
+    goos: linux
+    goarch: arm
+    goarm: "6"
+    image_templates:
+      - "REGISTRY_URL/OWNER/{{ .ProjectName }}:{{ .Version }}-armv6"
+      - "REGISTRY_URL/OWNER/{{ .ProjectName }}:latest-armv6"
+    build_flag_templates:
+      - "--platform=linux/arm/v6"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.source={{.GitURL}}"
+    extra_files:
+      - resources
+
+  # ARMv7 image (Raspberry Pi 2/3/4)
+  - use: buildx
+    goos: linux
+    goarch: arm
+    goarm: "7"
+    image_templates:
+      - "REGISTRY_URL/OWNER/{{ .ProjectName }}:{{ .Version }}-armv7"
+      - "REGISTRY_URL/OWNER/{{ .ProjectName }}:latest-armv7"
+    build_flag_templates:
+      - "--platform=linux/arm/v7"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.source={{.GitURL}}"
+    extra_files:
+      - resources
+
+# Docker manifests (multi-architecture image tags)
+# Allows users to pull a single tag and get correct architecture automatically
+docker_manifests:
+  # Version-specific manifest (e.g., v1.0.0)
+  - name_template: REGISTRY_URL/OWNER/{{ .ProjectName }}:{{ .Version }}
+    image_templates:
+      - REGISTRY_URL/OWNER/{{ .ProjectName }}:{{ .Version }}-amd64
+      - REGISTRY_URL/OWNER/{{ .ProjectName }}:{{ .Version }}-arm64v8
+      - REGISTRY_URL/OWNER/{{ .ProjectName }}:{{ .Version }}-armv6
+      - REGISTRY_URL/OWNER/{{ .ProjectName }}:{{ .Version }}-armv7
+
+  # Latest manifest
+  - name_template: REGISTRY_URL/OWNER/{{ .ProjectName }}:latest
+    image_templates:
+      - REGISTRY_URL/OWNER/{{ .ProjectName }}:latest-amd64
+      - REGISTRY_URL/OWNER/{{ .ProjectName }}:latest-arm64v8
+      - REGISTRY_URL/OWNER/{{ .ProjectName }}:latest-armv6
+      - REGISTRY_URL/OWNER/{{ .ProjectName }}:latest-armv7
+
+# Homebrew formula publishing (macOS package manager)
+# OPTIONAL: Remove this section if not publishing to Homebrew
+brews:
+  - # Project homepage
+    # CUSTOMIZE: Replace with your GitHub/GitLab URL
+    homepage: 'https://github.com/OWNER/PROJECT_NAME'
+
+    # Project description
+    # CUSTOMIZE: Add meaningful description
+    description: 'A tool for [describe your project]'
+
+    # Tap repository directory
+    directory: Formula
+
+    # Commit author for tap updates
+    # CUSTOMIZE: Replace with your GitHub info
+    commit_author:
+      name: OWNER
+      email: YOUR_EMAIL@example.com
+
+    # Homebrew tap repository
+    # CUSTOMIZE: Create a homebrew-tools (or homebrew-tap) repository
+    repository:
+      owner: OWNER
+      name: homebrew-tools
+      # Required: Personal Access Token with 'repo' scope
+      # Set HOMEBREW_TAP_TOKEN in CI/CD secrets
+      token: '{{ .Env.HOMEBREW_TAP_TOKEN }}'
+
+    # Download URL template for binaries
+    # CUSTOMIZE: Update URL to match your repository
+    url_template: 'https://github.com/OWNER/PROJECT_NAME/releases/download/{{ .Tag }}/{{ .ArtifactName }}'
+
+    # Installation script
+    install: |
+      bin.install "{{ .ArtifactName }}" => "PROJECT_NAME"
+
+    # Test script (validates installation)
+    test: |
+      system "#{bin}/PROJECT_NAME", "--help"
+
+    # Optional: Add dependencies
+    # dependencies:
+    #   - name: git
+    #   - name: docker
+
+# Optional: Snapcraft (Linux Snap packages)
+# Uncomment to publish to Snap Store
+# snapcrafts:
+#   - name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+#     summary: Short description (max 78 chars)
+#     description: |
+#       Longer description for Snap Store.
+#     grade: stable
+#     confinement: strict
+#     publish: true
+
+# Optional: Scoop (Windows package manager)
+# Uncomment to publish to Scoop
+# scoop:
+#   bucket:
+#     owner: OWNER
+#     name: scoop-bucket
+#   homepage: https://github.com/OWNER/PROJECT_NAME
+#   description: A tool for [describe your project]
+#   license: MIT
+
+# Optional: AUR (Arch Linux User Repository)
+# Uncomment to publish to AUR
+# aurs:
+#   - name: PROJECT_NAME-bin
+#     homepage: https://github.com/OWNER/PROJECT_NAME
+#     description: A tool for [describe your project]
+#     maintainers:
+#       - 'Your Name <email@example.com>'
+#     license: MIT
+#     private_key: '{{ .Env.AUR_KEY }}'
+
+# Optional: Sign releases with GPG
+# Uncomment if using release signing
+# signs:
+#   - artifacts: checksum
+#     args:
+#       - "--batch"
+#       - "--local-user"
+#       - "{{ .Env.GPG_FINGERPRINT }}"
+#       - "--output"
+#       - "${signature}"
+#       - "--detach-sign"
+#       - "${artifact}"
+
+# Optional: SBOM (Software Bill of Materials)
+# Uncomment to generate SBOM for supply chain security
+# sboms:
+#   - artifacts: archive
+#   - id: source
+#     artifacts: source
+
+# Optional: Announce releases
+# Uncomment to send release notifications
+# announce:
+#   slack:
+#     enabled: true
+#     message_template: 'New release: {{ .ProjectName }} {{ .Tag }} is out!'
+#     channel: '#releases'
+#   discord:
+#     enabled: true
+#     message_template: 'New release: {{ .ProjectName }} {{ .Tag }}'
