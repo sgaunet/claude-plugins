@@ -14,3 +14,8 @@ tasks:
       - claude plugin validate plugins/software-engineering
       - claude plugin validate plugins/go-specialist
       - claude plugin validate .
+
+  check-versions:
+    desc: "Check version synchronization between marketplace.json and plugin.json files"
+    cmds:
+      - ./scripts/check-versions.sh
