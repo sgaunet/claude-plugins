@@ -2,6 +2,8 @@
 name: golang-pro
 description: Master Go language (also called golang) 1.25+ with modern patterns, advanced concurrency, performance optimization, and production-ready microservices. Expert in the latest Go ecosystem including generics, workspaces, and cutting-edge frameworks. Use PROACTIVELY for Go development, architecture design, or performance optimization.
 model: sonnet
+permissionMode: acceptAll
+skills: linter, github-workflows,gitlab-ci,goreleaser
 color: green
 ---
 
