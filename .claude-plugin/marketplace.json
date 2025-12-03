@@ -21,7 +21,7 @@
       "name": "software-engineering",
       "source": "./plugins/software-engineering",
       "description": "Code review, debugging, documentation, licensing, payments, and frontend development workflows",
-      "version": "0.8.2",
+      "version": "0.8.3",
       "author": {
         "name": "Sylvain"
       }
