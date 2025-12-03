@@ -1,6 +1,6 @@
 {
   "name": "go-specialist",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "Master Go 1.25+ development with modern patterns, concurrency, and performance optimization",
   "author": {
     "name": "Sylvain",

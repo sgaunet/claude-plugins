@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "A file was just modified via $ARGUMENTS.tool_name. Check if the file path ($ARGUMENTS.tool_input.file_path) is a Go source file (.go), go.mod, or go.sum. If yes, proactively invoke the golang-pro agent to provide Go language expertise, code review, performance optimization suggestions, or architectural guidance for the Go code."
+          }
+        ]
+      }
+    ]
+  }
+}
