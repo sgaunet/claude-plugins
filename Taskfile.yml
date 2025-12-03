@@ -19,3 +19,8 @@ tasks:
     desc: "Check version synchronization between marketplace.json and plugin.json files"
     cmds:
       - ./scripts/check-versions.sh
+
+  update-version:
+    desc: "Update version for affected plugins (usage: task update-version -- patch|minor|major)"
+    cmds:
+      - ./scripts/update-version.sh {{.CLI_ARGS}}
