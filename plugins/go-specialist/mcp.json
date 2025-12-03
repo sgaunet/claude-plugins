@@ -17,6 +17,10 @@
 		},
 		"gitlab-mcp": {
 			"command": "gitlab-mcp"
+		},
+		"perplexity-ai": {
+			"command": "pplx",
+			"args": ["mcp-stdio"]
 		}
 	}
 }
