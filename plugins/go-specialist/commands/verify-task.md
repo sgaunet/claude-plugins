@@ -2,7 +2,6 @@
 description: Verify task implementation quality and completeness using TDD methodology validation, Go library documentation alignment, and comprehensive testing
 argument-hint: "<task-id>"
 allowed-tools: Read, Grep, Glob, Bash, WebFetch, mcp__task-master__
-model: sonnet
 ---
 
 # Verify Task
@@ -26,13 +25,23 @@ Verify the quality and completeness of a task implementation using the task-mast
    - Check file structure matches specifications
    - Verify all required methods/functions are implemented
 
-3. **Validate Implementation**
+3. **Validate Library Usage with Context7**
+
+   If the task uses third-party Go libraries:
+   - Use `mcp__context7__resolve-library-id` to identify libraries
+   - Use `mcp__context7__get-library-docs` to fetch official documentation
+   - Verify code follows official library patterns and best practices
+   - Check for deprecated APIs or outdated usage
+   - Validate proper usage of library features and idioms
+   - Ensure imports and function signatures match official documentation
+
+4. **Validate Implementation**
    - Use `Grep` to search for required patterns and implementations
    - Check against requirements checklist
    - Verify all subtasks are complete
    - Ensure no breaking changes to existing code
 
-4. **Run Comprehensive Tests**
+5. **Run Comprehensive Tests**
    ```bash
    # Run all tests with verbose output
    go test -v ./...
@@ -61,7 +70,7 @@ Verify the quality and completeness of a task implementation using the task-mast
    golangci-lint run ./...
    ```
 
-5. **Validate Go Library Documentation**
+6. **Validate Go Library Documentation**
    - Identify Go libraries used in the implementation
    - Use `WebFetch` to retrieve documentation from pkg.go.dev
    - Example: `WebFetch("https://pkg.go.dev/github.com/sgaunet/perplexity-go/v2", "Extract API usage patterns, best practices, and implementation examples")`
@@ -71,14 +80,14 @@ Verify the quality and completeness of a task implementation using the task-mast
      - Ensure proper context usage
      - Validate configuration and initialization patterns
 
-6. **Verify Quality Standards**
+7. **Verify Quality Standards**
    - **TDD Methodology**: Confirm RED-GREEN-REFACTOR workflow was followed
    - **Documentation Compliance**: Implementation follows pkg.go.dev best practices
    - **Code Standards**: Implementation follows collective agent patterns
    - **Quality Gates**: All mandatory validation checkpoints passed
    - **Dependencies**: All task dependencies were actually completed
 
-7. **Generate Verification Report**
+8. **Generate Verification Report**
 
 ## Report Format
 

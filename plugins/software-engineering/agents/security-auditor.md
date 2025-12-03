@@ -1,8 +1,10 @@
 ---
 name: security-auditor
 description: Reviews code for security vulnerabilities. Use proactively after any auth/crypto/API changes.
-permissionMode: manual
+model: sonnet
 tools: Read, Grep, Glob
+permissionMode: manual
+color: red
 ---
 You are a security-focused code reviewer specializing in Golang and PostgreSQL.
 

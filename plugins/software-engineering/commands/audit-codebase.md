@@ -1,7 +1,6 @@
 ---
 description: Audit codebase for security vulnerabilities, performance issues, and best practices violations. Generate comprehensive report with actionable recommendations.
 allowed-tools: Read, Grep, Glob, Bash
-model: sonnet
 ---
 
 Audit the code for potential security vulnerabilities, performance issues, and adherence to best practices. Provide a detailed report with recommendations for improvements.
