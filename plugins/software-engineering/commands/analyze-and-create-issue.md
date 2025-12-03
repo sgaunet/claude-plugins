@@ -1,3 +1,10 @@
+---
+description: Analyze codebase for improvements and create GitHub/GitLab issues for each finding with user confirmation
+argument-hint: "[optional: domain to focus analysis, e.g., 'security', 'performance', 'documentation']"
+allowed-tools: Read, Grep, Glob, Bash, mcp__github__, mcp__gitlab-mcp__
+model: sonnet
+---
+
 # Analyze And Create Issue Command
 
 Analyze codebase to find improvements. For each improvement:
