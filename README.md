@@ -37,3 +37,6 @@ within claude:
 /plugin
 ```
 
+## Development
+
+Use of tool https://github.com/ffurrer2/semver
