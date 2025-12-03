@@ -1,7 +1,6 @@
 ---
 description: Update GitHub or GitLab project description and topics/tags based on README.md analysis
 allowed-tools: Read, Grep, Bash, mcp__github__, mcp__gitlab-mcp__
-model: sonnet
 ---
 
 # Update Project Description Command

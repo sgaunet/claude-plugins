@@ -1,7 +1,6 @@
 ---
 description: Review and refine existing PRD by identifying unclear statements, gaps, and ambiguities. Ask clarifying questions and update document.
 argument-hint: "<path-to-prd-file>"
-model: sonnet
 ---
 
 # Refine PRD Command

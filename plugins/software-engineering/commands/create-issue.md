@@ -2,7 +2,6 @@
 description: Create a GitHub or GitLab issue for the current repository with proper formatting and user confirmation
 argument-hint: "<issue-topic-or-description>"
 allowed-tools: Read, Grep, Glob, Bash, mcp__github__, mcp__gitlab-mcp__
-model: sonnet
 ---
 
 # Create Issue Command

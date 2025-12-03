@@ -1,7 +1,6 @@
 ---
 description: Generate and execute git commit with conventional commit format. Analyzes staged changes and requests user confirmation before committing.
 allowed-tools: Read, Grep, Glob, Bash
-model: sonnet
 ---
 
 # Git Commit Command
