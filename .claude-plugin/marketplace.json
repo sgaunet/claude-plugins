@@ -12,7 +12,7 @@
       "name": "devops-infrastructure",
       "source": "./plugins/devops-infrastructure",
       "description": "Infrastructure as Code, CI/CD pipelines, and database specialists for DevOps workflows",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "author": {
         "name": "Sylvain"
       }
@@ -21,7 +21,7 @@
       "name": "software-engineering",
       "source": "./plugins/software-engineering",
       "description": "Code review, debugging, documentation, licensing, payments, and frontend development workflows",
-      "version": "0.7.2",
+      "version": "0.8.0",
       "author": {
         "name": "Sylvain"
       }
@@ -30,7 +30,7 @@
       "name": "go-specialist",
       "source": "./plugins/go-specialist",
       "description": "Master Go 1.25+ development with modern patterns, concurrency, and performance optimization",
-      "version": "0.6.1",
+      "version": "0.7.0",
       "author": {
         "name": "Sylvain"
       }
