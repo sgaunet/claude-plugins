@@ -1,3 +1,9 @@
+---
+description: Update GitHub or GitLab project description and topics/tags based on README.md analysis
+allowed-tools: Read, Grep, Bash, mcp__github__, mcp__gitlab-mcp__
+model: sonnet
+---
+
 # Update Project Description Command
 
 Update the description and topics of the current project. This command automatically detects whether the repository is hosted on GitHub or GitLab and uses the appropriate MCP server to update the project metadata (description and topics/tags).

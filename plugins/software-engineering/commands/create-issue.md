@@ -1,3 +1,10 @@
+---
+description: Create a GitHub or GitLab issue for the current repository with proper formatting and user confirmation
+argument-hint: "<issue-topic-or-description>"
+allowed-tools: Read, Grep, Glob, Bash, mcp__github__, mcp__gitlab-mcp__
+model: sonnet
+---
+
 # Create Issue Command
 
 Create an issue for the current git repository. This command automatically detects whether the repository is hosted on GitHub or GitLab and uses the appropriate MCP server.
@@ -12,11 +19,13 @@ git remote -v
 
 2. **Validate Arguments**: Ensure the issue topic/description is provided as `$argument`
 
-3. **Create Issue**: Use the appropriate MCP server:
+3. Always list available labels using the MCP server before creating the issue. Do not add labels that do not exist in the host repository.
+
+4. **Create Issue**: Use the appropriate MCP server:
    - **GitHub**: Use `mcp__github__create_issue`
    - **GitLab**: Use `mcp__gitlab-mcp__create_issues`
 
-4. **Request Permission**: Always ask the user for permission before creating the issue
+5. **Request Permission**: Always ask the user for permission before creating the issue
 
 ## Issue Content Guidelines
 

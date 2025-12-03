@@ -1,3 +1,9 @@
+---
+description: Generate and execute git commit with conventional commit format. Analyzes staged changes and requests user confirmation before committing.
+allowed-tools: Read, Grep, Glob, Bash
+model: sonnet
+---
+
 # Git Commit Command
 
 Generate a git commit for staged changes using conventional commit format. This command analyzes the current git state, creates an appropriate commit message, and executes the commit with user permission.
@@ -10,7 +16,7 @@ Generate a git commit for staged changes using conventional commit format. This 
    git diff --staged
    ```
 
-2. **Generate Commit Message**: Create a conventional commit message based on the changes
+2. **Generate Commit Message**: Create a conventional commit message based on the changes (without Claude Code attribution)
 
 3. **Request Permission**: Always ask user confirmation before executing the commit
 

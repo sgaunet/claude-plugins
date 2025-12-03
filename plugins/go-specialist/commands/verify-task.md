@@ -1,3 +1,10 @@
+---
+description: Verify task implementation quality and completeness using TDD methodology validation, Go library documentation alignment, and comprehensive testing
+argument-hint: "<task-id>"
+allowed-tools: Read, Grep, Glob, Bash, WebFetch, mcp__task-master__
+model: sonnet
+---
+
 # Verify Task
 
 Verify the quality and completeness of a task implementation using the task-master MCP integration. This command validates TDD methodology compliance, Go library documentation alignment, and comprehensive quality gates.

@@ -1,3 +1,9 @@
+---
+description: Create Product Requirement Document using PRD methodology. Invokes the prd skill to gather requirements and define features.
+argument-hint: "<feature-to-design>"
+model: sonnet
+---
+
 # Create PRD Command
 
 Create a PRD (Product Requirement Document) for the current software project.
