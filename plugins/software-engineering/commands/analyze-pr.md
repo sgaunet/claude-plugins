@@ -1,7 +1,7 @@
 ---
 description: Comprehensive PR review including code quality, security, and test coverage analysis
 argument-hint: "<pr-number>"
-allowed-tools: Read, Grep, Glob, Bash, mcp__github__, mcp__gitlab-mcp__
+allowed-tools: Read, Grep, Glob, Bash(git remote:*), Task, mcp__github__pull_request_read, mcp__gitlab-mcp__get_merge_request, mcp__github__add_comment_to_pending_review, mcp__gitlab-mcp__add_merge_request_note, AskUserQuestion
 ---
 
 # Analyze Pull Request Command
@@ -19,20 +19,71 @@ Perform comprehensive analysis of a pull request including code review, security
    - GitHub: `mcp__github__pull_request_read` (method: get, get_files, get_diff)
    - GitLab: `mcp__gitlab-mcp__get_merge_request`
 
-3. **Analyze Changes**:
-   - **Code Quality**: Invoke `code-review-enforcer` agent on modified files
-   - **Security**: Invoke `security-auditor` agent if auth/crypto files changed
-   - **Test Coverage**: Check if tests added for new functionality
-   - **Documentation**: Verify README/docs updated if public API changed
+3. **Analyze Changes**: Launch 4 parallel Sonnet agents to independently review the pull request:
 
-4. **Generate Report**: Create structured markdown report with:
+   **Agent #1: Code Quality Review** (`code-review-enforcer` agent)
+   - Review modified files for code quality issues
+   - Check for logic errors, error handling, performance issues
+   - Verify adherence to coding standards
+   - Return: list of issues with severity levels and line numbers
+
+   **Agent #2: Security Analysis** (`security-auditor` agent)
+   - Scan for security vulnerabilities in modified files
+   - Focus on auth/crypto changes, input validation, SQL injection
+   - Check for exposed secrets or sensitive data
+   - Return: list of security findings with CVSS-like severity ratings
+
+   **Agent #3: Test Coverage Assessment**
+   - Analyze modified files to identify new functionality
+   - Check if corresponding tests were added
+   - Evaluate test quality and edge case coverage
+   - Return: coverage report with missing test scenarios
+
+   **Agent #4: Documentation Validation**
+   - Detect if public API or user-facing features changed
+   - Verify README.md, API docs, CHANGELOG updated
+   - Check for inline code documentation completeness
+   - Return: list of missing or outdated documentation
+
+4. **Validate Findings with Haiku Agents**: For each issue found by the 4 agents above, launch a parallel Haiku agent to score confidence (0-100):
+   - 0: False positive or pre-existing issue
+   - 25: Somewhat confident, might be false positive
+   - 50: Moderately confident, real but minor issue
+   - 75: Highly confident, real issue impacting functionality
+   - 100: Absolutely certain, critical issue
+
+   Filter out issues with confidence score < 80 before including in report.
+
+## Parallel Agent Invocation
+
+Launch agents concurrently using the Task tool:
+
+```
+# Fetch PR details first
+pr_details = mcp__github__pull_request_read(method: "get", owner: owner, repo: repo, pullNumber: pr_number)
+pr_files = mcp__github__pull_request_read(method: "get_files", owner: owner, repo: repo, pullNumber: pr_number)
+pr_diff = mcp__github__pull_request_read(method: "get_diff", owner: owner, repo: repo, pullNumber: pr_number)
+
+# Launch 4 parallel Sonnet agents for analysis
+Task(subagent_type: "code-review-enforcer", model: "sonnet", prompt: "Review PR #${pr_number} for code quality issues. Modified files: ${pr_files}. Diff: ${pr_diff}. Return findings with severity and line numbers.")
+
+Task(subagent_type: "security-auditor", model: "sonnet", prompt: "Scan PR #${pr_number} for security vulnerabilities. Focus on auth/crypto changes. Files: ${pr_files}. Return security findings with severity.")
+
+Task(subagent_type: "general-purpose", model: "sonnet", prompt: "Analyze PR #${pr_number} test coverage. New functionality: ${extract_new_features(pr_diff)}. Verify tests added. Return missing test scenarios.")
+
+Task(subagent_type: "general-purpose", model: "sonnet", prompt: "Validate PR #${pr_number} documentation. API changes: ${extract_api_changes(pr_diff)}. Check README/docs updated. Return missing docs.")
+```
+
+These agents run independently and results are aggregated in step 5.
+
+5. **Generate Report**: Create structured markdown report with:
    - PR summary (title, description, files changed, commits)
    - Code quality findings (issues, suggestions)
    - Security findings (vulnerabilities, risks)
    - Test coverage analysis
    - Overall recommendation (approve/request changes/comment)
 
-5. **Optional**: Ask user if they want to post review comments to PR
+6. **Optional**: Ask user if they want to post review comments to PR
 
 ## Output Format
 

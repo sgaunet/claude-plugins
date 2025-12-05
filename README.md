@@ -2,6 +2,8 @@
 
 A curated collection of specialized Claude Code plugins designed to enhance your development workflow with intelligent agents, skills, and commands.
 
+Official claude code marketplace: [https://github.com/anthropics/claude-code](https://github.com/anthropics/claude-code)
+
 ## Overview
 
 This marketplace provides three comprehensive plugin collections:
