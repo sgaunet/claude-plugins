@@ -1,7 +1,7 @@
 ---
 description: Create a GitHub or GitLab issue for the current repository with proper formatting and user confirmation
 argument-hint: "<issue-topic-or-description>"
-allowed-tools: Read, Grep, Glob, Bash, mcp__github__, mcp__gitlab-mcp__
+allowed-tools: Read, Grep, Glob, Bash(git remote:*), mcp__github__create_issue, mcp__github__get_label, mcp__github__list_labels, mcp__gitlab-mcp__create_issues, mcp__gitlab-mcp__list_labels, AskUserQuestion
 ---
 
 # Create Issue Command

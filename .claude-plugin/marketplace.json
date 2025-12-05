@@ -21,7 +21,7 @@
       "name": "software-engineering",
       "source": "./plugins/software-engineering",
       "description": "Code review, debugging, documentation, licensing, payments, and frontend development workflows",
-      "version": "0.9.0",
+      "version": "0.10.0",
       "author": {
         "name": "Sylvain"
       }
@@ -30,7 +30,7 @@
       "name": "go-specialist",
       "source": "./plugins/go-specialist",
       "description": "Master Go 1.25+ development with modern patterns, concurrency, and performance optimization",
-      "version": "0.7.2",
+      "version": "0.8.0",
       "author": {
         "name": "Sylvain"
       }

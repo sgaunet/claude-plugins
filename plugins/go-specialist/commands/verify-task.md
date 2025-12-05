@@ -1,7 +1,7 @@
 ---
 description: Verify task implementation quality and completeness using TDD methodology validation, Go library documentation alignment, and comprehensive testing
 argument-hint: "<task-id>"
-allowed-tools: Read, Grep, Glob, Bash, WebFetch, mcp__task-master__
+allowed-tools: Read, Grep, Glob, Bash(ls:*), Bash(go test:*), Bash(go vet:*), Bash(go build:*), Bash(golangci-lint:*), WebFetch, mcp__task-master__get_task, mcp__context7__resolve-library-id, mcp__context7__get-library-docs
 ---
 
 # Verify Task
@@ -25,69 +25,92 @@ Verify the quality and completeness of a task implementation using the task-mast
    - Check file structure matches specifications
    - Verify all required methods/functions are implemented
 
-3. **Validate Library Usage with Context7**
+3. **Launch 3 parallel Sonnet agents** to independently validate implementation quality:
 
-   If the task uses third-party Go libraries:
-   - Use `mcp__context7__resolve-library-id` to identify libraries
+   **Agent #1: Library Usage Validator (Context7 Integration)**
+   - Extract all third-party Go libraries from import statements
+   - For each library, use `mcp__context7__resolve-library-id` to identify library
    - Use `mcp__context7__get-library-docs` to fetch official documentation
    - Verify code follows official library patterns and best practices
    - Check for deprecated APIs or outdated usage
    - Validate proper usage of library features and idioms
    - Ensure imports and function signatures match official documentation
+   - Return: list of compliance issues with library name, line number, and recommendation
 
-4. **Validate Implementation**
-   - Use `Grep` to search for required patterns and implementations
-   - Check against requirements checklist
-   - Verify all subtasks are complete
-   - Ensure no breaking changes to existing code
+   **Agent #2: Test Suite Executor**
+   - Run comprehensive test suite in parallel batches:
+     ```bash
+     # Concurrent test execution
+     go test -v ./... &
+     go test -race ./... &
+     go test -cover ./... -coverprofile=coverage.out &
+     go test -bench=. ./... &
+     wait
+     ```
+   - Analyze test results and coverage reports
+   - Return: test pass/fail status, coverage percentage, benchmark results
 
-5. **Run Comprehensive Tests**
-   ```bash
-   # Run all tests with verbose output
-   go test -v ./...
+   **Agent #3: Static Analysis & Code Quality**
+   - Run static analysis tools concurrently:
+     ```bash
+     go vet ./... &
+     go build ./... &
+     golangci-lint run ./... &
+     wait
+     ```
+   - Check for compilation errors, vet warnings, linter issues
+   - Return: list of code quality issues with severity levels
 
-   # Run tests with race detection
-   go test -race ./...
-
-   # Run tests with coverage report
-   go test -cover ./... -coverprofile=coverage.out
-   go tool cover -func=coverage.out
-
-   # Run specific test files or packages if needed
-   go test -v ./path/to/package
-   go test -v -run TestSpecificFunction
-
-   # Run benchmarks if present
-   go test -bench=. ./...
-
-   # Static analysis and vetting
-   go vet ./...
-
-   # Build verification (ensure no compilation errors)
-   go build ./...
-
-   # Linting (if golangci-lint is configured)
-   golangci-lint run ./...
-   ```
-
-6. **Validate Go Library Documentation**
-   - Identify Go libraries used in the implementation
+4. **Validate Go Library Documentation (pkg.go.dev)**
    - Use `WebFetch` to retrieve documentation from pkg.go.dev
    - Example: `WebFetch("https://pkg.go.dev/github.com/sgaunet/perplexity-go/v2", "Extract API usage patterns, best practices, and implementation examples")`
+   - Cross-reference with Agent #1 findings
    - Validate implementation against documented patterns:
-     - Check function signatures match documentation
-     - Verify correct error handling patterns
-     - Ensure proper context usage
-     - Validate configuration and initialization patterns
+     - Function signatures match documentation
+     - Correct error handling patterns
+     - Proper context usage
+     - Configuration and initialization patterns
 
-7. **Verify Quality Standards**
+5. **Aggregate Results & Verify Quality Standards**
+   - Merge findings from all 3 agents
    - **TDD Methodology**: Confirm RED-GREEN-REFACTOR workflow was followed
    - **Documentation Compliance**: Implementation follows pkg.go.dev best practices
    - **Code Standards**: Implementation follows collective agent patterns
    - **Quality Gates**: All mandatory validation checkpoints passed
    - **Dependencies**: All task dependencies were actually completed
 
-8. **Generate Verification Report**
+## Parallel Agent Invocation Pattern
+
+```
+# Step 1 & 2: Retrieve task and verify file structure (sequential)
+task_info = mcp__task-master__get_task(task_id)
+file_structure_check = verify_files_exist(task_info.requirements)
+
+# Step 3: Launch 3 parallel Sonnet agents
+Task(subagent_type: "general-purpose", model: "sonnet", prompt: "Validate Go library usage for task ${task_id}. Files: ${implementation_files}. Use Context7 to fetch official docs and verify compliance. Return library validation issues.")
+
+Task(subagent_type: "general-purpose", model: "sonnet", prompt: "Run comprehensive Go test suite for task ${task_id}. Execute: go test -v, -race, -cover, -bench in parallel. Return test results and coverage report.")
+
+Task(subagent_type: "general-purpose", model: "sonnet", prompt: "Run Go static analysis for task ${task_id}. Execute: go vet, go build, golangci-lint concurrently. Return code quality issues.")
+
+# Step 4: Library documentation validation (can run concurrently with step 3)
+Task(subagent_type: "general-purpose", model: "sonnet", prompt: "Fetch Go library documentation from pkg.go.dev for libraries in ${task_id}. Validate implementation patterns match official examples.")
+
+# Step 5: Aggregate results from all agents
+# Step 6: Generate report
+```
+
+Note: If task uses multiple third-party libraries (e.g., 5+ imports), fetch Context7 documentation in parallel batches:
+
+```
+# Example: 3 libraries
+Task(tool: "mcp__context7__get-library-docs", library: "/gin-gonic/gin")
+Task(tool: "mcp__context7__get-library-docs", library: "/go-chi/chi")
+Task(tool: "mcp__context7__get-library-docs", library: "/gorilla/mux")
+# Results aggregated after all complete
+```
+
+6. **Generate Verification Report**
 
 ## Report Format
 
