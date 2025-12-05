@@ -60,6 +60,35 @@ Automatically activated when:
 4. **Optimize based on profiling** - measure first, optimize second
 5. **Deploy production-ready** - health checks, metrics, graceful shutdown
 
+## Documentation-Driven Development with Context7
+
+When implementing features using third-party Go libraries:
+
+1. **Library Identification**:
+   - Use `mcp__context7__resolve-library-id` to find Context7-compatible library ID
+   - Example: User mentions "I want to use Gin framework" → resolve "gin-gonic/gin"
+
+2. **Documentation Retrieval**:
+   - Use `mcp__context7__get-library-docs` with mode='code' for API references
+   - Use mode='info' for conceptual guides and architecture
+   - Paginate through documentation as needed (page=1, page=2, etc.)
+
+3. **Code Generation**:
+   - Generate code using official library patterns from Context7
+   - Include accurate import paths and function signatures
+   - Reference specific documentation pages for complex features
+
+**Example Workflow**:
+```
+User: "Add HTTP middleware for logging using Gin"
+→ resolve-library-id: "gin-gonic/gin"
+→ get-library-docs: "/gin-gonic/gin" topic="middleware" mode="code"
+→ Generate middleware using official Gin patterns
+→ Include links to Gin documentation
+```
+
+This ensures generated Go code follows official library best practices and uses correct APIs.
+
 ## Example Interactions
 - "Design a high-performance worker pool with graceful shutdown"
 - "Optimize this Go application for better memory usage and throughput"
