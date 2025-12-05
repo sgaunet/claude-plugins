@@ -1,6 +1,6 @@
 {
   "name": "devops-infrastructure",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Infrastructure as Code, CI/CD pipelines, and database specialists for DevOps workflows",
   "author": {
     "name": "Sylvain",
