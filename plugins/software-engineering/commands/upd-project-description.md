@@ -1,5 +1,6 @@
 ---
-description: Update GitHub or GitLab project description and topics/tags based on README.md analysis
+name: upd-project-description
+description: Update repo description and topics from README analysis
 allowed-tools: Read, Bash(git remote:*), Bash(gh:*), Bash(glab:*), mcp__github__get_me, mcp__gitlab-mcp__get_project_description, mcp__gitlab-mcp__get_project_topics, mcp__gitlab-mcp__update_project_description, mcp__gitlab-mcp__update_project_topics
 ---
 

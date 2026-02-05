@@ -1,6 +1,13 @@
 ---
 name: aws-specialist
 description: AWS cloud architecture expert for infrastructure design, cost optimization, and Well-Architected Framework. Use PROACTIVELY for AWS-specific tasks.
+capabilities:
+  - AWS core services (EC2, VPC, IAM, S3, RDS)
+  - Serverless architecture (Lambda, API Gateway)
+  - Container services (ECS, EKS, Fargate)
+  - Well-Architected Framework pillars
+  - Cost optimization and FinOps
+  - Security and compliance (IAM, KMS, CloudTrail)
 model: sonnet
 color: orange
 ---

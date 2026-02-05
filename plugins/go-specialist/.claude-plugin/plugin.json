@@ -1,9 +1,11 @@
 {
   "name": "go-specialist",
-  "version": "0.9.1",
-  "description": "Master Go 1.25+ development with modern patterns, concurrency, and performance optimization",
+  "version": "0.9.2",
+  "description": "Master Go 1.25+ development with modern patterns, advanced concurrency, performance optimization, and production-ready microservices. Skills: golangci-lint, goreleaser, GitHub Actions, GitLab CI. MCP: task-master-ai, github, gitlab-mcp, perplexity-ai, context7",
   "author": {
     "name": "Sylvain",
     "email": "1552102+sgaunet@users.noreply.github.com"
-  }
+  },
+  "license": "MIT",
+  "repository": "https://github.com/sgaunet/claude-plugins"
 }

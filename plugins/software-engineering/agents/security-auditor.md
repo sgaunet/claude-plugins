@@ -1,8 +1,15 @@
 ---
 name: security-auditor
 description: Reviews code for security vulnerabilities. Use proactively after any auth/crypto/API changes.
+capabilities:
+  - Authentication and authorization review
+  - SQL injection detection
+  - XSS and CSRF vulnerability analysis
+  - Input validation and sanitization
+  - Cryptography usage verification
+  - Secrets and credential scanning
 model: sonnet
-tools: Read, Grep, Glob
+allowed-tools: Read, Grep, Glob
 permissionMode: manual
 color: red
 ---

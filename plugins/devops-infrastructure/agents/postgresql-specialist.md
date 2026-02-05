@@ -1,6 +1,13 @@
 ---
 name: postgresql-specialist
 description: PostgreSQL database expert for schema design, query optimization, and performance tuning. Use PROACTIVELY for PostgreSQL-specific tasks.
+capabilities:
+  - PostgreSQL advanced features (JSONB, partitioning, CTEs)
+  - Query optimization and execution plans
+  - Indexing strategies (B-tree, GiST, GIN)
+  - Performance tuning and pg_stat_statements
+  - Replication and high availability
+  - Extensions (pgvector, PostGIS, TimescaleDB)
 model: sonnet
 color: blue
 ---

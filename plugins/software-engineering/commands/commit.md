@@ -1,6 +1,7 @@
 ---
-description: Generate and execute git commit with conventional commit format. Analyzes staged changes and requests user confirmation before committing.
-allowed-tools: Read, Grep, Glob, Bash(git status:*), Bash(git diff:*), Bash(git add:*), Bash(git commit:*), Bash(git log:*)
+name: commit
+description: Create conventional commit from staged changes with approval
+allowed-tools: Read, Grep, Glob, Bash(git status:*), Bash(git diff:*), Bash(git add:*), Bash(git log:*)
 ---
 
 # Git Commit Command

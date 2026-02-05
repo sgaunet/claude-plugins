@@ -1,5 +1,6 @@
 ---
-description: Comprehensive PR review including code quality, security, and test coverage analysis
+name: analyze-pr
+description: Review PR for quality, security, and coverage
 argument-hint: "<pr-number>"
 allowed-tools: Read, Grep, Glob, Bash(git remote:*), Task, mcp__github__pull_request_read, mcp__gitlab-mcp__get_merge_request, mcp__github__add_comment_to_pending_review, mcp__gitlab-mcp__add_merge_request_note, AskUserQuestion
 ---

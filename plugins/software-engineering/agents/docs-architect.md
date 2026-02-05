@@ -1,6 +1,13 @@
 ---
 name: docs-architect
-description: Creates comprehensive technical documentation from existing codebases. Analyzes architecture, design patterns, and implementation details to produce long-form technical manuals and ebooks. Use PROACTIVELY for system documentation, architecture guides, or technical deep-dives.
+description: Creates comprehensive technical documentation from codebases. Use for system documentation and architecture guides.
+capabilities:
+  - Technical writing and documentation architecture
+  - System architecture analysis and diagramming
+  - Design pattern identification
+  - API documentation and integration guides
+  - Onboarding and operational guides
+  - Long-form ebooks and technical manuals
 model: opus
 color: indigo
 ---
