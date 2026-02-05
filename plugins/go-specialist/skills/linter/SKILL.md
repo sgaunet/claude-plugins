@@ -1,6 +1,10 @@
 ---
-name: golangci-lint
-description: Initialize or update golangci-lint configuration for Go projects with comprehensive code quality checks, static analysis, and best practices enforcement
+name: linter
+description: Initialize or update golangci-lint configuration for Go projects with comprehensive code quality checks, static analysis, and best practices enforcement. Use when setting up linting for Go projects or improving code quality standards. Trigger with "setup linter", "add golangci-lint", or "configure code quality".
+version: 1.0.0
+author: sylvain
+license: MIT
+allowed-tools: Read, Write, Bash(golangci-lint:*), Bash(go:*)
 ---
 
 # golangci-lint Setup Skill

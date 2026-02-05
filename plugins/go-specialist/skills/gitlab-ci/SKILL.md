@@ -1,6 +1,10 @@
 ---
 name: gitlab-ci
-description: Initialize or update GitLab CI/CD pipelines for Go projects with comprehensive testing, coverage reporting, snapshot builds, and automated releases
+description: Initialize or update GitLab CI/CD pipelines for Go projects with comprehensive testing, coverage reporting, snapshot builds, and automated releases. Use when setting up GitLab CI/CD automation for Go projects. Trigger with "setup gitlab ci", "add gitlab pipeline", or "configure gitlab workflows".
+version: 1.0.0
+author: sylvain
+license: MIT
+allowed-tools: Read, Write, Bash(git:*)
 ---
 
 # GitLab CI/CD Setup Skill
@@ -175,3 +179,25 @@ Add badges to README.md:
 [![Pipeline](https://gitlab.com/OWNER/REPO/badges/main/pipeline.svg)](https://gitlab.com/OWNER/REPO/-/pipelines)
 [![Coverage](https://gitlab.com/OWNER/REPO/badges/main/coverage.svg)](https://gitlab.com/OWNER/REPO/-/graphs/main/charts)
 ```
+
+## Resources
+
+- **GitLab CI/CD Documentation**: https://docs.gitlab.com/ee/ci/
+- **GoReleaser GitLab Integration**: https://goreleaser.com/ci/gitlab/
+- **Docker-in-Docker Service**: https://docs.gitlab.com/ee/ci/docker/using_docker_build.html
+- **GitLab Container Registry**: https://docs.gitlab.com/ee/user/packages/container_registry/
+- **Go in GitLab CI**: https://docs.gitlab.com/ee/ci/examples/test-and-deploy-golang-project.html
+
+## Expected Output
+
+After using this skill, the project will have:
+
+- ✓ `.gitlab-ci.yml` configured with 4 pipeline stages (test, build, release)
+- ✓ Unit tests running automatically on every push
+- ✓ Optional coverage reporting with badge support
+- ✓ Snapshot builds validating release process
+- ✓ Automated releases on tag push (`v*`)
+- ✓ Docker-in-Docker service configured for container builds
+- ✓ Integration with GoReleaser for multi-architecture releases
+
+Users can then push changes and have CI/CD automatically test, build, and release their Go projects with full Docker support.

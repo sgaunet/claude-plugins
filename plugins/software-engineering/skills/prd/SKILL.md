@@ -1,6 +1,10 @@
 ---
 name: prd
-description: Create or Update Product Requirement Documents (PRDs) for software projects. Gather requirements, define features, and outline specifications to guide development teams.
+description: Create or Update Product Requirement Documents (PRDs) for software projects. Gather requirements, define features, and outline specifications to guide development teams. Use when planning new projects, major features, or documenting architecture. Trigger with "create prd", "write product requirements", or "plan project".
+version: 1.0.0
+author: sylvain
+license: MIT
+allowed-tools: Read, Write, Glob, Grep, AskUserQuestion
 ---
 
 # PRD Creation Skill
@@ -21,6 +25,18 @@ PRDs bridge the gap between product vision and implementation. This skill uses t
 - Planning a major feature or refactor
 - Documenting existing system architecture
 - Breaking down complex requirements into actionable tasks
+
+## Prerequisites
+
+Before creating a PRD, ensure:
+
+1. **Stakeholder Alignment**: Key stakeholders agree on the problem being solved
+2. **Success Metrics Defined**: Clear, measurable outcomes identified
+3. **User Research Available**: Understanding of target users and their needs
+4. **Team Capacity Known**: Awareness of available development resources
+5. **Problem Scope Bounded**: Clear boundaries on what's in/out of scope
+
+Without these prerequisites, the PRD process will require multiple refinement iterations. Use the `/refine-prd` command to iteratively improve incomplete PRDs.
 
 ## Workflow
 
@@ -145,6 +161,40 @@ Copy and customize based on project complexity.
 3. **Topological Order**: Build foundation first, then layers on top
 4. **Progressive Refinement**: Start broad, refine iteratively
 5. **Atomic Features**: Each feature should be independently testable
+
+## Error Handling
+
+Common issues when creating PRDs and how to address them:
+
+### Circular Dependencies
+**Problem**: Module A depends on B, B depends on C, C depends on A
+**Solution**: Identify the foundation layer - modules with NO dependencies. Restructure dependency graph to flow in one direction (foundation → layers above).
+
+### Vague Feature Definitions
+**Problem**: Features lack concrete inputs/outputs ("handle user data", "process requests")
+**Solution**: For each feature, explicitly define:
+- Inputs: What data/context does it receive?
+- Outputs: What does it produce/return?
+- Behavior: What logic transforms inputs to outputs?
+
+### Missing Success Criteria
+**Problem**: No quantifiable metrics to measure success
+**Solution**: Replace vague goals ("improve performance") with measurable targets ("reduce API response time from 500ms to 200ms for 95th percentile").
+
+### Incomplete Dependency Mapping
+**Problem**: Modules reference each other but dependencies aren't explicitly stated
+**Solution**: For every non-foundation module, list dependencies in the format: `module-name: Depends on [dep1, dep2, ...]`. Verify no circular references exist.
+
+### Validation Checklist
+Before finalizing a PRD, verify:
+- [ ] All capabilities have at least one feature
+- [ ] All features have inputs, outputs, and behaviors defined
+- [ ] All modules (except foundation) have explicit dependencies
+- [ ] No circular dependencies exist in the dependency graph
+- [ ] Success metrics are quantifiable (numbers, percentages, time)
+- [ ] Each phase has clear entry and exit criteria
+
+Use the `/refine-prd` command to systematically address these issues.
 
 ## Expected Output
 

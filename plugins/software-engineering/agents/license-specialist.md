@@ -1,6 +1,13 @@
 ---
 name: license-specialist
-description: Software license compliance expert for SaaS and commercial projects. Analyzes open source licenses, compatibility issues, and legal obligations. Use PROACTIVELY when evaluating dependencies, choosing frameworks, or building commercial products.
+description: Software license compliance expert. Use when evaluating dependencies or building commercial products.
+capabilities:
+  - Open source license analysis (MIT, Apache, GPL, AGPL)
+  - License compatibility assessment
+  - SaaS and commercial compliance
+  - Dependency chain analysis
+  - Risk assessment and mitigation
+  - Attribution requirements
 model: sonnet
 permissionMode: manual
 color: amber

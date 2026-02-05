@@ -1,6 +1,13 @@
 ---
 name: payment-integrator
-description: Integrate Stripe, PayPal, and payment processors. Handles checkout flows, subscriptions, webhooks, and PCI compliance. Use PROACTIVELY when implementing payments, billing, or subscription features.
+description: Integrate Stripe, PayPal, and payment processors. Use when implementing payments or subscriptions.
+capabilities:
+  - Payment provider integration (Stripe, PayPal, Paddle)
+  - Checkout flows and payment intents
+  - Subscription management and billing
+  - Webhook handling and verification
+  - PCI compliance and security
+  - Fraud prevention and SCA/3D Secure
 model: sonnet
 color: emerald
 ---

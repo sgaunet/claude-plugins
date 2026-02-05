@@ -1,5 +1,6 @@
 ---
-description: Audit codebase for security vulnerabilities, performance issues, and best practices violations. Generate comprehensive report with actionable recommendations.
+name: audit-codebase
+description: Audit security, performance, and best practices holistically
 allowed-tools: Read, Grep, Glob, Bash(find:*), Bash(wc:*), Task
 ---
 

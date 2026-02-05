@@ -1,6 +1,10 @@
 ---
 name: goreleaser
-description: Initialize or update GoReleaser configuration for automated Go releases with multi-architecture Docker builds, binary distribution, and Homebrew publishing
+description: Initialize or update GoReleaser configuration for automated Go releases with multi-architecture Docker builds, binary distribution, and Homebrew publishing. Use when setting up release automation for Go projects. Trigger with "setup goreleaser", "automate releases", or "configure release pipeline".
+version: 1.0.0
+author: sylvain
+license: MIT
+allowed-tools: Read, Write, Bash(goreleaser:*), Bash(docker:*), Bash(git:*)
 ---
 
 # GoReleaser Setup Skill

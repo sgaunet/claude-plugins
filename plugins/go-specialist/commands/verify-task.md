@@ -1,5 +1,6 @@
 ---
-description: Verify task implementation quality and completeness using TDD methodology validation, Go library documentation alignment, and comprehensive testing
+name: verify-task
+description: Verify Go task quality using TDD validation and doc alignment
 argument-hint: "<task-id>"
 allowed-tools: Read, Grep, Glob, Bash(ls:*), Bash(go test:*), Bash(go vet:*), Bash(go build:*), Bash(golangci-lint:*), WebFetch, mcp__task-master__get_task, mcp__context7__resolve-library-id, mcp__context7__get-library-docs
 ---

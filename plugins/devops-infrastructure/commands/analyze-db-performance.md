@@ -1,5 +1,6 @@
 ---
-description: Analyze PostgreSQL performance using pg_stat_statements and slow query logs
+name: analyze-db-performance
+description: Analyze PostgreSQL performance with query and index insights
 argument-hint: "<db-connection-string-or-log-file>"
 allowed-tools: Read, Grep, Glob, Bash(psql:*), Bash(pg_dump:*), Task
 ---

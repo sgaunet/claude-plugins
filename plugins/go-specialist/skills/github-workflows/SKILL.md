@@ -1,6 +1,10 @@
 ---
 name: github-workflows
-description: Initialize or update GitHub Actions workflows for Go projects with comprehensive CI/CD pipelines including linting, testing, coverage, snapshot builds, and releases
+description: Initialize or update GitHub Actions workflows for Go projects with comprehensive CI/CD pipelines including linting, testing, coverage, snapshot builds, and releases. Use when setting up GitHub Actions automation for Go projects. Trigger with "setup github actions", "add github workflows", or "configure ci/cd".
+version: 1.0.0
+author: sylvain
+license: MIT
+allowed-tools: Read, Write, Bash(git:*)
 ---
 
 # GitHub Workflows Setup Skill

@@ -1,5 +1,6 @@
 ---
-description: Review and refine existing PRD by identifying unclear statements, gaps, and ambiguities. Ask clarifying questions and update document.
+name: refine-prd
+description: Refine PRD by clarifying gaps and ambiguities
 argument-hint: "<path-to-prd-file>"
 allowed-tools: Read, Edit, AskUserQuestion
 ---

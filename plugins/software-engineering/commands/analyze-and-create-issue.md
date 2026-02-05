@@ -1,5 +1,6 @@
 ---
-description: Analyze codebase for improvements and create GitHub/GitLab issues for each finding with user confirmation
+name: analyze-and-create-issue
+description: Analyze codebase and create GitHub/GitLab issues per finding
 argument-hint: "[optional: domain to focus analysis, e.g., 'security', 'performance', 'documentation']"
 allowed-tools: Read, Grep, Glob, Bash(git remote:*), Task, mcp__github__create_issue, mcp__github__list_labels, mcp__gitlab-mcp__create_issues, mcp__gitlab-mcp__list_labels, AskUserQuestion
 ---

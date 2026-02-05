@@ -1,5 +1,6 @@
 ---
-description: Create Product Requirement Document using PRD methodology. Invokes the prd skill to gather requirements and define features.
+name: create-prd
+description: Create structured PRD using RPG planning methodology
 argument-hint: "<feature-to-design>"
 allowed-tools: Read, Grep, Glob, Write, Skill, AskUserQuestion
 ---
