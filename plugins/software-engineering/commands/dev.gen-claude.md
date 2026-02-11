@@ -1,0 +1,624 @@
+---
+name: gen-claude
+description: Generate or enhance CLAUDE.md with project-specific guidance following best practices
+argument-hint: "[--force] [--template=minimal|standard|comprehensive] [--no-docs] [--dry-run]"
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash(git:*), Bash(find:*), Bash(wc:*), Bash(awk:*), Task, AskUserQuestion
+---
+
+# Generate CLAUDE.md Command
+
+Automatically generate or enhance a project-specific CLAUDE.md file following 2025-2026 best practices. This command performs deep codebase analysis to create comprehensive project documentation that stays within the 2500 token limit.
+
+## Why This Command Exists
+
+**Problem**: Projects often lack CLAUDE.md files or have poorly structured ones, forcing Claude to operate without project-specific context.
+
+**Solution**: Automated generation that:
+- Analyzes codebase comprehensively
+- Auto-detects linter/formatter configs (avoids duplication)
+- Creates docs/ folder for progressive disclosure
+- Merges/enhances existing CLAUDE.md (preserves customizations)
+- Optimizes for 2500 token limit
+
+## Process (5 Phases)
+
+### Phase 1: Parallel Discovery (4 Sonnet Agents)
+
+Launch 4 independent agents concurrently to analyze different aspects of the project:
+
+**Agent #1: Project Structure Analyzer**
+```
+Task(subagent_type: "Explore", model: "sonnet", prompt: "
+Analyze project structure and return JSON:
+{
+  languages: [list of detected languages from file extensions],
+  frameworks: [frameworks/libraries detected from imports/configs],
+  buildTool: string (npm/go/cargo/maven/gradle/make/task/etc),
+  buildCommands: {build: '', test: '', lint: '', run: ''},
+  structure: {
+    source: path,
+    tests: path,
+    docs: path,
+    config: path
+  }
+}
+
+Detection strategy:
+- Languages: Glob for *.go, *.js, *.py, *.rs, *.java, *.rb, *.php
+- Build tools: Look for package.json, go.mod, Cargo.toml, requirements.txt, pom.xml, build.gradle, Makefile, Taskfile.yml
+- Extract commands from: npm scripts, Makefile targets, Taskfile tasks, go.mod for go commands
+- Map directory structure: src/, test/, docs/, internal/, cmd/, pkg/
+")
+```
+
+**Agent #2: Linter Config Detective**
+```
+Task(subagent_type: "Explore", model: "sonnet", prompt: "
+Find all linter/formatter configuration files and return JSON:
+[
+  {path: string, tool: string, ruleCount: estimate}
+]
+
+Search for:
+- ESLint: .eslintrc*, eslint.config.*
+- Prettier: .prettierrc*, prettier.config.*
+- golangci-lint: .golangci.yml, .golangci.yaml
+- Rubocop: .rubocop.yml
+- Pylint: pylintrc, .pylintrc, pyproject.toml
+- EditorConfig: .editorconfig
+- Black: pyproject.toml
+- Flake8: .flake8, setup.cfg
+- rustfmt: rustfmt.toml
+- checkstyle: checkstyle.xml
+
+Use Glob: **/.{eslintrc,prettierrc,golangci,rubocop,pylintrc,flake8,editorconfig}*
+Also search: **/rustfmt.toml, **/checkstyle.xml, **/pyproject.toml
+
+For each config: extract path, tool name, estimate rule count from file size
+")
+```
+
+**Agent #3: Architectural Pattern Recognizer**
+```
+Task(subagent_type: "Explore", model: "sonnet", prompt: "
+Analyze code organization and identify 3-5 key architectural patterns.
+
+Focus areas:
+1. Code organization: monorepo vs modular vs flat structure
+2. Testing patterns: test file locations, naming conventions (test/, _test.go, .test.js, .spec.js)
+3. Error handling: error wrapping patterns, custom error types
+4. API patterns: REST endpoints, GraphQL schemas, gRPC services
+5. Database patterns: ORM usage (sqlx, gorm, sequelize), migration strategy
+6. Dependency injection: constructor injection, interface patterns
+
+Return structured list:
+[
+  {pattern: 'Repository pattern', description: '...', examples: ['file:line']},
+  {pattern: 'Error wrapping', description: '...', examples: ['file:line']},
+  ...
+]
+
+Provide concrete file:line references for each pattern.
+")
+```
+
+**Agent #4: Repository Context Gatherer**
+```
+Task(subagent_type: "general-purpose", model: "sonnet", prompt: "
+Extract repository metadata and return JSON:
+{
+  remote: string (GitHub/GitLab/Bitbucket/self-hosted URL),
+  readme: {
+    exists: bool,
+    projectName: string,
+    description: string (first 2-3 sentences),
+    sections: [list of ## headers]
+  },
+  contributing: bool (CONTRIBUTING.md exists),
+  license: string (LICENSE file content first line),
+  cicd: [list of CI/CD files found]
+}
+
+Steps:
+1. Run: git remote -v (to get remote URL)
+2. Read README.md if exists
+3. Check for CONTRIBUTING.md, CODE_OF_CONDUCT.md
+4. Detect CI/CD: .github/workflows/, .gitlab-ci.yml, Jenkinsfile, .circleci/config.yml
+5. Read LICENSE file
+")
+```
+
+**Why parallel?** Independent analyses complete in ~30s total vs ~120s sequential.
+
+Wait for all 4 agents to complete before proceeding to Phase 2.
+
+### Phase 2: Existing CLAUDE.md Analysis
+
+1. **Check if CLAUDE.md exists** at `./CLAUDE.md`
+   ```bash
+   # Using Read tool, not Bash
+   Read file_path: "./CLAUDE.md"
+   ```
+
+2. **If exists:**
+   - Read entire content
+   - Calculate tokens:
+     ```bash
+     wc -c CLAUDE.md | awk '{print int($1/4)}'
+     ```
+   - Parse sections: Use Grep to find `^## ` headers
+   - Identify custom sections (user-added content beyond standard template)
+   - Store for merge in Phase 3
+   - Set `existingClaudeMd = <content>`, `isNew = false`
+
+3. **If not exists:**
+   - Set `isNew = true`
+   - Set `existingClaudeMd = null`
+
+### Phase 3: Content Generation
+
+Parse command arguments (from argument string):
+- `--template=minimal|standard|comprehensive` (default: standard)
+- Other flags parsed in Phase 5
+
+**Template Selection:**
+- **minimal**: 30-50 lines (overview + commands + linter refs)
+- **standard**: 50-80 lines (includes architecture) [DEFAULT]
+- **comprehensive**: 80-100 lines (includes patterns + examples)
+
+**Content Structure:**
+
+```markdown
+# CLAUDE.md
+
+This file provides guidance to Claude Code when working with this repository.
+
+## Repository Overview
+[2-3 sentences from Agent #4 README analysis + detected tech stack from Agent #1]
+
+Example:
+"This is a [detected framework] application built with [languages]. [README description]. The project follows [key pattern from Agent #3]."
+
+## Architecture
+[3-6 bullets from Agent #3 pattern analyzer]
+- [Key pattern 1: e.g., "Monorepo structure with /packages"]
+- [Key pattern 2: e.g., "Repository pattern for database access"]
+- [Key pattern 3: ...]
+
+[If template != minimal:]
+- Link: See docs/architecture.md for detailed design decisions
+
+## Development Commands
+[Essential commands from Agent #1 build tool analysis]
+```bash
+# Build
+[detected command]
+
+# Test
+[detected command]
+
+# Lint
+[detected command]
+
+# Run
+[detected command]
+```
+
+## Code Quality Standards
+**Linters configured** (do not duplicate rules):
+[From Agent #2: for each config]
+- [Tool]: See [config path] for complete rule set
+
+[If template == comprehensive:]
+**Key conventions:**
+- [Convention 1 from Agent #3]
+- [Convention 2 from Agent #3]
+
+## File Locations
+- **Source**: [detected from Agent #1]
+- **Tests**: [detected from Agent #1]
+- **Docs**: docs/
+[If build tool specific:]
+- **Config**: [detected from Agent #1]
+
+[If template != minimal:]
+## Documentation
+- docs/architecture.md: System design and component overview
+- docs/workflows.md: Development processes and git workflow
+- docs/patterns.md: Code patterns and best practices
+
+[If existingClaudeMd and custom sections found:]
+[Insert preserved custom sections here]
+```
+
+**Merge Algorithm (if `!isNew`):**
+1. Parse existing CLAUDE.md sections (split by `^## `)
+2. Identify standard sections: "Repository Overview", "Architecture", "Development Commands", "Code Quality Standards", "File Locations", "Documentation"
+3. Identify custom sections: everything else
+4. Update standard sections with fresh analysis from agents
+5. Preserve all custom sections verbatim at end of file
+6. Keep user-added bullet points within standard sections
+7. Calculate token count: if > 2000, apply compression (see Phase 5)
+
+**New File (`isNew == true`):**
+Generate from template using agent results.
+
+### Phase 4: docs/ Structure Creation
+
+**Parse flag:** Check if `--no-docs` in arguments. If yes, skip this phase.
+
+**Create docs/ folder structure** (only if missing):
+
+```bash
+# Check if docs/ exists
+# If not, create: docs/architecture.md, docs/workflows.md, docs/patterns.md
+```
+
+**docs/architecture.md** (30-50 lines):
+```markdown
+# Architecture
+
+## System Overview
+[From Agent #3: overall pattern description]
+
+## Components
+[Key modules/packages from Agent #1 structure analysis]
+- Module 1: [description]
+- Module 2: [description]
+
+## Design Decisions
+[From Agent #3: architectural patterns with rationale]
+1. [Pattern 1]: [Why this pattern]
+2. [Pattern 2]: [Why this pattern]
+
+## Integration Points
+[From Agent #3: external services, APIs, databases]
+- Database: [type, ORM]
+- External APIs: [list]
+- Message queues: [if detected]
+
+## Data Flow
+[If Agent #3 found clear data flow patterns, describe here]
+```
+
+**docs/workflows.md** (30-50 lines):
+```markdown
+# Development Workflows
+
+## Feature Development
+[Standard flow based on Agent #4 git/CI analysis]
+1. Create feature branch from main
+2. Implement changes with tests
+3. Run linters: [command from Agent #1]
+4. Submit PR for review
+5. Merge after approval
+
+## Code Review Process
+[From Agent #4 CONTRIBUTING.md analysis or provide defaults]
+- All PRs require review
+- Automated checks must pass
+- [Custom review requirements if found]
+
+## Testing Strategy
+[From Agent #3 testing patterns]
+- Unit tests: [location, naming convention]
+- Integration tests: [if detected]
+- Coverage threshold: [if found in CI config]
+
+## Release Process
+[From Agent #4 CI/CD analysis]
+[If GitHub Actions/GitLab CI detected with release workflow:]
+- Automated via [CI system]
+- Triggered by: [tags, manual, schedule]
+[Else:]
+- Manual release process (document in CI/CD setup)
+```
+
+**docs/patterns.md** (30-50 lines):
+```markdown
+# Code Patterns & Best Practices
+
+## Error Handling
+[From Agent #3: error pattern with examples]
+```[language]
+// Example from [file:line]
+[code snippet]
+```
+
+## Testing Patterns
+[From Agent #3: test patterns detected]
+- Test file naming: [convention]
+- Test organization: [pattern]
+- Mocking strategy: [if detected]
+
+## Database Access
+[From Agent #3: DB patterns]
+- ORM: [if detected]
+- Query patterns: [examples]
+- Migration strategy: [if detected]
+
+## [Language]-Specific Patterns
+[Language-specific conventions from Agent #3]
+- [Convention 1]
+- [Convention 2]
+
+## Common Utilities
+[If Agent #1 found common utility modules/packages:]
+- [Utility 1]: [location, purpose]
+```
+
+**Creation Rules:**
+- Only create `docs/` if it doesn't exist
+- Only create individual files (`architecture.md`, `workflows.md`, `patterns.md`) if they don't exist
+- If files exist, do NOT overwrite (unless `--force` flag present)
+- Populate with insights from Phase 1 agents
+
+### Phase 5: Validation & User Approval
+
+**Parse additional flags:**
+- `--force`: Regenerate from scratch (backup existing to `CLAUDE.md.backup`)
+- `--dry-run`: Show preview without writing files
+
+**If `--force` flag:**
+```bash
+# Backup existing CLAUDE.md
+cp CLAUDE.md CLAUDE.md.backup
+# Then regenerate from scratch (ignore merge algorithm)
+```
+
+**Validation Checks:**
+
+1. **Token count:**
+   ```bash
+   wc -c CLAUDE.md | awk '{print int($1/4)}'
+   ```
+   - Must be < 2500 tokens
+   - Target: < 2000 tokens (leaves buffer)
+   - If > 2000: Show warning
+   - If > 2500: Apply compression (see below)
+
+2. **Linter references:**
+   - For each linter config mentioned in CLAUDE.md
+   - Verify file exists using Read tool
+   - If missing: Remove reference or add "TODO: configure"
+
+3. **Markdown validity:**
+   - Check header hierarchy (no skipped levels: ## → ### not ## → ####)
+   - Verify code blocks closed (count ``` pairs)
+   - Check list formatting consistency
+
+4. **Link integrity:**
+   - For each docs/ reference in CLAUDE.md
+   - Verify file exists or will be created
+   - Check internal section links valid
+
+**Token Overflow Handling:**
+
+If token count > 2500 after generation:
+1. **First pass compression:**
+   - Remove examples from CLAUDE.md (keep in docs/patterns.md)
+   - Abbreviate bullet points
+   - Use tables for structured data
+   - Compress whitespace
+
+2. **Second pass compression:**
+   - Move "Architecture" section content to docs/architecture.md
+   - Leave only: "See docs/architecture.md for system design"
+   - Move patterns to docs/patterns.md
+
+3. **Last resort:**
+   - Split into `CLAUDE.md` + `CLAUDE-EXTENDED.md`
+   - Keep essential info in CLAUDE.md (< 2500 tokens)
+   - Move detailed info to CLAUDE-EXTENDED.md
+   - Add reference: "See CLAUDE-EXTENDED.md for additional context"
+
+**User Presentation:**
+
+```
+📊 CLAUDE.md Generation Complete
+
+Analysis Results:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ Detected: [languages from Agent #1]
+✅ Build tool: [tool from Agent #1] ([X] commands found)
+✅ Linters: [tools from Agent #2] ([X] configs found)
+✅ Patterns: [count from Agent #3] architectural patterns identified
+
+Generated CLAUDE.md:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Length: [X] tokens ([status: ✅ under 2000 / ⚠️ 2000-2500 / ❌ over 2500])
+- Sections: [X] ([X] standard + [X] custom preserved)
+- Commands: [X] development commands
+
+[If docs/ created:]
+Created documentation:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ docs/architecture.md ([X] lines)
+✅ docs/workflows.md ([X] lines)
+✅ docs/patterns.md ([X] lines)
+
+[If existing CLAUDE.md was merged:]
+ℹ️  Preserved [X] custom sections from existing CLAUDE.md
+
+[If --force was used:]
+💾 Backup saved: CLAUDE.md.backup
+```
+
+**Dry Run Mode:**
+If `--dry-run` flag present:
+- Generate all content
+- Show preview (first 50 lines + summary)
+- Do NOT write any files
+- Exit without changes
+
+**User Approval:**
+If token count > 2000 or custom sections were modified:
+```
+Use AskUserQuestion:
+Question: "Generated CLAUDE.md is [X] tokens. [Status message]. Proceed with writing files?"
+Options:
+1. "Yes, write files"
+2. "Show full preview first"
+3. "Apply compression and regenerate"
+4. "Cancel"
+```
+
+**Write Files:**
+If approved (or auto-approved if < 2000 tokens and no modifications):
+1. Write `./CLAUDE.md`
+2. Create `docs/` folder if needed
+3. Write `docs/architecture.md`, `docs/workflows.md`, `docs/patterns.md` (if not existing)
+4. Report success with file paths
+
+## Command Arguments
+
+Arguments are parsed from the `argument` string parameter:
+
+- `--force`: Backup existing CLAUDE.md to `CLAUDE.md.backup` and regenerate from scratch
+- `--template=minimal`: Generate 30-50 line CLAUDE.md (overview + commands + linter refs only)
+- `--template=standard`: Generate 50-80 line CLAUDE.md (includes architecture) [DEFAULT]
+- `--template=comprehensive`: Generate 80-100 line CLAUDE.md (includes patterns + examples)
+- `--no-docs`: Skip docs/ folder creation (only generate CLAUDE.md)
+- `--dry-run`: Show preview without writing any files
+
+**Parsing example:**
+```
+argument = "--force --template=comprehensive --dry-run"
+Split by space, check for each flag presence
+```
+
+## Error Handling
+
+### Agent Failures
+
+**Timeout (>90s per agent):**
+- Use partial results from successful agents
+- Log which agents failed
+- Continue with available data
+
+**All agents fail:**
+- Fall back to minimal template
+- Use README.md analysis only (without agents)
+- Generate basic CLAUDE.md with project name + "Add project details manually"
+
+### Missing Critical Files
+
+**No README.md:**
+- Generate minimal README.md alongside CLAUDE.md
+- Use git remote for project name fallback
+- Content: "# [ProjectName]\n\nProject description goes here."
+
+**No build tool detected:**
+- Include generic command template
+- Provide common examples based on detected language:
+  - Go: `go build`, `go test`, `go vet`
+  - JavaScript: `npm install`, `npm test`, `npm run build`
+  - Python: `pip install -r requirements.txt`, `pytest`
+  - Rust: `cargo build`, `cargo test`, `cargo clippy`
+
+**No git remote:**
+- Set project name from current directory name
+- Skip CI/CD detection
+- Note in CLAUDE.md: "Repository: local (no remote configured)"
+
+### Token Overflow
+
+**Still over 2500 after compression:**
+- Create `CLAUDE-EXTENDED.md` with overflow content
+- Add reference in `CLAUDE.md`: "See CLAUDE-EXTENDED.md for additional context"
+- Prioritize keeping: Overview, Commands, Linter references in main file
+
+**Phase 1 agents timeout:**
+- Extend timeout to 120s
+- If still fails: use minimal analysis (Glob/Grep from main command, not agents)
+
+## Best Practices
+
+**Token Management:**
+- Target 1500-2000 tokens for CLAUDE.md (leaves growth room)
+- Use progressive disclosure: keep CLAUDE.md concise, details in docs/
+- Reference don't duplicate: link to linter configs instead of listing rules
+
+**Content Quality:**
+- Extract real examples from code (file:line references)
+- Prioritize actionable information (commands, file locations)
+- Avoid generic advice ("follow best practices") - be specific
+
+**Merging Strategy:**
+- Always preserve user customizations
+- Update stale information (new build commands, new patterns)
+- Append custom sections at end to avoid fragmentation
+
+**Agent Coordination:**
+- Phase 1 agents are independent (parallel execution)
+- Phase 2-5 are sequential (each depends on previous)
+- Each agent has specific JSON output format for easy parsing
+
+## Integration with Other Commands
+
+**Works with:**
+- `/check-claude-md-tokens`: Run after generation to validate token count
+- `/commit`: Commit generated files with conventional commit format
+- `/audit-codebase`: Use generated CLAUDE.md as quality reference
+- `/create-prd`: Reference CLAUDE.md for project context
+
+**Workflow:**
+```bash
+# Generate CLAUDE.md
+/gen-claude
+
+# Validate token count
+/check-claude-md-tokens
+
+# Commit if valid
+/commit
+```
+
+## Output Files
+
+**Primary:**
+- `./CLAUDE.md`: Project-specific guidance (30-100 lines, < 2500 tokens)
+
+**Supporting (if not existing):**
+- `docs/architecture.md`: System design (30-50 lines)
+- `docs/workflows.md`: Development processes (30-50 lines)
+- `docs/patterns.md`: Code patterns (30-50 lines)
+
+**Backup (if --force used):**
+- `CLAUDE.md.backup`: Original CLAUDE.md before regeneration
+
+## Examples
+
+```bash
+# Generate with defaults (standard template)
+/gen-claude
+
+# Force regenerate from scratch
+/gen-claude --force
+
+# Generate minimal CLAUDE.md only (no docs/)
+/gen-claude --template=minimal --no-docs
+
+# Preview without writing
+/gen-claude --dry-run
+
+# Comprehensive with docs/
+/gen-claude --template=comprehensive
+
+# Regenerate and skip docs folder
+/gen-claude --force --no-docs
+```
+
+## Success Criteria
+
+✅ CLAUDE.md generated or enhanced (30-100 lines)
+✅ Token count < 2500 (ideally < 2000)
+✅ Contains project overview (2-3 sentences)
+✅ Lists development commands (4-8 commands)
+✅ References linter configs (no rule duplication)
+✅ Documents architectural patterns (3-6 patterns)
+✅ Links to docs/ for extended info
+✅ Preserves user customizations (if merging)
+✅ docs/ created with 3 template files (unless --no-docs)
+✅ All validation checks pass
+✅ Total runtime < 60 seconds (with parallel agents)
