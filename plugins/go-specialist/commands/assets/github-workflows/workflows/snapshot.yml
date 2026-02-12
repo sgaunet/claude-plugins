@@ -28,11 +28,11 @@ jobs:
           fetch-depth: 0  # Required for GoReleaser changelog
 
       # Setup Go environment
-      # CUSTOMIZE: Adjust Go version to match your project
+      # Uses Go version from go.mod for consistency
       - name: Install Go
         uses: actions/setup-go@v6
         with:
-          go-version: '>=1.24'  # CUSTOMIZE: Use your Go version
+          go-version-file: 'go.mod'
 
       # Install Task runner
       # Task provides consistent build commands across local and CI
