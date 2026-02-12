@@ -1,0 +1,25 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.3.0
+    hooks:
+    #   - id: trailing-whitespace
+    #   - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+  - repo: local
+    hooks:
+      - id: unit-tests
+        name: Run unit tests
+        entry: task test
+        language: system
+        pass_filenames: false
+      - id: lint
+        name: Run linter
+        entry: task lint
+        language: system
+        pass_filenames: false
+      - id: build
+        name: Run build
+        entry: task snapshot
+        language: system
+        pass_filenames: false

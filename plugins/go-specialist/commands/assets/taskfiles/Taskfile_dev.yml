@@ -1,0 +1,13 @@
+# https://taskfile.dev
+version: '3'
+
+tasks:
+  install-pre-commit:
+    desc: "Install pre-commit hooks"
+    cmds:
+      - pre-commit install
+
+  pre-commit:
+    desc: "Run all pre-commit hooks"
+    cmds:
+      - pre-commit run --all-files
