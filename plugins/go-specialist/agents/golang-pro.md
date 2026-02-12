@@ -10,11 +10,10 @@ capabilities:
   - DevOps (Docker, Kubernetes, CI/CD)
 model: sonnet
 permissionMode: acceptAll
-skills: linter, github-workflows,gitlab-ci,goreleaser
 color: green
 context: |
-  Invokes specialized skills: linter (golangci-lint setup), github-workflows (CI/CD), gitlab-ci (GitLab pipelines), goreleaser (release automation).
-  Shares implementation with code-review-enforcer for Go-specific quality checks.
+  Uses specialized commands: /gen-linter (golangci-lint setup), /gen-github-dir (GitHub Actions CI/CD), /gen-gitlab-ci (GitLab pipelines), /gen-goreleaser (release automation), /gen-taskfiles (task runner setup).
+  Shares implementation patterns with code-review-enforcer for Go-specific quality checks.
   Uses context7 MCP server for official Go library documentation and best practices.
 ---
 
