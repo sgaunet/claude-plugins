@@ -24,10 +24,10 @@ jobs:
       - uses: actions/checkout@v5
 
       # Setup Go environment
-      # CUSTOMIZE: Adjust Go version to match your project
+      # Uses Go version from go.mod for consistency
       - uses: actions/setup-go@v6
         with:
-          go-version: stable  # Options: stable, 1.24, 1.24.x, >=1.23
+          go-version-file: 'go.mod'
 
       # Install Task runner
       # Task provides consistent build commands across local and CI
