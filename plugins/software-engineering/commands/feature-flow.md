@@ -198,8 +198,7 @@ git remote -v
    - Format: `- [Action] [what changed]`
 
 5. **Add footer:**
-   - If issue created: `Refs #<issue-number>`
-   - If issue exists: `Closes #<issue-number>` (for fixes)
+   - `Closes #<issue-number>` (for fixes)
    - Never include breaking changes without user consent
 
 **Format example:**
