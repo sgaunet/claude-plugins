@@ -6,7 +6,7 @@ version: 2
 
 # Project name used in releases, archives, and Docker images
 # CUSTOMIZE: Replace with your project name (lowercase, no spaces)
-project_name: "PROJECT_NAME"
+project_name: "[PROJECT_NAME]"
 
 # Hooks to run before building
 before:
@@ -24,7 +24,7 @@ builds:
 
     # CUSTOMIZE: Directory containing main.go
     # Use "." if main.go is in root, "cmd" if in cmd/, etc.
-    dir: cmd
+    dir: [MAIN_DIR]
 
     # Inject version information at build time
     # CUSTOMIZE: Adjust variable name if your main package uses different variable
@@ -110,8 +110,8 @@ dockers:
     #   - GitLab: registry.gitlab.com/OWNER/PROJECT_NAME
     #   - Docker Hub: docker.io/OWNER/PROJECT_NAME
     image_templates:
-      - "REGISTRY_URL/OWNER/{{ .ProjectName }}:{{ .Version }}-amd64"
-      - "REGISTRY_URL/OWNER/{{ .ProjectName }}:latest-amd64"
+      - "[REGISTRY_URL]/[OWNER]/{{ .ProjectName }}:{{ .Version }}-amd64"
+      - "[REGISTRY_URL]/[OWNER]/{{ .ProjectName }}:latest-amd64"
 
     # Build flags for docker buildx
     build_flag_templates:
@@ -132,8 +132,8 @@ dockers:
     goos: linux
     goarch: arm64
     image_templates:
-      - "REGISTRY_URL/OWNER/{{ .ProjectName }}:{{ .Version }}-arm64v8"
-      - "REGISTRY_URL/OWNER/{{ .ProjectName }}:latest-arm64v8"
+      - "[REGISTRY_URL]/[OWNER]/{{ .ProjectName }}:{{ .Version }}-arm64v8"
+      - "[REGISTRY_URL]/[OWNER]/{{ .ProjectName }}:latest-arm64v8"
     build_flag_templates:
       - "--platform=linux/arm64/v8"
       - "--label=org.opencontainers.image.created={{.Date}}"
@@ -150,8 +150,8 @@ dockers:
     goarch: arm
     goarm: "6"
     image_templates:
-      - "REGISTRY_URL/OWNER/{{ .ProjectName }}:{{ .Version }}-armv6"
-      - "REGISTRY_URL/OWNER/{{ .ProjectName }}:latest-armv6"
+      - "[REGISTRY_URL]/[OWNER]/{{ .ProjectName }}:{{ .Version }}-armv6"
+      - "[REGISTRY_URL]/[OWNER]/{{ .ProjectName }}:latest-armv6"
     build_flag_templates:
       - "--platform=linux/arm/v6"
       - "--label=org.opencontainers.image.created={{.Date}}"
@@ -168,8 +168,8 @@ dockers:
     goarch: arm
     goarm: "7"
     image_templates:
-      - "REGISTRY_URL/OWNER/{{ .ProjectName }}:{{ .Version }}-armv7"
-      - "REGISTRY_URL/OWNER/{{ .ProjectName }}:latest-armv7"
+      - "[REGISTRY_URL]/[OWNER]/{{ .ProjectName }}:{{ .Version }}-armv7"
+      - "[REGISTRY_URL]/[OWNER]/{{ .ProjectName }}:latest-armv7"
     build_flag_templates:
       - "--platform=linux/arm/v7"
       - "--label=org.opencontainers.image.created={{.Date}}"
@@ -184,27 +184,27 @@ dockers:
 # Allows users to pull a single tag and get correct architecture automatically
 docker_manifests:
   # Version-specific manifest (e.g., v1.0.0)
-  - name_template: REGISTRY_URL/OWNER/{{ .ProjectName }}:{{ .Version }}
+  - name_template: [REGISTRY_URL]/[OWNER]/{{ .ProjectName }}:{{ .Version }}
     image_templates:
-      - REGISTRY_URL/OWNER/{{ .ProjectName }}:{{ .Version }}-amd64
-      - REGISTRY_URL/OWNER/{{ .ProjectName }}:{{ .Version }}-arm64v8
-      - REGISTRY_URL/OWNER/{{ .ProjectName }}:{{ .Version }}-armv6
-      - REGISTRY_URL/OWNER/{{ .ProjectName }}:{{ .Version }}-armv7
+      - [REGISTRY_URL]/[OWNER]/{{ .ProjectName }}:{{ .Version }}-amd64
+      - [REGISTRY_URL]/[OWNER]/{{ .ProjectName }}:{{ .Version }}-arm64v8
+      - [REGISTRY_URL]/[OWNER]/{{ .ProjectName }}:{{ .Version }}-armv6
+      - [REGISTRY_URL]/[OWNER]/{{ .ProjectName }}:{{ .Version }}-armv7
 
   # Latest manifest
-  - name_template: REGISTRY_URL/OWNER/{{ .ProjectName }}:latest
+  - name_template: [REGISTRY_URL]/[OWNER]/{{ .ProjectName }}:latest
     image_templates:
-      - REGISTRY_URL/OWNER/{{ .ProjectName }}:latest-amd64
-      - REGISTRY_URL/OWNER/{{ .ProjectName }}:latest-arm64v8
-      - REGISTRY_URL/OWNER/{{ .ProjectName }}:latest-armv6
-      - REGISTRY_URL/OWNER/{{ .ProjectName }}:latest-armv7
+      - [REGISTRY_URL]/[OWNER]/{{ .ProjectName }}:latest-amd64
+      - [REGISTRY_URL]/[OWNER]/{{ .ProjectName }}:latest-arm64v8
+      - [REGISTRY_URL]/[OWNER]/{{ .ProjectName }}:latest-armv6
+      - [REGISTRY_URL]/[OWNER]/{{ .ProjectName }}:latest-armv7
 
 # Homebrew formula publishing (macOS package manager)
 # OPTIONAL: Remove this section if not publishing to Homebrew
 brews:
   - # Project homepage
     # CUSTOMIZE: Replace with your GitHub/GitLab URL
-    homepage: 'https://github.com/OWNER/PROJECT_NAME'
+    homepage: 'https://github.com/[OWNER]/[PROJECT_NAME]'
 
     # Project description
     # CUSTOMIZE: Add meaningful description
@@ -216,13 +216,13 @@ brews:
     # Commit author for tap updates
     # CUSTOMIZE: Replace with your GitHub info
     commit_author:
-      name: OWNER
-      email: YOUR_EMAIL@example.com
+      name: [AUTHOR_NAME]
+      email: [AUTHOR_EMAIL]
 
     # Homebrew tap repository
     # CUSTOMIZE: Create a homebrew-tools (or homebrew-tap) repository
     repository:
-      owner: OWNER
+      owner: [OWNER]
       name: homebrew-tools
       # Required: Personal Access Token with 'repo' scope
       # Set HOMEBREW_TAP_TOKEN in CI/CD secrets
@@ -230,15 +230,15 @@ brews:
 
     # Download URL template for binaries
     # CUSTOMIZE: Update URL to match your repository
-    url_template: 'https://github.com/OWNER/PROJECT_NAME/releases/download/{{ .Tag }}/{{ .ArtifactName }}'
+    url_template: 'https://github.com/[OWNER]/[PROJECT_NAME]/releases/download/{{ .Tag }}/{{ .ArtifactName }}'
 
     # Installation script
     install: |
-      bin.install "{{ .ArtifactName }}" => "PROJECT_NAME"
+      bin.install "{{ .ArtifactName }}" => "[PROJECT_NAME]"
 
     # Test script (validates installation)
     test: |
-      system "#{bin}/PROJECT_NAME", "--help"
+      system "#{bin}/[PROJECT_NAME]", "--help"
 
     # Optional: Add dependencies
     # dependencies:

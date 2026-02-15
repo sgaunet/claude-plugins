@@ -14,7 +14,7 @@ WORKDIR /usr/local/bin
 
 # Copy the compiled binary from GoReleaser build context
 # CUSTOMIZE: Replace PROJECT_BINARY with your binary name (must match project_name in .goreleaser.yml)
-COPY PROJECT_BINARY .
+COPY [PROJECT_BINARY] .
 
 # Copy CA certificates for HTTPS/TLS connections
 # Required for APIs, webhooks, external services
@@ -26,7 +26,7 @@ COPY "resources" /
 
 # Run as non-root user for security
 # CUSTOMIZE: Replace PROJECT_USER with your application's username (must match resources/etc/passwd)
-USER PROJECT_USER
+USER [PROJECT_USER]
 
 # Define volumes for persistent data and temporary files
 # CUSTOMIZE: Adjust paths based on your application's needs
