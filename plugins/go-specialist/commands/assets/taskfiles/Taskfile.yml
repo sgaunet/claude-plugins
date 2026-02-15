@@ -4,7 +4,7 @@ includes:
   dev: ./Taskfile_dev.yml
 
 vars:
-  BINFILE: gitlab-backup
+  BINFILE: [PROJECT_BINARY]
 
 tasks:
   default:
@@ -35,18 +35,17 @@ tasks:
       - go test -count=2 -race ./...
 
   build:
-    desc: "Build both binaries (gitlab-backup and gitlab-restore)"
+    desc: "Build binary"
     cmds:
-      - CGO_ENABLED=0 go build -o gitlab-backup ./cmd/gitlab-backup
-      - CGO_ENABLED=0 go build -o gitlab-restore ./cmd/gitlab-restore
+      - CGO_ENABLED=0 go build -o [PROJECT_BINARY] ./[MAIN_DIR]
 
   image:
     desc: "Build and push Docker image"
     deps:
       - build
     cmds:
-      - docker build --no-cache --build-arg VERSION=development . -t ghcr.io/sgaunet/gitlab-backup:latest
-      - docker push ghcr.io/sgaunet/gitlab-backup:latest
+      - docker build --no-cache --build-arg VERSION=development . -t [REGISTRY_URL]/[OWNER]/[PROJECT_NAME]:latest
+      - docker push [REGISTRY_URL]/[OWNER]/[PROJECT_NAME]:latest
 
   doc:
     desc: "Start godoc documentation server"

@@ -103,19 +103,113 @@ for each arg in arguments:
    - Target: `.pre-commit-config.yaml` (project root)
 
 **Template handling:**
-- Copy files as-is (no variable substitution except BINFILE in Taskfile.yml)
-- For Taskfile.yml: Detect binary name from go.mod module path or use "app"
-- Store content in memory for Phase 5 writing
-
-**Binary name detection:**
-```bash
-# Extract module name from go.mod
-modulePath=$(grep '^module ' go.mod | awk '{print $2}')
-binName=$(basename "$modulePath")
-```
+- Store content in memory for Phase 3.5 substitution
+- All substitutions handled in Phase 3.5 (not inline)
 
 **Error handling:**
 - If any Read fails: Exit with error "Failed to read template file: {filename}. Plugin may be corrupted. Ensure ${CLAUDE_PLUGIN_ROOT}/commands/assets/taskfiles/ directory exists."
+
+### Phase 3.5: Auto-Detection & Substitution
+
+**Detection Function Library** (same as gen-goreleaser):
+
+```bash
+# Function 1: Extract project name from go.mod
+detect_project_name() {
+    local module_path=$(grep '^module ' go.mod 2>/dev/null | awk '{print $2}')
+    [[ -z "$module_path" ]] && return 1
+    basename "$module_path" | sed 's|/v[0-9]*$||'
+}
+
+# Function 2: Extract owner from git remote URL
+detect_git_owner() {
+    local remote_url=$(git remote get-url origin 2>/dev/null)
+    [[ -z "$remote_url" ]] && return 1
+
+    if [[ "$remote_url" =~ git@[^:]+:([^/]+)/ ]]; then
+        echo "${BASH_REMATCH[1]}"
+        return 0
+    fi
+
+    if [[ "$remote_url" =~ https?://[^/]+/([^/]+)/ ]]; then
+        echo "${BASH_REMATCH[1]}"
+        return 0
+    fi
+
+    return 1
+}
+
+# Function 3: Detect main package directory
+detect_main_dir() {
+    local main_files=$(find . -type f -name "main.go" 2>/dev/null | grep -v vendor | sort)
+    [[ -z "$main_files" ]] && echo "." && return 0
+
+    local cmd_main=$(echo "$main_files" | grep -E '^\./cmd/' | head -1)
+    if [[ -n "$cmd_main" ]]; then
+        dirname "$cmd_main" | sed 's|^\./||'
+        return 0
+    fi
+
+    dirname "$(echo "$main_files" | head -1)" | sed 's|^\./||' | sed 's|^\.$|.|'
+}
+
+# Function 4: Detect registry from git platform
+detect_registry() {
+    local remote_url=$(git remote get-url origin 2>/dev/null)
+    case "$remote_url" in
+        *github.com*) echo "ghcr.io" ;;
+        *gitlab.com*) echo "registry.gitlab.com" ;;
+        *) echo "ghcr.io" ;;
+    esac
+}
+
+# Function 5: Substitute placeholders
+substitute_placeholders() {
+    local content="$1"
+    local project_name="$2"
+    local owner="$3"
+    local registry="$4"
+    local main_dir="$5"
+
+    # Escape special characters
+    project_name=$(echo "$project_name" | sed 's/[&\/]/\\&/g')
+    owner=$(echo "$owner" | sed 's/[&\/]/\\&/g')
+    registry=$(echo "$registry" | sed 's/[&\/]/\\&/g')
+    main_dir=$(echo "$main_dir" | sed 's/[&\/]/\\&/g')
+
+    # Replace placeholders
+    content=$(echo "$content" | sed "s|\[PROJECT_BINARY\]|${project_name}|g")
+    content=$(echo "$content" | sed "s|\[PROJECT_NAME\]|${project_name}|g")
+    content=$(echo "$content" | sed "s|\[OWNER\]|${owner}|g")
+    content=$(echo "$content" | sed "s|\[REGISTRY_URL\]|${registry}|g")
+    content=$(echo "$content" | sed "s|\[MAIN_DIR\]|${main_dir}|g")
+
+    echo "$content"
+}
+```
+
+**Detection Workflow:**
+
+1. **Detect all values:**
+   ```bash
+   PROJECT_NAME=$(detect_project_name)
+   OWNER=$(detect_git_owner)
+   REGISTRY=$(detect_registry)
+   MAIN_DIR=$(detect_main_dir)
+   ```
+
+2. **Handle missing critical values:**
+   - If `PROJECT_NAME` is empty: Use "app" as default
+   - If `OWNER` is empty: Preserve `[OWNER]` placeholder
+   - Non-critical values have sensible defaults
+
+3. **Substitute placeholders in Taskfile.yml template:**
+   ```bash
+   taskfile_template=$(substitute_placeholders "$taskfile_template" \
+       "$PROJECT_NAME" "$OWNER" "$REGISTRY" "$MAIN_DIR")
+   ```
+
+   Note: Taskfile_dev.yml and .pre-commit-config.yaml have no placeholders
 
 ### Phase 4: User Confirmation
 
@@ -129,6 +223,18 @@ Files to be created:
 ✅ .pre-commit-config.yaml (25 lines) - Git pre-commit hooks
 
 Total: 3 files (105 lines)
+
+✅ Auto-detected Configuration
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Project Settings:
+  • Project name: <PROJECT_NAME> (from go.mod)
+  • Binary name: <PROJECT_NAME>
+  • Main directory: <MAIN_DIR>
+
+Repository Settings:
+  • Owner: <OWNER> (from git remote)
+  • Registry: <REGISTRY>
 
 Task Categories:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -253,12 +359,18 @@ For each file in `successfulFiles`:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Created Files:
-✅ Taskfile.yml (66 lines)
+✅ Taskfile.yml (66 lines, ready to use)
 ✅ Taskfile_dev.yml (14 lines)
 ✅ .pre-commit-config.yaml (25 lines)
 
 Total: 3 files (105 lines)
-Binary name detected: [binName]
+
+Auto-configured with detected values:
+  ✓ Project name: <PROJECT_NAME> (from go.mod)
+  ✓ Binary name: <PROJECT_NAME>
+  ✓ Main directory: <MAIN_DIR> (auto-detected)
+  ✓ Owner: <OWNER> (from git remote)
+  ✓ Registry: <REGISTRY>
 
 Available Tasks:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -301,25 +413,21 @@ Required Dependencies:
    - Generate with: /goreleaser
    - Or install: https://goreleaser.com/install/
 
-Required Customizations:
+Optional Customizations:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📝 Review Taskfile.yml and customize:
+📝 Configuration is ready to use! Optional adjustments:
 
-1. Binary name (auto-detected: [binName]):
-   - Line 7: BINFILE: [binName]
-   - Adjust if needed for your project
+1. Multi-binary projects:
+   - If your project has multiple binaries, update the build task
+   - Example: Add separate build commands for each binary
 
-2. Build commands (if multi-binary project):
-   - Lines 39-41: Update build task for your binaries
-   - Example: gitlab-backup has gitlab-backup and gitlab-restore
-
-3. Docker image settings:
-   - Lines 44-49: Update registry and image name
-   - Replace ghcr.io/sgaunet/gitlab-backup with your registry
-
-4. Pre-commit hooks (.pre-commit-config.yaml):
-   - Lines 5-6: Uncomment trailing-whitespace and end-of-file-fixer if desired
+2. Pre-commit hooks (.pre-commit-config.yaml):
+   - Uncomment trailing-whitespace and end-of-file-fixer if desired
    - Customize which checks run before commits
+
+3. Docker image settings (already auto-configured):
+   - Verify registry and image name match your preferences
+   - Auto-detected: <REGISTRY>/<OWNER>/<PROJECT_NAME>:latest
 
 Pre-commit Hook Setup:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

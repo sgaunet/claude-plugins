@@ -121,12 +121,67 @@ for each arg in arguments:
    - Target: `.github/workflows/release.yml`
 
 **Template handling:**
-- Copy files as-is (no variable substitution)
+- Store content in memory for Phase 3.5 substitution
 - Preserve all `# CUSTOMIZE:` comments
-- Store content in memory for Phase 5 writing
 
 **Error handling:**
 - If any Read fails: Exit with error "Failed to read template file: {filename}. Plugin may be corrupted."
+
+### Phase 3.5: Auto-Detection & Substitution
+
+**Detection Function:**
+
+```bash
+# Extract owner from git remote URL
+detect_git_owner() {
+    local remote_url=$(git remote get-url origin 2>/dev/null)
+    [[ -z "$remote_url" ]] && return 1
+
+    # SSH: git@github.com:sgaunet/repo.git → sgaunet
+    if [[ "$remote_url" =~ git@[^:]+:([^/]+)/ ]]; then
+        echo "${BASH_REMATCH[1]}"
+        return 0
+    fi
+
+    # HTTPS: https://github.com/sgaunet/repo.git → sgaunet
+    if [[ "$remote_url" =~ https?://[^/]+/([^/]+)/ ]]; then
+        echo "${BASH_REMATCH[1]}"
+        return 0
+    fi
+
+    return 1
+}
+
+# Substitute placeholder in FUNDING.yml
+substitute_github_username() {
+    local content="$1"
+    local username="$2"
+
+    # Escape special characters
+    username=$(echo "$username" | sed 's/[&\/]/\\&/g')
+
+    # Replace placeholder
+    echo "$content" | sed "s|\[GITHUB_USERNAME\]|${username}|g"
+}
+```
+
+**Detection Workflow:**
+
+1. **Detect GitHub username:**
+   ```bash
+   GITHUB_USERNAME=$(detect_git_owner)
+   ```
+
+2. **Substitute in FUNDING.yml template (only if not in minimal mode):**
+   ```bash
+   if [[ "$minimalMode" != "true" ]]; then
+       funding_template=$(substitute_github_username "$funding_template" "$GITHUB_USERNAME")
+   fi
+   ```
+
+3. **Handle missing value:**
+   - If `GITHUB_USERNAME` is empty: Preserve `[GITHUB_USERNAME]` placeholder with warning
+   - Non-blocking: User can still create files and edit manually later
 
 ### Phase 4: User Confirmation
 
@@ -151,6 +206,13 @@ Total: 6 files (549 lines)
 ✅ .github/workflows/release.yml (144 lines)
 
 Total: 3 files (319 lines)
+
+[If standard mode and GITHUB_USERNAME detected:]
+✅ Auto-detected Configuration
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+GitHub Settings:
+  • GitHub username: <GITHUB_USERNAME> (from git remote)
 
 [If existingGithubDir == true:]
 ⚠️  WARNING: .github directory already exists
@@ -258,14 +320,19 @@ For each file in `successfulFiles`:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Created Files:
-✅ .github/FUNDING.yml
+✅ .github/FUNDING.yml [if standard mode] (ready to use)
 ✅ .github/dependabot.yml
 ✅ .github/workflows/linter.yml
-✅ .github/workflows/coverage.yml
-✅ .github/workflows/snapshot.yml
+✅ .github/workflows/coverage.yml [if standard mode]
+✅ .github/workflows/snapshot.yml [if standard mode]
 ✅ .github/workflows/release.yml
 
 Total: [N] files ([X] lines)
+
+[If GITHUB_USERNAME was detected:]
+Auto-configured with detected values:
+  ✓ GitHub username: <GITHUB_USERNAME> (from git remote)
+  ✓ FUNDING.yml is ready to use!
 
 Required Customizations:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -274,9 +341,10 @@ Required Customizations:
    - Find "go-version: stable" or "go-version: 1.24.x"
    - Replace with your Go version (e.g., "1.24" or "stable")
 
-2. Configure GitHub username:
+2. [If GITHUB_USERNAME was NOT detected:]
+   Configure GitHub username:
    - Edit .github/FUNDING.yml
-   - Replace "YOUR_GITHUB_USERNAME" with your username
+   - Replace "[GITHUB_USERNAME]" with your username
 
 3. Enable GitHub Actions permissions:
    - Go to: Settings → Actions → General

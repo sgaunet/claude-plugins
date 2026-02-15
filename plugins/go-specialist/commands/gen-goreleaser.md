@@ -146,38 +146,138 @@ For each file:
 - If any file not found: Exit with error "Template file not found: <path>"
 - If any file empty: Exit with error "Template file empty or corrupted: <path>"
 
-### Phase 4: Project Detection
+### Phase 3.5: Auto-Detection & Substitution
 
-**Auto-detect project-specific values:**
+**Detection Function Library** (bash functions to extract project values):
 
-1. **Binary name from go.mod:**
+```bash
+# Function 1: Extract project name from go.mod
+detect_project_name() {
+    local module_path=$(grep '^module ' go.mod 2>/dev/null | awk '{print $2}')
+    [[ -z "$module_path" ]] && return 1
+    # Strip version suffix and get basename
+    basename "$module_path" | sed 's|/v[0-9]*$||'
+}
+
+# Function 2: Extract owner from git remote URL
+detect_git_owner() {
+    local remote_url=$(git remote get-url origin 2>/dev/null)
+    [[ -z "$remote_url" ]] && return 1
+
+    # SSH: git@github.com:sgaunet/repo.git → sgaunet
+    if [[ "$remote_url" =~ git@[^:]+:([^/]+)/ ]]; then
+        echo "${BASH_REMATCH[1]}"
+        return 0
+    fi
+
+    # HTTPS: https://github.com/sgaunet/repo.git → sgaunet
+    if [[ "$remote_url" =~ https?://[^/]+/([^/]+)/ ]]; then
+        echo "${BASH_REMATCH[1]}"
+        return 0
+    fi
+
+    return 1
+}
+
+# Function 3: Detect main package directory
+detect_main_dir() {
+    local main_files=$(find . -type f -name "main.go" 2>/dev/null | grep -v vendor | sort)
+    [[ -z "$main_files" ]] && echo "." && return 0
+
+    # Prefer cmd/* paths
+    local cmd_main=$(echo "$main_files" | grep -E '^\./cmd/' | head -1)
+    if [[ -n "$cmd_main" ]]; then
+        dirname "$cmd_main" | sed 's|^\./||'
+        return 0
+    fi
+
+    # Use first main.go found
+    dirname "$(echo "$main_files" | head -1)" | sed 's|^\./||' | sed 's|^\.$|.|'
+}
+
+# Function 4: Detect registry from git platform
+detect_registry() {
+    local remote_url=$(git remote get-url origin 2>/dev/null)
+    case "$remote_url" in
+        *github.com*) echo "ghcr.io" ;;
+        *gitlab.com*) echo "registry.gitlab.com" ;;
+        *) echo "ghcr.io" ;;  # Default
+    esac
+}
+
+# Function 5: Extract author info from git config
+detect_author() {
+    local name=$(git config user.name 2>/dev/null)
+    local email=$(git config user.email 2>/dev/null)
+    echo "${name}|${email}"
+}
+
+# Function 6: Substitute placeholders in content
+substitute_placeholders() {
+    local content="$1"
+    local project_name="$2"
+    local owner="$3"
+    local registry="$4"
+    local main_dir="$5"
+    local author_name="$6"
+    local author_email="$7"
+
+    # Escape special characters for sed
+    project_name=$(echo "$project_name" | sed 's/[&\/]/\\&/g')
+    owner=$(echo "$owner" | sed 's/[&\/]/\\&/g')
+    registry=$(echo "$registry" | sed 's/[&\/]/\\&/g')
+    main_dir=$(echo "$main_dir" | sed 's/[&\/]/\\&/g')
+    author_name=$(echo "$author_name" | sed 's/[&\/]/\\&/g')
+    author_email=$(echo "$author_email" | sed 's/[&\/]/\\&/g')
+
+    # Replace all placeholders (using | delimiter to avoid URL conflicts)
+    content=$(echo "$content" | sed "s|\[PROJECT_NAME\]|${project_name}|g")
+    content=$(echo "$content" | sed "s|\[PROJECT_BINARY\]|${project_name}|g")
+    content=$(echo "$content" | sed "s|\[PROJECT_USER\]|${project_name}|g")
+    content=$(echo "$content" | sed "s|\[OWNER\]|${owner}|g")
+    content=$(echo "$content" | sed "s|\[GITHUB_USERNAME\]|${owner}|g")
+    content=$(echo "$content" | sed "s|\[REGISTRY_URL\]|${registry}|g")
+    content=$(echo "$content" | sed "s|\[MAIN_DIR\]|${main_dir}|g")
+    content=$(echo "$content" | sed "s|\[AUTHOR_NAME\]|${author_name}|g")
+    content=$(echo "$content" | sed "s|\[AUTHOR_EMAIL\]|${author_email}|g")
+
+    echo "$content"
+}
+```
+
+**Detection Workflow:**
+
+1. **Detect all values:**
    ```bash
-   grep '^module ' go.mod | awk '{print $2}' | awk -F/ '{print $NF}'
+   PROJECT_NAME=$(detect_project_name)
+   OWNER=$(detect_git_owner)
+   REGISTRY=$(detect_registry)
+   MAIN_DIR=$(detect_main_dir)
+   AUTHOR_INFO=$(detect_author)
+   AUTHOR_NAME=$(echo "$AUTHOR_INFO" | cut -d'|' -f1)
+   AUTHOR_EMAIL=$(echo "$AUTHOR_INFO" | cut -d'|' -f2)
    ```
-   - Store as: `binaryName`
-   - Example: `module github.com/sgaunet/myapp` → `binaryName = "myapp"`
 
-2. **Main package location:**
+2. **Handle missing critical values** (use AskUserQuestion if empty):
+   - If `PROJECT_NAME` is empty: Prompt user for project name or use "app"
+   - If `OWNER` is empty: Prompt user for owner or preserve `[OWNER]` placeholder
+   - Non-critical values (AUTHOR_NAME, AUTHOR_EMAIL) can be empty strings
+
+3. **Substitute placeholders in all templates:**
    ```bash
-   find . -name "main.go" -type f | head -1
-   ```
-   - Store directory as: `mainDir`
-   - Examples:
-     - `./main.go` → `mainDir = "."`
-     - `./cmd/myapp/main.go` → `mainDir = "cmd/myapp"`
-     - `./cmd/server/main.go` → `mainDir = "cmd/server"`
+   goreleaser_template=$(substitute_placeholders "$goreleaser_template" \
+       "$PROJECT_NAME" "$OWNER" "$REGISTRY" "$MAIN_DIR" "$AUTHOR_NAME" "$AUTHOR_EMAIL")
 
-3. **Git remote detection** (optional, for registry):
-   ```bash
-   git remote get-url origin 2>/dev/null
-   ```
-   - Parse to detect GitHub vs GitLab vs other
-   - Store as: `gitRemote = "github"/"gitlab"/"unknown"`
+   dockerfile_template=$(substitute_placeholders "$dockerfile_template" \
+       "$PROJECT_NAME" "$OWNER" "$REGISTRY" "$MAIN_DIR" "$AUTHOR_NAME" "$AUTHOR_EMAIL")
 
-**Fallback values if detection fails:**
-- `binaryName`: Use "app" as default, warn user to update
-- `mainDir`: Use "." as default
-- `gitRemote`: Use "unknown", show registry examples for all platforms
+   passwd_template=$(substitute_placeholders "$passwd_template" \
+       "$PROJECT_NAME" "$OWNER" "$REGISTRY" "$MAIN_DIR" "$AUTHOR_NAME" "$AUTHOR_EMAIL")
+   ```
+
+**Fallback Strategy:**
+- If detection fails for critical values: Use placeholders and warn in success report
+- Graceful degradation: Preserve `[PLACEHOLDER]` if user skips prompt
 
 ### Phase 5: User Confirmation
 
@@ -199,10 +299,21 @@ Standard mode (3 files):
 Minimal mode (1 file):
   .goreleaser.yml (316 lines, ~10 KB)
 
-Detected project settings:
-  • Binary name: <binaryName>
-  • Main package: <mainDir>
-  • Git remote: <gitRemote>
+✅ Auto-detected Configuration
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Project Settings:
+  • Project name: <PROJECT_NAME> (from go.mod)
+  • Binary name: <PROJECT_NAME>
+  • Main directory: <MAIN_DIR>
+
+Repository Settings:
+  • Owner: <OWNER> (from git remote)
+  • Registry: <REGISTRY> (<GitHub Container Registry|GitLab Container Registry>)
+
+Author Information:
+  • Name: <AUTHOR_NAME> (from git config)
+  • Email: <AUTHOR_EMAIL>
 
 Configuration features:
   ✓ Multi-OS builds (Linux, macOS, Windows)
@@ -401,25 +512,23 @@ If normal execution:
 ✅ GoReleaser configuration created successfully!
 
 Created files:
-  ✓ .goreleaser.yml (316 lines)
+  ✓ .goreleaser.yml (316 lines, ready to use)
 <IF STANDARD MODE>
-  ✓ Dockerfile (64 lines)
-  ✓ resources/etc/passwd (3 lines)
+  ✓ Dockerfile (64 lines, ready to use)
+  ✓ resources/etc/passwd (3 lines, ready to use)
 
-Detected project settings:
-  • Binary name: <binaryName>
-  • Main package: <mainDir>
-  • Git remote: <gitRemote>
+Auto-configured with detected values:
+  ✓ Project name: <PROJECT_NAME> (from go.mod)
+  ✓ Binary name: <PROJECT_NAME>
+  ✓ Main directory: <MAIN_DIR> (auto-detected)
+  ✓ Owner: <OWNER> (from git remote)
+  ✓ Registry: <REGISTRY> (<Registry Name>)
+  ✓ Author: <AUTHOR_NAME> <<AUTHOR_EMAIL>> (from git config)
 
-IMPORTANT: Customize before first use:
-  1. Open .goreleaser.yml
-  2. Search for "PROJECT_NAME" and replace with: <binaryName>
-  3. Update Docker image templates:
-     • GitHub: ghcr.io/OWNER/PROJECT → ghcr.io/<your-org>/<binaryName>
-     • GitLab: registry.gitlab.com/OWNER/PROJECT → registry.gitlab.com/<your-org>/<binaryName>
-     • Docker Hub: docker.io/OWNER/PROJECT → docker.io/<your-username>/<binaryName>
-  4. Verify 'dir' field matches main package location: <mainDir>
-  5. Review ldflags for version injection
+<IF ANY PLACEHOLDERS REMAIN>
+⚠️  Partial configuration detected:
+  Some placeholders could not be auto-detected and require manual review.
+  Search for remaining placeholders: grep -r '\[.*\]' .goreleaser.yml
 
 Next steps:
 
@@ -458,6 +567,9 @@ Configuration features enabled:
   ✓ SBOM generation
   ✓ Build attestation
   ✓ Homebrew formula (template included)
+
+<IF NO PLACEHOLDERS REMAIN>
+Configuration is ready to use immediately - no manual editing required! 🎉
 
 📚 Need help with advanced customization?
    • Configuration patterns: commands/docs/goreleaser-reference.md
