@@ -8,8 +8,13 @@ capabilities:
   - Performance tuning and pg_stat_statements
   - Replication and high availability
   - Extensions (pgvector, PostGIS, TimescaleDB)
+allowed-tools: Read, Write, Edit, MultiEdit, Grep, Glob, Bash(psql:*), Bash(pg_dump:*), Bash(pg_restore:*), WebFetch
 model: sonnet
 color: blue
+context: |
+  PostgreSQL specialist that coordinates with database-specialist for general database architecture.
+  Shares query optimization patterns with language specialists for ORM performance tuning.
+  Collaborates with devops-specialist for PostgreSQL infrastructure and replication setup.
 ---
 
 ## Proactive Triggers

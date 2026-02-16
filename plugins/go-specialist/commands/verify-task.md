@@ -2,12 +2,12 @@
 name: verify-task
 description: Verify Go task quality using TDD validation and doc alignment
 argument-hint: "<task-id>"
-allowed-tools: Read, Grep, Glob, Bash(ls:*), Bash(go test:*), Bash(go vet:*), Bash(go build:*), Bash(golangci-lint:*), WebFetch, mcp__task-master__get_task, mcp__context7__resolve-library-id, mcp__context7__get-library-docs
+allowed-tools: Read, Grep, Glob, Bash(ls:*), Bash(go test:*), Bash(go vet:*), Bash(go build:*), Bash(golangci-lint:*), WebFetch, mcp__context7__resolve-library-id, mcp__context7__query-docs
 ---
 
 # Verify Task
 
-Verify the quality and completeness of a task implementation using the task-master MCP integration. This command validates TDD methodology compliance, Go library documentation alignment, and comprehensive quality gates.
+Verify the quality and completeness of a task implementation. This command validates TDD methodology compliance, Go library documentation alignment, and comprehensive quality gates.
 
 ## Arguments
 
@@ -16,8 +16,7 @@ Verify the quality and completeness of a task implementation using the task-mast
 ## Process
 
 1. **Retrieve Task Information**
-   - Use `mcp__task-master__get_task` with the task ID from `$argument`
-   - Review requirements, test strategy, and success criteria
+   - Review requirements, test strategy, and success criteria from `$argument`
    - Note any subtasks and their individual requirements
 
 2. **Verify File Structure**
@@ -84,8 +83,7 @@ Verify the quality and completeness of a task implementation using the task-mast
 
 ```
 # Step 1 & 2: Retrieve task and verify file structure (sequential)
-task_info = mcp__task-master__get_task(task_id)
-file_structure_check = verify_files_exist(task_info.requirements)
+file_structure_check = verify_files_exist(task_requirements)
 
 # Step 3: Launch 3 parallel Sonnet agents
 Task(subagent_type: "general-purpose", model: "sonnet", prompt: "Validate Go library usage for task ${task_id}. Files: ${implementation_files}. Use Context7 to fetch official docs and verify compliance. Return library validation issues.")
@@ -192,7 +190,6 @@ verification_report:
 
 ## Tools to Use
 
-- `mcp__task-master__get_task`: Retrieve task details
 - `Read`: Examine implementation files (read-only)
 - `Bash`: Run tests and verification commands
 - `Grep`: Search for patterns in code

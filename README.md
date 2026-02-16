@@ -1,5 +1,10 @@
 # Claude Code Plugin Marketplace
 
+[![Plugins](https://img.shields.io/badge/plugins-3-blue)](./plugins)
+[![Agents](https://img.shields.io/badge/agents-14-green)](./plugins)
+[![Commands](https://img.shields.io/badge/commands-22-orange)](./plugins)
+[![License](https://img.shields.io/badge/license-MIT-purple)](./LICENSE)
+
 A curated collection of specialized Claude Code plugins designed to enhance your development workflow with intelligent agents, skills, and commands.
 
 Official claude code marketplace: [https://github.com/anthropics/claude-code](https://github.com/anthropics/claude-code)
@@ -134,19 +139,6 @@ export GITHUB_TOKEN="your-github-personal-access-token"
 
 ---
 
-#### 4. **task-master-ai** - Task Management & Validation
-
-**NPM Package**: [task-master-ai](https://www.npmjs.com/package/task-master-ai)
-
-Provides task management, validation, and TDD methodology compliance checking.
-
-**Configuration**:
-The plugins include this configuration automatically. It will be installed via `npx` on first use.
-
-**No additional setup required** - runs via `npx -y task-master-ai`
-
----
-
 ### Environment Variable Setup
 
 Add these to your shell profile (`~/.bashrc`, `~/.zshrc`, or `~/.profile`):
@@ -182,17 +174,15 @@ gitlab-mcp --version
 # Test GitHub token
 curl -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/user
 
-# Test task-master-ai (will auto-install via npx)
-npx -y task-master-ai --help
 ```
 
 ### MCP Server Features by Plugin
 
-| Plugin | task-master-ai | github | gitlab-mcp | perplexity-ai |
-|--------|---------------|--------|------------|---------------|
-| **devops-infrastructure** | ✅ Task validation | ✅ CI/CD workflows | ✅ Pipeline management | ✅ Research & docs |
-| **software-engineering** | ✅ Task tracking | ✅ PR/Issue management | ✅ MR/Issue management | ✅ Library research |
-| **go-specialist** | ✅ TDD validation | ✅ Go workflows | ✅ Go CI/CD | ✅ Go library docs |
+| Plugin | github | gitlab-mcp | perplexity-ai |
+|--------|--------|------------|---------------|
+| **devops-infrastructure** | ✅ CI/CD workflows | ✅ Pipeline management | ✅ Research & docs |
+| **software-engineering** | ✅ PR/Issue management | ✅ MR/Issue management | ✅ Library research |
+| **go-specialist** | ✅ Go workflows | ✅ Go CI/CD | ✅ Go library docs |
 
 ---
 
@@ -201,11 +191,14 @@ npx -y task-master-ai --help
 ### devops-infrastructure (v0.2.0)
 
 **Agents**:
+- `aws-specialist` - AWS cloud architecture, Well-Architected Framework, cost optimization
 - `cicd-specialist` - GitHub Actions, GitLab CI, Forgejo Actions expert
 - `database-specialist` - PostgreSQL, MySQL optimization and schema design
 - `devops-specialist` - Terraform, Ansible, CloudFormation, cloud automation
+- `postgresql-specialist` - PostgreSQL 16+ advanced features, query optimization, replication
 
-**Commands**: None yet
+**Commands**:
+- `/analyze-db-performance` - PostgreSQL performance analysis with query and index insights
 
 **Skills**: None yet
 
@@ -230,10 +223,14 @@ npx -y task-master-ai --help
 
 **Commands**:
 - `/analyze-and-create-issue` - Analyze codebase issues and create GitHub/GitLab issues
+- `/analyze-pr` - Comprehensive PR review for quality, security, and coverage
 - `/audit-codebase` - Security and performance audit
+- `/check-claude-md-tokens` - Monitor and optimize CLAUDE.md token count
 - `/commit` - Generate conventional commit messages
 - `/create-issue` - Create GitHub or GitLab issue
 - `/create-prd` - Create Product Requirement Document
+- `/feature-flow` - Complete git workflow orchestration (branch, issue, commit)
+- `/gen-claude` - Generate or enhance CLAUDE.md with project guidance
 - `/refine-prd` - Review and improve existing PRD
 - `/upd-project-description` - Update GitHub/GitLab project metadata
 
@@ -254,6 +251,11 @@ npx -y task-master-ai --help
 - `golang-pro` - Go 1.25+ expert with generics, concurrency, performance optimization
 
 **Commands**:
+- `/gen-github-dir` - Generate complete .github directory with workflows and configs
+- `/gen-gitlab-ci` - Generate GitLab CI/CD pipeline for Go projects
+- `/gen-goreleaser` - Generate GoReleaser configuration with multi-arch builds
+- `/gen-linter` - Generate .golangci.yml with 90+ linters
+- `/gen-taskfiles` - Generate Taskfile.yml and .pre-commit-config.yaml
 - `/verify-task` - Verify Go task implementation quality with TDD validation
 
 **Skills**:
@@ -331,7 +333,6 @@ cd plugins/go-specialist && claude plugin validate .
 - **MCP Servers**:
   - [sgaunet/pplx](https://github.com/sgaunet/pplx) - Perplexity AI MCP server
   - [sgaunet/gitlab-mcp](https://github.com/sgaunet/gitlab-mcp) - GitLab MCP server
-  - [task-master-ai](https://www.npmjs.com/package/task-master-ai) - Task management MCP server
 
 - **Documentation**:
   - [Claude Code Docs](https://docs.claude.ai/claude-code)

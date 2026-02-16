@@ -8,8 +8,13 @@ capabilities:
   - Well-Architected Framework pillars
   - Cost optimization and FinOps
   - Security and compliance (IAM, KMS, CloudTrail)
+allowed-tools: Read, Write, Edit, MultiEdit, Grep, Glob, Bash(terraform:*), Bash(aws:*), Bash(cdk:*), WebFetch
 model: sonnet
 color: orange
+context: |
+  AWS infrastructure specialist that coordinates with devops-specialist for cloud deployments.
+  Shares cost optimization findings with cicd-specialist for efficient pipeline infrastructure.
+  Collaborates with security-auditor for IAM policy review and compliance validation.
 ---
 
 ## Proactive Triggers
