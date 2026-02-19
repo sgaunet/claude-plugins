@@ -1,6 +1,7 @@
 ---
 name: check-claude-md-tokens
 description: Monitor and optimize CLAUDE.md token count to stay under 2500 token limit
+argument-hint: "[optional: path to CLAUDE.md file]"
 allowed-tools: Read, Edit, Bash(wc:*), Bash(awk:*)
 ---
 
