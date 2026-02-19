@@ -8,5 +8,6 @@
     "email": "1552102+sgaunet@users.noreply.github.com"
   },
   "license": "MIT",
-  "repository": "https://github.com/sgaunet/claude-plugins"
+  "repository": "https://github.com/sgaunet/claude-plugins",
+  "homepage": "https://github.com/sgaunet/claude-plugins#readme"
 }
