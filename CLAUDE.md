@@ -25,7 +25,7 @@ plugins/
 │   ├── .claude-plugin/
 │   │   └── plugin.json
 │   ├── agents/               # Agent definitions (7 agents)
-│   ├── commands/             # Custom slash commands (11 commands)
+│   ├── commands/             # Custom slash commands (9 commands)
 │   └── .mcp.json             # MCP server integration (4 servers)
 │
 └── go-specialist/            # Go language expertise
@@ -187,7 +187,7 @@ See existing agents in `plugins/*/agents/*.md` for advanced patterns (context sh
 - **Marketplace metadata**: `.claude-plugin/marketplace.json`
 - **Plugin metadata**: `plugins/*/\.claude-plugin/plugin.json`
 - **Agent definitions**: `plugins/*/agents/*.md` (13 total agents)
-- **Commands**: `plugins/*/commands/*.md` (22 custom commands)
+- **Commands**: `plugins/*/commands/*.md` (20 custom commands)
 - **MCP config**: `plugins/*/.mcp.json` (4 MCP servers integrated)
 
 ## Design Patterns
@@ -248,7 +248,6 @@ Reusable sub-workflows invoked by agents or commands:
 - `github-workflows`: Setup GitHub Actions CI/CD
 - `gitlab-ci`: Configure GitLab pipelines
 - `goreleaser`: Setup automated releases
-- `prd`: Product Requirement Document creation
 
 ### Agents
 Proactive specialists in `plugins/*/agents/` that auto-activate based on context:

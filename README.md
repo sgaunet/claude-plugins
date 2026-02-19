@@ -227,14 +227,9 @@ curl -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/user
 - `/check-claude-md-tokens` - Monitor and optimize CLAUDE.md token count
 - `/commit` - Generate conventional commit messages
 - `/create-issue` - Create GitHub or GitLab issue
-- `/create-prd` - Create Product Requirement Document
 - `/feature-flow` - Complete git workflow orchestration (branch, issue, commit)
 - `/gen-claude` - Generate or enhance CLAUDE.md with project guidance
-- `/refine-prd` - Review and improve existing PRD
 - `/upd-project-description` - Update GitHub/GitLab project metadata
-
-**Skills**:
-- `prd` - Product requirement document templates
 
 **Use Cases**:
 - Automated code review and security scanning

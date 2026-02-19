@@ -127,5 +127,4 @@ When offering to reduce CLAUDE.md, analyze the content and propose specific edit
 
 This command works alongside:
 - **audit-codebase**: Ensures CLAUDE.md follows best practices
-- **create-prd**: Helps maintain concise project documentation
 - **commit**: Documents CLAUDE.md changes with proper commit messages
