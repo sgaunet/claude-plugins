@@ -13,7 +13,6 @@ model: sonnet
 color: orange
 context: |
   Analyzes errors and shares root cause findings with implementing agents.
-  Coordinates with task-checker when debugging test failures.
   Provides diagnostic insights to inform code-review-enforcer security analysis.
 ---
 
@@ -187,7 +186,6 @@ For each issue investigated, provide:
 
 ## Coordination with Other Agents
 
-- **task-checker**: Share test failure analysis for quality validation
 - **code-review-enforcer**: Provide error patterns for proactive detection
 - **security-auditor**: Escalate security-related errors for review
 - **Language specialists (golang-pro, etc.)**: Leverage language-specific debugging expertise
