@@ -1,0 +1,129 @@
+name: Validate Plugins
+
+on:
+  pull_request:
+    paths:
+      - 'plugins/**'
+      - '.claude-plugin/**'
+      - 'scripts/**'
+      - 'Taskfile.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'plugins/**'
+      - '.claude-plugin/**'
+      - 'scripts/**'
+      - 'Taskfile.yml'
+
+jobs:
+  validate:
+    name: Validate ${{ matrix.plugin }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        plugin:
+          - devops-infrastructure
+          - software-engineering
+          - go-specialist
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # - name: Setup Node.js
+      #   uses: actions/setup-node@v4
+      #   with:
+      #     node-version: '20'
+
+      - name: Install Claude CLI
+        run: |
+          curl -fsSL https://claude.ai/install.sh | bash
+
+      - name: Validate plugin structure
+        run: |
+          cd plugins/${{ matrix.plugin }}
+          claude plugin validate .
+        continue-on-error: false
+
+      - name: Count agents and commands
+        run: |
+          echo "=== Plugin: ${{ matrix.plugin }} ==="
+          echo "Agents: $(find plugins/${{ matrix.plugin }}/agents -name '*.md' 2>/dev/null | wc -l)"
+          echo "Commands: $(find plugins/${{ matrix.plugin }}/commands -name '*.md' 2>/dev/null | wc -l)"
+
+  validate-marketplace:
+    name: Validate Marketplace
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # - name: Setup Node.js
+      #   uses: actions/setup-node@v4
+      #   with:
+      #     node-version: '20'
+
+      - name: Install Claude CLI
+        run: |
+          curl -fsSL https://claude.ai/install.sh | bash
+
+      - name: Validate marketplace.json
+        run: |
+          claude plugin validate .claude-plugin/marketplace.json
+
+  check-versions:
+    name: Check Version Consistency
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check version consistency
+        run: |
+          chmod +x ./scripts/check-versions.sh
+          ./scripts/check-versions.sh
+
+  lint-markdown:
+    name: Lint Markdown Files
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install markdownlint-cli
+        run: npm install -g markdownlint-cli
+
+      - name: Lint markdown files
+        run: |
+          markdownlint '**/*.md' \
+            --ignore node_modules \
+            --ignore examples \
+            --config .markdownlint.json || true
+
+  summary:
+    name: Validation Summary
+    runs-on: ubuntu-latest
+    needs: [validate, validate-marketplace, check-versions]
+    if: always()
+
+    steps:
+      - name: Check results
+        run: |
+          if [ "${{ needs.validate.result }}" = "failure" ] || \
+             [ "${{ needs.validate-marketplace.result }}" = "failure" ] || \
+             [ "${{ needs.check-versions.result }}" = "failure" ]; then
+            echo "❌ Validation failed"
+            exit 1
+          else
+            echo "✅ All validations passed"
+          fi
