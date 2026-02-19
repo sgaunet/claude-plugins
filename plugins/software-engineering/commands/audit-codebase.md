@@ -19,21 +19,21 @@ Audit the code for potential security vulnerabilities, performance issues, and a
    - Ensure proper authentication and authorization mechanisms
    - Review error handling to avoid information leakage
    - Verify use of secure libraries and dependencies
-   - Return findings in format: `{severity: "CRITICAL"|"HIGH"|"MEDIUM"|"LOW", finding: "...", recommendation: "..."}`
+   - Return findings in format: `{severity: "CRITICAL"|"HIGH"|"MEDIUM"|"LOW", file: "path/to/file.ext", line: N, finding: "...", recommendation: "..."}`
 
    **Agent #2: Performance Analyzer**
    - Identify and optimize slow or inefficient code paths
    - Analyze memory usage and detect potential leaks
    - Review database queries for performance issues
    - Evaluate caching strategies and their effectiveness
-   - Return findings in format: `{severity: "CRITICAL"|"HIGH"|"MEDIUM"|"LOW", finding: "...", recommendation: "..."}`
+   - Return findings in format: `{severity: "CRITICAL"|"HIGH"|"MEDIUM"|"LOW", file: "path/to/file.ext", line: N, finding: "...", recommendation: "..."}`
 
    **Agent #3: Best Practices Reviewer**
    - Ensure adherence to coding standards and style guides
    - Review documentation for completeness and clarity
    - Evaluate test coverage and effectiveness
    - Identify opportunities for code simplification and refactoring
-   - Return findings in format: `{severity: "CRITICAL"|"HIGH"|"MEDIUM"|"LOW", finding: "...", recommendation: "..."}`
+   - Return findings in format: `{severity: "CRITICAL"|"HIGH"|"MEDIUM"|"LOW", file: "path/to/file.ext", line: N, finding: "...", recommendation: "..."}`
 
 3. **Aggregate Results**: Collect findings from all 3 agents and merge into unified report.
 
@@ -58,22 +58,48 @@ Note: These agents run concurrently and independently, with no cross-dependencie
 Provide a comprehensive report summarizing findings and actionable recommendations for each area reviewed.
 Use the following format for the report:
 
-## Security
-- [Finding 1]
+```markdown
+# Codebase Audit Report
+
+## Summary
+- **Files Analyzed**: N files
+- **Total Findings**: N (🔴 X Critical, 🟠 Y High, 🟡 Z Medium, 🟢 W Low)
+
+## Security 🔒 [Score: X/5 ⭐⭐⭐⭐☆]
+- 🔴 **CRITICAL** `auth/handler.go:45` - [Finding description]
   - Recommendation: [Actionable recommendation]
-- [Finding 2]
+- 🟠 **HIGH** `config/secrets.go:12` - [Finding description]
+  - Recommendation: [Actionable recommendation]
+- 🟡 **MEDIUM** `api/middleware.go:89` - [Finding description]
+  - Recommendation: [Actionable recommendation]
+- 🟢 **LOW** `utils/logger.go:23` - [Finding description]
   - Recommendation: [Actionable recommendation]
 
-## Performance
-- [Finding 1]
+## Performance ⚡ [Score: X/5 ⭐⭐⭐⭐☆]
+- 🔴 **CRITICAL** `db/queries.go:156` - [Finding description]
   - Recommendation: [Actionable recommendation]
-- [Finding 2]
-  - Recommendation: [Actionable recommendation]
-
-## Best Practices
-- [Finding 1]
-  - Recommendation: [Actionable recommendation]
-- [Finding 2]
+- 🟡 **MEDIUM** `api/handler.go:78` - [Finding description]
   - Recommendation: [Actionable recommendation]
 
-Ensure the report is clear, concise, and prioritized based on the severity of the findings.
+## Best Practices 📋 [Score: X/5 ⭐⭐⭐⭐☆]
+- 🟠 **HIGH** `internal/service.go:34` - [Finding description]
+  - Recommendation: [Actionable recommendation]
+- 🟢 **LOW** `cmd/main.go:15` - [Finding description]
+  - Recommendation: [Actionable recommendation]
+
+## Action Items (Prioritized)
+1. 🔴 [Most critical fix with file:line reference]
+2. 🔴 [Next critical fix]
+3. 🟠 [High priority fix]
+4. 🟡 [Medium priority fix]
+```
+
+**Severity badges:**
+- 🔴 **CRITICAL**: Immediate action required (security breach, data loss risk)
+- 🟠 **HIGH**: Should be fixed soon (significant impact)
+- 🟡 **MEDIUM**: Plan to fix (moderate impact)
+- 🟢 **LOW**: Nice to have (minor improvement)
+
+**Scoring**: Rate each category 1-5 stars based on finding density and severity.
+
+Ensure the report is clear, concise, and prioritized based on the severity of the findings. Sort findings within each category from highest to lowest severity.
