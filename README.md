@@ -310,7 +310,7 @@ cd plugins/go-specialist && claude plugin validate .
 │   │   ├── agents/               # Agent definitions (*.md)
 │   │   ├── commands/             # Slash commands (*.md)
 │   │   ├── hooks.json            # Event hooks
-│   │   └── mcp.json              # MCP server config
+│   │   └── .mcp.json             # MCP server config
 │   ├── software-engineering/
 │   │   └── [same structure]
 │   └── go-specialist/
