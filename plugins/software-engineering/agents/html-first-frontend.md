@@ -8,7 +8,7 @@ capabilities:
   - Progressive enhancement patterns
   - Form handling and validation
   - Accessibility and performance optimization
-allowed-tools: Read, Write, Edit, MultiEdit, Bash
+tools: Read, Write, Edit, MultiEdit, Bash
 permissionMode: manual
 model: sonnet
 color: teal

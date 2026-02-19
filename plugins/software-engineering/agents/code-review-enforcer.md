@@ -8,7 +8,7 @@ capabilities:
   - Performance optimization review
   - Best practices enforcement
   - Testing coverage validation
-allowed-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash
 model: sonnet
 color: purple
 context: |

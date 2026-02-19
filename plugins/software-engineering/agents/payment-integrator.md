@@ -8,7 +8,7 @@ capabilities:
   - Webhook handling and verification
   - PCI compliance and security
   - Fraud prevention and SCA/3D Secure
-allowed-tools: Read, Write, Edit, MultiEdit, Grep, Glob, Bash(npm:*), Bash(curl:*), WebFetch
+tools: Read, Write, Edit, MultiEdit, Grep, Glob, Bash(npm:*), Bash(curl:*), WebFetch
 permissionMode: manual
 model: sonnet
 color: emerald

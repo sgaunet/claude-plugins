@@ -8,7 +8,7 @@ capabilities:
   - Dependency chain analysis
   - Risk assessment and mitigation
   - Attribution requirements
-allowed-tools: Read, Grep, Glob, Bash(npm:*), Bash(go:*), Bash(pip:*), WebFetch
+tools: Read, Grep, Glob, Bash(npm:*), Bash(go:*), Bash(pip:*), WebFetch
 model: sonnet
 permissionMode: manual
 color: amber
