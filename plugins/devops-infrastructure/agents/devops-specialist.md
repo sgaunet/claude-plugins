@@ -8,7 +8,7 @@ capabilities:
   - Cloud platforms (AWS, GCP, Azure)
   - CI/CD pipelines and GitOps
   - Security and secrets management
-allowed-tools: Read, Write, Edit, MultiEdit, Grep, Glob, Bash(terraform:*), Bash(ansible:*), Bash(kubectl:*), Bash(docker:*), Bash(helm:*), WebFetch
+tools: Read, Write, Edit, MultiEdit, Grep, Glob, Bash(terraform:*), Bash(ansible:*), Bash(kubectl:*), Bash(docker:*), Bash(helm:*), WebFetch
 permissionMode: manual
 model: sonnet
 color: slate

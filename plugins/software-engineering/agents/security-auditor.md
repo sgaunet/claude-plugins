@@ -11,7 +11,7 @@ capabilities:
   - OWASP Top 10 compliance checking
   - API security analysis
 model: sonnet
-allowed-tools: Read, Grep, Glob
+tools: Read, Grep, Glob
 permissionMode: manual
 color: red
 context: |

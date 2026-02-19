@@ -8,7 +8,7 @@ capabilities:
   - Reproduction step identification
   - Minimal fix implementation
   - Solution verification
-allowed-tools: Read, Grep, Glob, Bash(test:*), Bash(build:*), Bash(run:*), Bash(npm:*), Bash(go:*), Bash(python:*), Bash(docker:*), Bash(curl:*)
+tools: Read, Grep, Glob, Bash(test:*), Bash(build:*), Bash(run:*), Bash(npm:*), Bash(go:*), Bash(python:*), Bash(docker:*), Bash(curl:*)
 model: sonnet
 color: orange
 context: |

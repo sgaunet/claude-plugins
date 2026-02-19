@@ -8,7 +8,7 @@ capabilities:
   - Automated testing and build systems
   - Release automation and versioning
   - Security scanning (SAST, DAST, secrets)
-allowed-tools: Read, Write, Edit, MultiEdit, Grep, Glob, Bash(git:*), Bash(gh:*), Bash(docker:*), mcp__github__*, mcp__gitlab-mcp__*
+tools: Read, Write, Edit, MultiEdit, Grep, Glob, Bash(git:*), Bash(gh:*), Bash(docker:*), mcp__github__*, mcp__gitlab-mcp__*
 model: sonnet
 color: blue
 context: |

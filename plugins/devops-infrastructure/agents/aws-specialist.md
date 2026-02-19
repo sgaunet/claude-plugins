@@ -8,7 +8,7 @@ capabilities:
   - Well-Architected Framework pillars
   - Cost optimization and FinOps
   - Security and compliance (IAM, KMS, CloudTrail)
-allowed-tools: Read, Write, Edit, MultiEdit, Grep, Glob, Bash(terraform:*), Bash(aws:*), Bash(cdk:*), WebFetch
+tools: Read, Write, Edit, MultiEdit, Grep, Glob, Bash(terraform:*), Bash(aws:*), Bash(cdk:*), WebFetch
 model: sonnet
 color: orange
 context: |

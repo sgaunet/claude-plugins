@@ -8,7 +8,7 @@ capabilities:
   - Query optimization and indexing
   - Data warehousing and OLAP
   - Migration patterns and CDC
-allowed-tools: Read, Write, Edit, MultiEdit, Grep, Glob, Bash(psql:*), Bash(mysql:*), Bash(mongosh:*), Bash(redis-cli:*), WebFetch
+tools: Read, Write, Edit, MultiEdit, Grep, Glob, Bash(psql:*), Bash(mysql:*), Bash(mongosh:*), Bash(redis-cli:*), WebFetch
 model: sonnet
 color: cyan
 context: |
