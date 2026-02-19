@@ -572,8 +572,8 @@ Configuration features enabled:
 Configuration is ready to use immediately - no manual editing required! 🎉
 
 📚 Need help with advanced customization?
-   • Configuration patterns: commands/docs/goreleaser-reference.md
-   • Troubleshooting: commands/docs/goreleaser-troubleshooting.md
+   • Configuration patterns: ${CLAUDE_PLUGIN_ROOT}/commands/docs/goreleaser-reference.md
+   • Troubleshooting: ${CLAUDE_PLUGIN_ROOT}/commands/docs/goreleaser-troubleshooting.md
    • Official docs: https://goreleaser.com
 ```
 
@@ -748,8 +748,8 @@ git push origin v0.1.0
 ## Additional Resources
 
 **Command documentation:**
-- Configuration patterns: `commands/docs/goreleaser-reference.md`
-- Troubleshooting guide: `commands/docs/goreleaser-troubleshooting.md`
+- Configuration patterns: `${CLAUDE_PLUGIN_ROOT}/commands/docs/goreleaser-reference.md`
+- Troubleshooting guide: `${CLAUDE_PLUGIN_ROOT}/commands/docs/goreleaser-troubleshooting.md`
 
 **Official resources:**
 - GoReleaser docs: https://goreleaser.com
