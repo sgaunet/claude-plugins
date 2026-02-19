@@ -18,7 +18,7 @@ Use `Glob` to enumerate all files to audit:
 - `plugins/*/skills/*/SKILL.md` — skill definitions
 - `plugins/*/.claude-plugin/plugin.json` — plugin manifests
 - `.claude-plugin/marketplace.json` — marketplace manifest
-- `plugins/*/mcp.json` — MCP server configurations
+- `plugins/*/.mcp.json` — MCP server configurations
 
 Count totals (plugins, agents, commands, skills) for the report summary.
 
@@ -78,7 +78,7 @@ Prompt the agent to:
 2. Read all manifest and config files:
    - `plugins/*/.claude-plugin/plugin.json`
    - `.claude-plugin/marketplace.json`
-   - `plugins/*/mcp.json`
+   - `plugins/*/.mcp.json`
 3. For each plugin.json, check:
    - **Required fields**: `name`, `version`, `description`
    - **Version format**: Should follow semver
@@ -88,7 +88,7 @@ Prompt the agent to:
    - **Required fields**: name, version, plugins list
    - **Plugin references**: All plugins in `plugins/` should be listed
    - **Version consistency**: Marketplace version should be coherent with plugin versions
-5. For mcp.json, check:
+5. For .mcp.json, check:
    - **Server declarations**: Should match servers actually used in agent/command `allowed-tools`
 6. **Cross-cutting ecosystem checks**:
    - Correct categorization (agent vs skill vs command — no misplaced files)
