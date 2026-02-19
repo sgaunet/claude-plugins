@@ -8,7 +8,7 @@ allowed-tools: Read, Grep, Glob, Bash(git remote:*), Task, mcp__github__create_i
 # Analyze And Create Issue Command
 
 Analyze codebase to find improvements. For each improvement:
-* Describe consily to the the user and ask him if he wants to create an issue
+* Describe concisely to the user and ask if they want to create an issue
 * If yes, create the issue in the git repository (GitHub or GitLab) using the appropriate MCP server.
 
 ## Process
