@@ -123,7 +123,7 @@ Store `<worktree-path>` and `<original-path>` (result of `pwd`) for use througho
 - Description: imperative mood, lowercase, under 50 chars, no period
 - Body: bullet points for multi-file changes
 - Footer: `Refs #<issue-number>` or `Closes #<N>` for fixes
-- **CRITICAL**: NO Claude Code attribution (per commit.md:19,23,87)
+- **CRITICAL**: NO Claude Code attribution (per commit command's no-attribution policy)
 
 **Display preview, ask confirmation:** "Commit with this message?" → "Yes, commit now" / "Edit message" / "Cancel workflow"
 
@@ -212,41 +212,13 @@ Display workflow summary showing:
 
 **Parse flags:** `--skip-lint` or `-l` → skip this phase.
 
-**All lint commands run in worktree directory:** prefix with `cd <worktree-path> &&`.
-
-**Lint detection** (first match wins):
-
-| Trigger | Command | Fallback |
-|---------|---------|----------|
-| Taskfile.yml (`lint` task) | `task lint` | -- |
-| Makefile (`lint` target) | `make lint` | -- |
-| go.mod | `golangci-lint run ./...` | `go vet ./...` |
-| package.json (`lint` script) | `npm run lint` | `npx eslint .` |
-| pyproject.toml / setup.py | `ruff check .` | `python -m flake8 .` |
-| Cargo.toml | `cargo clippy -- -D warnings` | -- |
-| None detected | Warn and skip | -- |
-
-**On failure:** Display errors → attempt auto-fix if supported (`--fix` flag) → re-run → if still failing, ask user whether to continue.
+**Use the `run-lint` skill** with `working_directory` set to `<worktree-path>`. If lint fails, ask user whether to continue.
 
 ### Phase I-5: Test (Automatic, Skippable)
 
 **Parse flags:** `--skip-test` or `-t` → skip this phase.
 
-**All test commands run in worktree directory:** prefix with `cd <worktree-path> &&`.
-
-**Test detection** (first match wins):
-
-| Trigger | Command | Fallback |
-|---------|---------|----------|
-| Taskfile.yml (`test` task) | `task test` | -- |
-| Makefile (`test` target) | `make test` | -- |
-| go.mod | `go test ./...` | -- |
-| package.json (`test` script) | `npm test` | `npx jest` or `npx vitest run` |
-| pyproject.toml / setup.py | `python -m pytest` | -- |
-| Cargo.toml | `cargo test` | -- |
-| None detected | Warn and skip | -- |
-
-**On failure:** Display output → attempt fix (max 2 retries): analyze failure, apply fix via Edit, re-run → if still failing, ask user whether to continue.
+**Use the `run-tests` skill** with `working_directory` set to `<worktree-path>`. If tests fail, ask user whether to continue.
 
 ### Phase I-6: Verification (User Confirmation)
 
