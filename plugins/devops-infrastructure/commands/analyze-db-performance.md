@@ -103,7 +103,7 @@ Note: Data collection agents (Haiku) run concurrently since SQL queries are inde
    - Table bloat analysis
    - Configuration recommendations
 
-5. **Provide Actionable Recommendations**:
+6. **Provide Actionable Recommendations**:
    - CREATE INDEX statements
    - DROP INDEX statements (for unused)
    - Query rewrites
