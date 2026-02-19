@@ -1,7 +1,7 @@
 ---
 name: commit
 description: Create conventional commit from staged changes with approval
-allowed-tools: Read, Grep, Glob, Bash(git status:*), Bash(git diff:*), Bash(git add:*), Bash(git log:*)
+allowed-tools: Read, Grep, Glob, Bash(git status:*), Bash(git diff:*), Bash(git add:*), Bash(git log:*), Bash(git commit:*), AskUserQuestion
 ---
 
 # Git Commit Command
