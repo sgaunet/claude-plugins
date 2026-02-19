@@ -20,12 +20,12 @@ Update the description and topics of the current project. This command automatic
 3. **Launch 2 parallel Haiku agents** to update project metadata concurrently:
 
    **Agent #1: Update Project Description**
-   - **GitHub**: Use `mcp__github__update_repository` with description field (or gh CLI if MCP unavailable)
+   - **GitHub**: Use `gh repo edit --description "<description>"` via Bash
    - **GitLab**: Use `mcp__gitlab-mcp__update_project_description` (or glab CLI if MCP unavailable)
    - Return: success/failure status
 
    **Agent #2: Update Project Topics/Tags**
-   - **GitHub**: Use `mcp__github__update_repository` with topics field (or gh CLI if MCP unavailable)
+   - **GitHub**: Use `gh repo edit --add-topic "<topic>"` via Bash (one per topic)
    - **GitLab**: Use `mcp__gitlab-mcp__update_project_topics` (or glab CLI if MCP unavailable)
    - Return: success/failure status
 
@@ -45,8 +45,8 @@ readme_analysis = get_task_result()
 
 # Step 3: Launch 2 parallel Haiku agents to update metadata
 if host_info.platform == "github":
-    Task(tool: "mcp__github__update_repository", params: {description: readme_analysis.description})
-    Task(tool: "mcp__github__update_repository", params: {topics: readme_analysis.topics})
+    Task(tool: "Bash", params: {command: 'gh repo edit owner/repo --description "description"'})
+    Task(tool: "Bash", params: {command: 'gh repo edit owner/repo --add-topic "topic1" --add-topic "topic2"'})
 elif host_info.platform == "gitlab":
     Task(tool: "mcp__gitlab-mcp__update_project_description", params: {project_path: host_info.project_path, description: readme_analysis.description})
     Task(tool: "mcp__gitlab-mcp__update_project_topics", params: {project_path: host_info.project_path, topics: readme_analysis.topics})
@@ -54,7 +54,7 @@ elif host_info.platform == "gitlab":
 # Step 4: Verify both operations completed successfully
 ```
 
-Note: For GitHub, if the API supports updating description and topics in a single call, that's even more efficient. For GitLab, two separate calls are required by the MCP API.
+Note: For GitHub, `gh repo edit` supports both `--description` and `--add-topic` flags in a single call for efficiency. For GitLab, two separate MCP calls are required by the API.
 
 ## Error Handling
 
