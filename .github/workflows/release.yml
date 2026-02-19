@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - '.claude-plugin/version'
+      - '.claude-plugin/marketplace.json'
 
 permissions:
   contents: write
@@ -27,14 +27,14 @@ jobs:
       - name: Get current version
         id: version
         run: |
-          VERSION=$(cat .claude-plugin/version)
+          VERSION=$(jq -r '.metadata.version' .claude-plugin/marketplace.json)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Current version: $VERSION"
 
       - name: Get previous version
         id: prev_version
         run: |
-          PREV_VERSION=$(git show HEAD~1:.claude-plugin/version 2>/dev/null || echo "0.0.0")
+          PREV_VERSION=$(git show HEAD~1:.claude-plugin/marketplace.json 2>/dev/null | jq -r '.metadata.version // "0.0.0"')
           echo "prev_version=$PREV_VERSION" >> $GITHUB_OUTPUT
           echo "Previous version: $PREV_VERSION"
 

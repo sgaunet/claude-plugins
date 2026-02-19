@@ -1,6 +1,7 @@
 {
   "name": "sylvain-marketplace",
   "metadata": {
+    "version": "0.4.9",
     "description": "Specialized Claude Code agents for DevOps infrastructure, software engineering workflows, and Go development. Includes proactive agents for IaC, CI/CD, database optimization, code review, debugging, documentation, and more."
   },
   "owner": {

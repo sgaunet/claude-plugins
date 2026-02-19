@@ -16,7 +16,6 @@ NC='\033[0m'
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 MARKETPLACE_JSON="$PROJECT_ROOT/.claude-plugin/marketplace.json"
-VERSION_FILE="$PROJECT_ROOT/.claude-plugin/version"
 
 # ============================================================================
 # VALIDATION FUNCTIONS
@@ -257,10 +256,10 @@ update_marketplace_version() {
     local bump_type="$1"
 
     local current_version
-    current_version=$(cat "$VERSION_FILE")
+    current_version=$(jq -r '.metadata.version' "$MARKETPLACE_JSON")
 
-    if [ -z "$current_version" ]; then
-        echo -e "${RED}ERROR: No version found in $VERSION_FILE${NC}" >&2
+    if [ -z "$current_version" ] || [ "$current_version" = "null" ]; then
+        echo -e "${RED}ERROR: No version found in marketplace.json metadata${NC}" >&2
         exit 1
     fi
 
@@ -272,8 +271,16 @@ update_marketplace_version() {
         exit 1
     fi
 
-    echo "$new_version" > "$VERSION_FILE"
-    git add "$VERSION_FILE"
+    # Update marketplace.json metadata.version
+    local temp_file
+    temp_file=$(mktemp)
+    if ! jq --arg version "$new_version" '.metadata.version = $version' "$MARKETPLACE_JSON" > "$temp_file"; then
+        rm -f "$temp_file"
+        echo -e "${RED}ERROR: Failed to update marketplace.json metadata version${NC}" >&2
+        exit 1
+    fi
+    mv "$temp_file" "$MARKETPLACE_JSON"
+    git add "$MARKETPLACE_JSON"
 
     echo "$current_version $new_version"
 }
