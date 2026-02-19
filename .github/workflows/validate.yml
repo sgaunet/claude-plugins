@@ -8,13 +8,13 @@ on:
       - 'scripts/**'
       - 'Taskfile.yml'
   push:
-    branches:
-      - main
-    paths:
-      - 'plugins/**'
-      - '.claude-plugin/**'
-      - 'scripts/**'
-      - 'Taskfile.yml'
+    # branches:
+    #   - main
+    # paths:
+    #   - 'plugins/**'
+    #   - '.claude-plugin/**'
+    #   - 'scripts/**'
+    #   - 'Taskfile.yml'
 
 jobs:
   validate:
