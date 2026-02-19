@@ -36,7 +36,7 @@ A 60-90 minute process requiring deep GoReleaser knowledge.
 - All generated content should appear as if written by a human developer
 - Focus on technical accuracy and providing working templates
 
-## Process (7 Phases + Project Detection)
+## Process (7 Phases)
 
 ### Phase 1: Prerequisites Validation
 
@@ -146,7 +146,7 @@ For each file:
 - If any file not found: Exit with error "Template file not found: <path>"
 - If any file empty: Exit with error "Template file empty or corrupted: <path>"
 
-### Phase 3.5: Auto-Detection & Substitution
+### Phase 4: Auto-Detection & Substitution
 
 **Detection Function Library** (bash functions to extract project values):
 
