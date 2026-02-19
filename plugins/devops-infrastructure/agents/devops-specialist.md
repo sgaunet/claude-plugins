@@ -2,7 +2,7 @@
 name: devops-specialist
 description: Infrastructure as Code expert for Terraform, Ansible, and cloud automation. Use for infrastructure provisioning and configuration management.
 tools: Read, Write, Edit, MultiEdit, Grep, Glob, Bash(terraform:*), Bash(ansible:*), Bash(kubectl:*), Bash(docker:*), Bash(helm:*), WebFetch
-permissionMode: manual
+permissionMode: dontAsk
 model: sonnet
 color: slate
 ---

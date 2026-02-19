@@ -12,6 +12,12 @@ tasks:
     cmds:
       - task: check
       - task: check-versions
+      - task: validate-frontmatter
+
+  validate-frontmatter:
+    desc: "Validate plugin frontmatter against official Claude Code spec"
+    cmds:
+      - ./scripts/validate-frontmatter.sh
 
   check:
     desc: "Validate all plugins and marketplace"

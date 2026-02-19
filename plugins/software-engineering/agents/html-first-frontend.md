@@ -2,7 +2,7 @@
 name: html-first-frontend
 description: HTML-first frontend specialist using HTMX, Alpine.js, and Tailwind/Bootstrap for progressive enhancement. Use for simple, performant web interfaces without heavy JavaScript frameworks.
 tools: Read, Write, Edit, MultiEdit, Bash
-permissionMode: manual
+permissionMode: dontAsk
 model: sonnet
 color: teal
 ---

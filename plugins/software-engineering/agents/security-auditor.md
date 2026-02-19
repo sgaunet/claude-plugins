@@ -3,7 +3,7 @@ name: security-auditor
 description: Reviews code for security vulnerabilities. Use proactively after any auth/crypto/API changes.
 model: sonnet
 tools: Read, Grep, Glob
-permissionMode: manual
+permissionMode: dontAsk
 color: red
 ---
 

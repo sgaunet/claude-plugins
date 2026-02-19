@@ -3,7 +3,7 @@ name: license-specialist
 description: Software license compliance expert. Use when evaluating dependencies or building commercial products.
 tools: Read, Grep, Glob, Bash(npm:*), Bash(go:*), Bash(pip:*), WebFetch
 model: sonnet
-permissionMode: manual
+permissionMode: dontAsk
 color: amber
 ---
 
