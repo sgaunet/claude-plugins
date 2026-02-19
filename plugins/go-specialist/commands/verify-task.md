@@ -30,7 +30,7 @@ Verify the quality and completeness of a task implementation. This command valid
    **Agent #1: Library Usage Validator (Context7 Integration)**
    - Extract all third-party Go libraries from import statements
    - For each library, use `mcp__context7__resolve-library-id` to identify library
-   - Use `mcp__context7__get-library-docs` to fetch official documentation
+   - Use `mcp__context7__query-docs` to fetch official documentation
    - Verify code follows official library patterns and best practices
    - Check for deprecated APIs or outdated usage
    - Validate proper usage of library features and idioms
@@ -103,9 +103,9 @@ Note: If task uses multiple third-party libraries (e.g., 5+ imports), fetch Cont
 
 ```
 # Example: 3 libraries
-Task(tool: "mcp__context7__get-library-docs", library: "/gin-gonic/gin")
-Task(tool: "mcp__context7__get-library-docs", library: "/go-chi/chi")
-Task(tool: "mcp__context7__get-library-docs", library: "/gorilla/mux")
+Task(tool: "mcp__context7__query-docs", library: "/gin-gonic/gin")
+Task(tool: "mcp__context7__query-docs", library: "/go-chi/chi")
+Task(tool: "mcp__context7__query-docs", library: "/gorilla/mux")
 # Results aggregated after all complete
 ```
 

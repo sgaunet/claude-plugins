@@ -79,9 +79,8 @@ When implementing features using third-party Go libraries:
    - Example: User mentions "I want to use Gin framework" → resolve "gin-gonic/gin"
 
 2. **Documentation Retrieval**:
-   - Use `mcp__context7__get-library-docs` with mode='code' for API references
-   - Use mode='info' for conceptual guides and architecture
-   - Paginate through documentation as needed (page=1, page=2, etc.)
+   - Use `mcp__context7__query-docs` with the resolved library ID
+   - Provide specific queries for API references or conceptual guides
 
 3. **Code Generation**:
    - Generate code using official library patterns from Context7
@@ -92,7 +91,7 @@ When implementing features using third-party Go libraries:
 ```
 User: "Add HTTP middleware for logging using Gin"
 → resolve-library-id: "gin-gonic/gin"
-→ get-library-docs: "/gin-gonic/gin" topic="middleware" mode="code"
+→ query-docs: "/gin-gonic/gin" query="middleware"
 → Generate middleware using official Gin patterns
 → Include links to Gin documentation
 ```
