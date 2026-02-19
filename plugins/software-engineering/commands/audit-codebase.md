@@ -5,6 +5,8 @@ argument-hint: "[optional: focus area e.g., 'security', 'performance', 'best-pra
 allowed-tools: Read, Grep, Glob, Bash(find:*), Bash(wc:*), Task
 ---
 
+# Audit Codebase Command
+
 Audit the code for potential security vulnerabilities, performance issues, and adherence to best practices. Provide a detailed report with recommendations for improvements.
 
 ## Process
