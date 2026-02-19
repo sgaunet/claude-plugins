@@ -41,12 +41,12 @@ plugins/
 Agents are defined in **markdown files with YAML frontmatter** in `plugins/*/agents/`. Each agent follows this structure:
 
 **Frontmatter fields:**
-- `name`: Agent identifier
-- `description`: When to use this agent (shown in Claude Code UI)
-- `model`: LLM model to use (sonnet/opus/haiku)
-- `allowed-tools`: Optional tool restrictions (standardized field name)
+- `name`: Agent identifier (required)
+- `description`: When to use this agent (required, shown in Claude Code UI)
+- `model`: LLM model to use (sonnet/opus/haiku/inherit)
+- `tools`: Optional tool restrictions (agents use `tools`, not `allowed-tools`)
 - `color`: UI color for visual identification
-- `permissionMode`: Optional permission mode (manual/acceptAll)
+- `permissionMode`: Optional permission mode (default/acceptEdits/dontAsk/bypassPermissions/plan)
 - `skills`: Optional skill references for specialized workflows
 
 **Content sections:**
@@ -146,7 +146,7 @@ Or link locally for development:
 1. **Proactive Activation**: Define clear file patterns and keyword triggers so agents activate automatically
 2. **Scoped Expertise**: Each agent should have a focused domain (DevOps, database, payments, etc.)
 3. **Actionable Outputs**: Specify concrete deliverables (code, configs, documentation)
-4. **Tool Restrictions**: Use `allowed-tools` field to limit capabilities when appropriate
+4. **Tool Restrictions**: Use `tools` field for agents, `allowed-tools` for commands/skills
 5. **Model Selection**: Use `sonnet` for code/speed, `opus` for complex analysis/documentation, `haiku` for fast/simple tasks
 6. **Multi-Agent Coordination**: Document collaboration patterns in the markdown body (not frontmatter) so they reach the agent's system prompt
 
@@ -166,7 +166,7 @@ model: sonnet
 ---
 name: review-agent
 description: Code review specialist
-allowed-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash
 model: sonnet
 color: purple
 ---
@@ -222,8 +222,10 @@ Plugin descriptions include inline keywords and MCP server lists for better sear
 }
 ```
 
-### Standardized Tool Field
-Unified `allowed-tools` field across all agents and commands (previously `tools` in some agents). 4 agents updated for consistency.
+### Correct Tool Field Names
+Agents and commands use **different** field names per the official spec:
+- **Agents** use `tools` (per [sub-agents spec](https://code.claude.com/docs/en/sub-agents))
+- **Commands/Skills** use `allowed-tools` (per [skills spec](https://code.claude.com/docs/en/skills))
 
 ### MCP Integration
 All plugins declare MCP server dependencies:
