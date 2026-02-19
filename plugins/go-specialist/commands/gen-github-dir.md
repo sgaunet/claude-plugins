@@ -376,8 +376,8 @@ Next Steps:
 
 Documentation:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- Workflow details: go-specialist/commands/docs/github-workflows-reference.md
-- Troubleshooting: go-specialist/commands/docs/github-workflows-troubleshooting.md
+- Workflow details: ${CLAUDE_PLUGIN_ROOT}/commands/docs/github-workflows-reference.md
+- Troubleshooting: ${CLAUDE_PLUGIN_ROOT}/commands/docs/github-workflows-troubleshooting.md
 - GoReleaser setup: Use /gen-goreleaser command for .goreleaser.yml
 - Task setup: Create Taskfile.yml with 'linter', 'snapshot', 'release' tasks
 
@@ -638,7 +638,7 @@ All template files include `# CUSTOMIZE:` comments marking required changes:
 **Before running command:**
 1. Ensure git repository initialized
 2. Have go.mod configured
-3. Review command documentation: `go-specialist/commands/docs/`
+3. Review command documentation: `${CLAUDE_PLUGIN_ROOT}/commands/docs/`
 
 **After generation:**
 1. Review all `# CUSTOMIZE:` comments in workflow files
