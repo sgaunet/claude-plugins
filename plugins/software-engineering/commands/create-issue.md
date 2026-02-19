@@ -2,7 +2,7 @@
 name: create-issue
 description: Create formatted GitHub/GitLab issue with approval
 argument-hint: "<issue-topic-or-description>"
-allowed-tools: Read, Grep, Glob, Bash(git remote:*), mcp__github__create_issue, mcp__github__get_label, mcp__github__list_labels, mcp__gitlab-mcp__create_issues, mcp__gitlab-mcp__list_labels, AskUserQuestion
+allowed-tools: Read, Grep, Glob, Skill, mcp__github__create_issue, mcp__github__get_label, mcp__github__list_labels, mcp__gitlab-mcp__create_issues, mcp__gitlab-mcp__list_labels, AskUserQuestion
 ---
 
 # Create Issue Command
@@ -11,11 +11,7 @@ Create an issue for the current git repository. This command automatically detec
 
 ## Process
 
-1. **Detect Repository Host**: Execute the command below to determine the repository hosting service:
-
-```bash
-git remote -v
-```
+1. **Detect Repository Host**: Use the `detect-repo-host` skill to identify the hosting service (GitHub or GitLab) and extract owner/repo details.
 
 2. **Validate Arguments**: Ensure the issue topic/description is provided as `$argument`
 
@@ -49,8 +45,7 @@ The issue content should be based on: `$argument`
 
 ## Error Handling
 
-- If `git remote -v` fails: Repository is not a git repo or has no remotes
-- If remote URL doesn't match GitHub/GitLab: Unsupported hosting service
+- If repository host detection fails: The `detect-repo-host` skill provides detailed error messages (not a git repo, no remotes, unsupported host)
 - If MCP server is unavailable: Inform user and suggest manual creation
 
 ## Example Usage

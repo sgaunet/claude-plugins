@@ -2,7 +2,7 @@
 name: analyze-pr
 description: Review PR for quality, security, and coverage
 argument-hint: "<pr-number>"
-allowed-tools: Read, Grep, Glob, Bash(git remote:*), Task, mcp__github__pull_request_read, mcp__gitlab-mcp__get_merge_request, mcp__github__add_comment_to_pending_review, mcp__gitlab-mcp__add_merge_request_note, AskUserQuestion
+allowed-tools: Read, Grep, Glob, Skill, Task, mcp__github__pull_request_read, mcp__gitlab-mcp__get_merge_request, mcp__github__add_comment_to_pending_review, mcp__gitlab-mcp__add_merge_request_note, AskUserQuestion
 ---
 
 # Analyze Pull Request Command
@@ -11,10 +11,7 @@ Perform comprehensive analysis of a pull request including code review, security
 
 ## Process
 
-1. **Detect Repository Type**: Check git remote for GitHub or GitLab
-   ```bash
-   git remote -v
-   ```
+1. **Detect Repository Type**: Use the `detect-repo-host` skill to identify the hosting service (GitHub or GitLab) and extract owner/repo details.
 
 2. **Fetch PR Details**: Use appropriate MCP server
    - GitHub: `mcp__github__pull_request_read` (method: get, get_files, get_diff)
