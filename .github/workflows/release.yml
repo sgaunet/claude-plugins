@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - '.claude-plugin/marketplace.json'
+      - '.claude-plugin/version'
 
 jobs:
   check-version:
@@ -24,15 +24,14 @@ jobs:
       - name: Get current version
         id: version
         run: |
-          VERSION=$(jq -r '.version' .claude-plugin/marketplace.json)
+          VERSION=$(cat .claude-plugin/version)
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Current version: $VERSION"
 
       - name: Get previous version
         id: prev_version
         run: |
-          git checkout HEAD~1 .claude-plugin/marketplace.json 2>/dev/null || echo "{\"version\":\"0.0.0\"}" > .claude-plugin/marketplace.json
-          PREV_VERSION=$(jq -r '.version' .claude-plugin/marketplace.json)
+          PREV_VERSION=$(git show HEAD~1:.claude-plugin/version 2>/dev/null || echo "0.0.0")
           echo "prev_version=$PREV_VERSION" >> $GITHUB_OUTPUT
           echo "Previous version: $PREV_VERSION"
 
