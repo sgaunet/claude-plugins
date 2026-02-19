@@ -1,9 +1,6 @@
 ---
 name: detect-repo-host
 description: Detect repository hosting service (GitHub/GitLab) from git remote and extract owner/repo/project_path. Internal utility skill used by commands that need platform-aware routing.
-version: 1.0.0
-author: sylvain
-license: MIT
 user-invocable: false
 allowed-tools: Bash(git remote:*)
 ---
