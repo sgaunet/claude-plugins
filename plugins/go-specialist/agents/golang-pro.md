@@ -9,7 +9,7 @@ capabilities:
   - Testing (table-driven, testify, fuzzing)
   - DevOps (Docker, Kubernetes, CI/CD)
 model: sonnet
-permissionMode: acceptAll
+permissionMode: acceptEdits
 color: green
 context: |
   Uses specialized commands: /gen-linter (golangci-lint setup), /gen-github-dir (GitHub Actions CI/CD), /gen-gitlab-ci (GitLab pipelines), /gen-goreleaser (release automation), /gen-taskfiles (task runner setup).
