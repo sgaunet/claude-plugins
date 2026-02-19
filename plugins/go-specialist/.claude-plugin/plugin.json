@@ -2,6 +2,7 @@
   "name": "go-specialist",
   "version": "0.11.0",
   "description": "Master Go 1.25+ development with modern patterns, advanced concurrency, performance optimization, and production-ready microservices. Skills: golangci-lint, goreleaser, GitHub Actions, GitLab CI. MCP: github, gitlab-mcp, perplexity-ai, context7",
+  "keywords": ["go", "golang", "goreleaser", "golangci-lint"],
   "author": {
     "name": "Sylvain",
     "email": "1552102+sgaunet@users.noreply.github.com"
