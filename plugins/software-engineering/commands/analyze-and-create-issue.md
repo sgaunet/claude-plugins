@@ -2,7 +2,7 @@
 name: analyze-and-create-issue
 description: Analyze codebase and create GitHub/GitLab issues per finding
 argument-hint: "[optional: domain to focus analysis, e.g., 'security', 'performance', 'documentation']"
-allowed-tools: Read, Grep, Glob, Skill, Task, mcp__github__issue_write, mcp__github__list_labels, mcp__gitlab-mcp__create_issues, mcp__gitlab-mcp__list_labels, AskUserQuestion
+allowed-tools: Read, Grep, Glob, Skill, Task, Bash(gh:*), mcp__github__issue_write, mcp__gitlab-mcp__create_issues, mcp__gitlab-mcp__list_labels, AskUserQuestion
 ---
 
 # Analyze And Create Issue Command
@@ -17,7 +17,9 @@ Analyze codebase to find improvements. For each improvement:
 
 2. **Validate Arguments**: Ensure the issues are in the domain of `$argument`. If no `$argument` is provided, consider all types of issues.
 
-3. Get the list of labels for the current project
+3. Get the list of labels for the current project:
+   - **GitHub**: Use `gh label list --repo <owner>/<repo>` via Bash
+   - **GitLab**: Use `mcp__gitlab-mcp__list_labels`
   
 4. For each improvement, Ask the user if they want to create an issue
 
