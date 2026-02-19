@@ -2,7 +2,7 @@
 name: feature-flow
 description: Complete git workflow orchestration - branch, issue, commit
 argument-hint: "[context | #issue-number] [--skip-branch] [--skip-issue] [--skip-lint] [--skip-test] [--skip-mr] [--squash] [--msg \"text\"] [--dry-run] [--force]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(git:*), Bash(make:*), Bash(npm:*), Bash(npx:*), Bash(go:*), Bash(python:*), Bash(cargo:*), Bash(task:*), Bash(golangci-lint:*), Bash(eslint:*), Bash(ruff:*), Bash(mypy:*), Bash(auto-mr:*), mcp__github__create_issue, mcp__github__issue_read, mcp__github__list_labels, mcp__gitlab-mcp__create_issues, mcp__gitlab-mcp__list_issues, mcp__gitlab-mcp__list_labels, AskUserQuestion
+allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(git:*), Bash(make:*), Bash(npm:*), Bash(npx:*), Bash(go:*), Bash(python:*), Bash(cargo:*), Bash(task:*), Bash(golangci-lint:*), Bash(eslint:*), Bash(ruff:*), Bash(mypy:*), Bash(auto-mr:*), mcp__github__issue_write, mcp__github__issue_read, mcp__github__list_labels, mcp__gitlab-mcp__create_issues, mcp__gitlab-mcp__list_issues, mcp__gitlab-mcp__list_labels, AskUserQuestion
 ---
 
 # Feature Flow Command
@@ -79,7 +79,7 @@ Staged Mode examples: `/feature-flow`, `/feature-flow add user auth`, `/feature-
 3. Display preview, ask confirmation: "Create issue with this content?" → "Yes, create issue" / "Skip issue creation"
 
 4. Create issue if approved:
-   - GitHub: `mcp__github__create_issue(owner, repo, title, body, labels)`
+   - GitHub: `mcp__github__issue_write(method="create", owner, repo, title, body, labels)`
    - GitLab: `mcp__gitlab-mcp__create_issues(project_path, title, description, labels)`
    - Store issue number for Phase 4
 

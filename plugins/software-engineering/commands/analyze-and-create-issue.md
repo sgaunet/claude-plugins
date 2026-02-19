@@ -2,7 +2,7 @@
 name: analyze-and-create-issue
 description: Analyze codebase and create GitHub/GitLab issues per finding
 argument-hint: "[optional: domain to focus analysis, e.g., 'security', 'performance', 'documentation']"
-allowed-tools: Read, Grep, Glob, Skill, Task, mcp__github__create_issue, mcp__github__list_labels, mcp__gitlab-mcp__create_issues, mcp__gitlab-mcp__list_labels, AskUserQuestion
+allowed-tools: Read, Grep, Glob, Skill, Task, mcp__github__issue_write, mcp__github__list_labels, mcp__gitlab-mcp__create_issues, mcp__gitlab-mcp__list_labels, AskUserQuestion
 ---
 
 # Analyze And Create Issue Command
@@ -22,7 +22,7 @@ Analyze codebase to find improvements. For each improvement:
 4. For each improvement, Ask the user if they want to create an issue
 
 5. If yes, **Create Issue**: Use the appropriate MCP server:
-   - **GitHub**: Use `mcp__github__create_issue`
+   - **GitHub**: Use `mcp__github__issue_write`
    - **GitLab**: Use `mcp__gitlab-mcp__create_issues`
 
 ## Issue Content Guidelines
