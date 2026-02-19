@@ -7,6 +7,12 @@ tasks:
     cmds:
       - task -a
 
+  lint:
+    desc: "Lint all plugins and marketplace"
+    cmds:
+      - task: check
+      - task: check-versions
+
   check:
     desc: "Validate all plugins and marketplace"
     cmds:
