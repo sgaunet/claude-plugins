@@ -16,6 +16,7 @@ NC='\033[0m'
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 MARKETPLACE_JSON="$PROJECT_ROOT/.claude-plugin/marketplace.json"
+VERSION_FILE="$PROJECT_ROOT/.claude-plugin/version"
 
 # ============================================================================
 # VALIDATION FUNCTIONS
@@ -231,6 +232,31 @@ stage_json_files() {
     git add "$MARKETPLACE_JSON"
 }
 
+update_marketplace_version() {
+    local bump_type="$1"
+
+    local current_version
+    current_version=$(cat "$VERSION_FILE")
+
+    if [ -z "$current_version" ]; then
+        echo -e "${RED}ERROR: No version found in $VERSION_FILE${NC}" >&2
+        exit 1
+    fi
+
+    local new_version
+    new_version=$(semver next "$bump_type" "$current_version")
+
+    if [ $? -ne 0 ] || [ -z "$new_version" ]; then
+        echo -e "${RED}ERROR: Failed to calculate new marketplace version${NC}" >&2
+        exit 1
+    fi
+
+    echo "$new_version" > "$VERSION_FILE"
+    git add "$VERSION_FILE"
+
+    echo "$current_version $new_version"
+}
+
 # ============================================================================
 # MAIN EXECUTION
 # ============================================================================
@@ -306,11 +332,22 @@ main() {
         updates_made=$((updates_made + 1))
     done
 
+    # Bump marketplace version
+    echo "Updating marketplace version..."
+    local marketplace_versions
+    marketplace_versions=$(update_marketplace_version "$bump_type")
+    local marketplace_old marketplace_new
+    marketplace_old=$(echo "$marketplace_versions" | cut -d' ' -f1)
+    marketplace_new=$(echo "$marketplace_versions" | cut -d' ' -f2)
+    echo -e "  ${GREEN}✓${NC} Marketplace: $marketplace_old → $marketplace_new"
+    echo ""
+
     # Summary
     echo "==================================="
     echo "Summary"
     echo "==================================="
     echo "Updated $updates_made plugin(s):$version_summary"
+    echo "Marketplace version: $marketplace_old → $marketplace_new"
     echo ""
 
     # Validation
