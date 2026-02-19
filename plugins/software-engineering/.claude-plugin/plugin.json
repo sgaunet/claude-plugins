@@ -1,6 +1,6 @@
 {
   "name": "software-engineering",
-  "version": "0.12.6",
+  "version": "0.12.7",
   "description": "Code review, debugging, documentation, license compliance (AGPL/MIT/Apache), payment integration (Stripe/PayPal), and frontend development (HTMX/Alpine.js) workflows. MCP: github, gitlab-mcp, perplexity-ai, context7",
   "author": {
     "name": "Sylvain",
