@@ -45,9 +45,7 @@ Agents are defined in **markdown files with YAML frontmatter** in `plugins/*/age
 - `description`: When to use this agent (shown in Claude Code UI)
 - `model`: LLM model to use (sonnet/opus/haiku)
 - `allowed-tools`: Optional tool restrictions (standardized field name)
-- `capabilities`: Optional list of agent-specific capabilities (for UI display and documentation)
 - `color`: UI color for visual identification
-- `context`: Optional context sharing description for multi-agent coordination
 - `permissionMode`: Optional permission mode (manual/acceptAll)
 - `skills`: Optional skill references for specialized workflows
 
@@ -56,6 +54,7 @@ Agents are defined in **markdown files with YAML frontmatter** in `plugins/*/age
 2. **Core Capabilities**: Domain expertise and technical knowledge
 3. **Implementation Patterns**: Best practices and approach
 4. **Deliverables**: Expected outputs and artifacts
+5. **Multi-Agent Coordination**: Collaboration patterns with other agents (in body, not frontmatter)
 
 ### Available Plugins & Agents
 
@@ -149,7 +148,7 @@ Or link locally for development:
 3. **Actionable Outputs**: Specify concrete deliverables (code, configs, documentation)
 4. **Tool Restrictions**: Use `allowed-tools` field to limit capabilities when appropriate
 5. **Model Selection**: Use `sonnet` for code/speed, `opus` for complex analysis/documentation, `haiku` for fast/simple tasks
-6. **Context Sharing**: Document multi-agent collaboration patterns in `context` field
+6. **Multi-Agent Coordination**: Document collaboration patterns in the markdown body (not frontmatter) so they reach the agent's system prompt
 
 ### Agent Frontmatter Examples
 
@@ -173,7 +172,7 @@ color: purple
 ---
 ```
 
-See existing agents in `plugins/*/agents/*.md` for advanced patterns (context sharing, permissionMode, skills).
+See existing agents in `plugins/*/agents/*.md` for advanced patterns (multi-agent coordination, permissionMode, skills).
 
 ## Plugin Manifest Schema
 
@@ -208,8 +207,8 @@ Most agents in this collection are designed for proactive activation to reduce f
 
 This marketplace implements modern Claude Code best practices for enhanced reliability and discoverability:
 
-### Context Sharing
-Agents coordinate via the `context` field for multi-agent workflows:
+### Multi-Agent Coordination
+Agents document collaboration patterns in a `## Multi-Agent Coordination` body section (not frontmatter) so the content reaches the agent's system prompt:
 - **code-review-enforcer**: Shares quality standards with other agents
 - **debugger**: Shares diagnostic findings with implementing agents
 - **golang-pro**: Documents skill invocation patterns
