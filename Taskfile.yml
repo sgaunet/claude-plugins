@@ -30,3 +30,8 @@ tasks:
     desc: "Update version for affected plugins (usage: task update-version -- patch|minor|major)"
     cmds:
       - ./scripts/update-version.sh {{.CLI_ARGS}}
+
+  force-update-version:
+    desc: "Update version for ALL plugins (usage: task force-update-version -- patch|minor|major)"
+    cmds:
+      - ./scripts/update-version.sh --all {{.CLI_ARGS}}
