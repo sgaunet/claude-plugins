@@ -1,6 +1,7 @@
 ---
 name: audit-codebase
 description: Audit security, performance, and best practices holistically
+argument-hint: "[optional: focus area e.g., 'security', 'performance', 'best-practices']"
 allowed-tools: Read, Grep, Glob, Bash(find:*), Bash(wc:*), Task
 ---
 
