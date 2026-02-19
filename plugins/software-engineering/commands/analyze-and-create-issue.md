@@ -39,7 +39,7 @@ git remote -v
   - Expected behavior
   - Current behavior
   - Additional context or screenshots
-- **Labels**: Suggest appropriate labels based on thoses available in the host repository.
+- **Labels**: Suggest appropriate labels based on those available in the host repository.
 
 ### Formatting:
 - Use proper markdown formatting
