@@ -340,9 +340,9 @@ This command is for Go projects only. Initialize a Go module:
   go mod init gitlab.com/username/project
 ```
 
-**Skill assets missing:**
+**Command assets missing:**
 ```
-❌ Error: Skill assets directory not found
+❌ Error: Command assets directory not found
 
 The go-specialist plugin may be corrupted. Try:
 1. Reinstalling the plugin
