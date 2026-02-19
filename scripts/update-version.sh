@@ -66,12 +66,16 @@ validate_bump_type() {
         *)
             echo -e "${RED}Error: Invalid bump type '${bump_type}'${NC}" >&2
             echo "" >&2
-            echo "Usage: $0 <major|minor|patch>" >&2
+            echo "Usage: $0 [--all] <major|minor|patch>" >&2
+            echo "" >&2
+            echo "Options:" >&2
+            echo "  --all      Update ALL plugins (skip staged-file detection)" >&2
             echo "" >&2
             echo "Examples:" >&2
-            echo "  $0 patch   # 0.7.0 → 0.7.1" >&2
-            echo "  $0 minor   # 0.7.0 → 0.8.0" >&2
-            echo "  $0 major   # 0.7.0 → 1.0.0" >&2
+            echo "  $0 patch        # 0.7.0 → 0.7.1 (staged plugins only)" >&2
+            echo "  $0 --all patch  # 0.7.0 → 0.7.1 (all plugins)" >&2
+            echo "  $0 minor        # 0.7.0 → 0.8.0" >&2
+            echo "  $0 major        # 0.7.0 → 1.0.0" >&2
             exit 1
             ;;
     esac
@@ -80,6 +84,23 @@ validate_bump_type() {
 # ============================================================================
 # FILE DETECTION FUNCTIONS
 # ============================================================================
+
+get_all_plugins() {
+    local plugins=""
+    for plugin_dir in "$PROJECT_ROOT"/plugins/*/; do
+        local plugin_name
+        plugin_name=$(basename "$plugin_dir")
+        if [ -f "$plugin_dir/.claude-plugin/plugin.json" ]; then
+            plugins="$plugins $plugin_name"
+        fi
+    done
+    plugins=$(echo "$plugins" | xargs)
+    if [ -z "$plugins" ]; then
+        echo -e "${RED}Error: No plugins found${NC}" >&2
+        exit 1
+    fi
+    echo "$plugins"
+}
 
 get_staged_files() {
     local staged_files
@@ -262,6 +283,13 @@ update_marketplace_version() {
 # ============================================================================
 
 main() {
+    # Parse --all flag
+    local all_plugins=false
+    if [ "$1" = "--all" ]; then
+        all_plugins=true
+        shift
+    fi
+
     local bump_type="$1"
 
     # Validate argument
@@ -278,20 +306,26 @@ main() {
     echo "Plugin Version Update"
     echo "==================================="
     echo "Bump type: $bump_type"
-    echo ""
-
-    # Get staged files
-    echo "Detecting affected plugins..."
-    local staged_files
-    staged_files=$(get_staged_files)
-    local file_count
-    file_count=$(echo "$staged_files" | wc -l | tr -d ' ')
-    echo "Found $file_count staged file(s)"
+    if [ "$all_plugins" = true ]; then
+        echo "Mode: all plugins"
+    fi
     echo ""
 
     # Determine affected plugins
     local affected_plugins
-    affected_plugins=$(get_affected_plugins "$staged_files")
+    if [ "$all_plugins" = true ]; then
+        echo "Discovering all plugins..."
+        affected_plugins=$(get_all_plugins)
+    else
+        echo "Detecting affected plugins..."
+        local staged_files
+        staged_files=$(get_staged_files)
+        local file_count
+        file_count=$(echo "$staged_files" | wc -l | tr -d ' ')
+        echo "Found $file_count staged file(s)"
+        echo ""
+        affected_plugins=$(get_affected_plugins "$staged_files")
+    fi
     echo "Affected plugins: $affected_plugins"
     echo ""
 
