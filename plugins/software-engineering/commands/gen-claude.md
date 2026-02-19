@@ -575,7 +575,6 @@ Split by space, check for each flag presence
 - `/check-claude-md-tokens`: Run after generation to validate token count
 - `/commit`: Commit generated files with conventional commit format
 - `/audit-codebase`: Use generated CLAUDE.md as quality reference
-- `/create-prd`: Reference CLAUDE.md for project context
 
 **Workflow:**
 ```bash
