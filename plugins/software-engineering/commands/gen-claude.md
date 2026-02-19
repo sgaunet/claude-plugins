@@ -256,6 +256,10 @@ Generate from template using agent results.
 
 **Parse flag:** Check if `--no-docs` in arguments. If yes, skip this phase.
 
+**Validate asset templates:**
+- Use Read tool to verify `${CLAUDE_PLUGIN_ROOT}/commands/assets/gen-claude/architecture-template.md` exists
+- If fails: Exit with error "Command assets directory not found at ${CLAUDE_PLUGIN_ROOT}/commands/assets/gen-claude/. Plugin may be corrupted. Reinstall the software-engineering plugin."
+
 **Create docs/ folder structure** (only if missing):
 
 ```bash
@@ -264,97 +268,16 @@ Generate from template using agent results.
 ```
 
 **docs/architecture.md** (30-50 lines):
-```markdown
-# Architecture
-
-## System Overview
-[From Agent #3: overall pattern description]
-
-## Components
-[Key modules/packages from Agent #1 structure analysis]
-- Module 1: [description]
-- Module 2: [description]
-
-## Design Decisions
-[From Agent #3: architectural patterns with rationale]
-1. [Pattern 1]: [Why this pattern]
-2. [Pattern 2]: [Why this pattern]
-
-## Integration Points
-[From Agent #3: external services, APIs, databases]
-- Database: [type, ORM]
-- External APIs: [list]
-- Message queues: [if detected]
-
-## Data Flow
-[If Agent #3 found clear data flow patterns, describe here]
-```
+- Read template from `${CLAUDE_PLUGIN_ROOT}/commands/assets/gen-claude/architecture-template.md`
+- Populate placeholders with Phase 1 agent results
 
 **docs/workflows.md** (30-50 lines):
-```markdown
-# Development Workflows
-
-## Feature Development
-[Standard flow based on Agent #4 git/CI analysis]
-1. Create feature branch from main
-2. Implement changes with tests
-3. Run linters: [command from Agent #1]
-4. Submit PR for review
-5. Merge after approval
-
-## Code Review Process
-[From Agent #4 CONTRIBUTING.md analysis or provide defaults]
-- All PRs require review
-- Automated checks must pass
-- [Custom review requirements if found]
-
-## Testing Strategy
-[From Agent #3 testing patterns]
-- Unit tests: [location, naming convention]
-- Integration tests: [if detected]
-- Coverage threshold: [if found in CI config]
-
-## Release Process
-[From Agent #4 CI/CD analysis]
-[If GitHub Actions/GitLab CI detected with release workflow:]
-- Automated via [CI system]
-- Triggered by: [tags, manual, schedule]
-[Else:]
-- Manual release process (document in CI/CD setup)
-```
+- Read template from `${CLAUDE_PLUGIN_ROOT}/commands/assets/gen-claude/workflows-template.md`
+- Populate placeholders with Phase 1 agent results
 
 **docs/patterns.md** (30-50 lines):
-```markdown
-# Code Patterns & Best Practices
-
-## Error Handling
-[From Agent #3: error pattern with examples]
-```[language]
-// Example from [file:line]
-[code snippet]
-```
-
-## Testing Patterns
-[From Agent #3: test patterns detected]
-- Test file naming: [convention]
-- Test organization: [pattern]
-- Mocking strategy: [if detected]
-
-## Database Access
-[From Agent #3: DB patterns]
-- ORM: [if detected]
-- Query patterns: [examples]
-- Migration strategy: [if detected]
-
-## [Language]-Specific Patterns
-[Language-specific conventions from Agent #3]
-- [Convention 1]
-- [Convention 2]
-
-## Common Utilities
-[If Agent #1 found common utility modules/packages:]
-- [Utility 1]: [location, purpose]
-```
+- Read template from `${CLAUDE_PLUGIN_ROOT}/commands/assets/gen-claude/patterns-template.md`
+- Populate placeholders with Phase 1 agent results
 
 **Creation Rules:**
 - Only create `docs/` if it doesn't exist
