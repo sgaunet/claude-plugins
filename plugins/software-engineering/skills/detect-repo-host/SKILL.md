@@ -95,7 +95,6 @@ Return the following structured information:
 | No remotes configured | Abort: "No git remotes found. Add a remote with `git remote add origin <url>`." |
 | No `origin` remote | Fall back to first available remote, warn user |
 | URL format unrecognized | Abort: "Could not parse remote URL: `<url>`. Expected GitHub or GitLab format." |
-| Unsupported host (not GitHub/GitLab) | Abort: "Unsupported hosting service: `<hostname>`. Only GitHub and GitLab are supported." |
 
 ## Examples
 
