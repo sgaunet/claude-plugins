@@ -12,7 +12,7 @@
     {
       "name": "devops-infrastructure",
       "source": "./plugins/devops-infrastructure",
-      "description": "Infrastructure as Code, CI/CD pipelines, and database specialists for DevOps workflows",
+      "description": "Infrastructure as Code (Terraform, Ansible, CloudFormation), CI/CD pipelines (GitHub Actions, GitLab CI), and database specialists (PostgreSQL, MySQL) for DevOps workflows. MCP: github, gitlab-mcp, perplexity-ai, context7",
       "version": "0.4.3",
       "author": {
         "name": "Sylvain"
@@ -21,7 +21,7 @@
     {
       "name": "software-engineering",
       "source": "./plugins/software-engineering",
-      "description": "Code review, debugging, documentation, licensing, payments, and frontend development workflows",
+      "description": "Code review, debugging, documentation, license compliance (AGPL/MIT/Apache), payment integration (Stripe/PayPal), and frontend development (HTMX/Alpine.js) workflows. MCP: github, gitlab-mcp, perplexity-ai, context7",
       "version": "0.12.9",
       "author": {
         "name": "Sylvain"
@@ -30,7 +30,7 @@
     {
       "name": "go-specialist",
       "source": "./plugins/go-specialist",
-      "description": "Master Go 1.25+ development with modern patterns, concurrency, and performance optimization",
+      "description": "Master Go 1.25+ development with modern patterns, advanced concurrency, performance optimization, and production-ready microservices. Skills: golangci-lint, goreleaser, GitHub Actions, GitLab CI. MCP: github, gitlab-mcp, perplexity-ai, context7",
       "version": "0.11.0",
       "author": {
         "name": "Sylvain"
