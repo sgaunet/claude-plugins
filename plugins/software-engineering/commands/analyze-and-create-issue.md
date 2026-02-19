@@ -2,7 +2,7 @@
 name: analyze-and-create-issue
 description: Analyze codebase and create GitHub/GitLab issues per finding
 argument-hint: "[optional: domain to focus analysis, e.g., 'security', 'performance', 'documentation']"
-allowed-tools: Read, Grep, Glob, Bash(git remote:*), Task, mcp__github__create_issue, mcp__github__list_labels, mcp__gitlab-mcp__create_issues, mcp__gitlab-mcp__list_labels, AskUserQuestion
+allowed-tools: Read, Grep, Glob, Skill, Task, mcp__github__create_issue, mcp__github__list_labels, mcp__gitlab-mcp__create_issues, mcp__gitlab-mcp__list_labels, AskUserQuestion
 ---
 
 # Analyze And Create Issue Command
@@ -13,11 +13,7 @@ Analyze codebase to find improvements. For each improvement:
 
 ## Process
 
-1. **Detect Repository Host**: Execute the command below to determine the repository hosting service:
-
-```bash
-git remote -v
-```
+1. **Detect Repository Host**: Use the `detect-repo-host` skill to identify the hosting service (GitHub or GitLab) and extract owner/repo details.
 
 2. **Validate Arguments**: Ensure the issues are in the domain of `$argument`. If no `$argument` is provided, consider all types of issues.
 
@@ -49,6 +45,5 @@ git remote -v
 
 ## Error Handling
 
-- If `git remote -v` fails: Repository is not a git repo or has no remotes
-- If remote URL doesn't match GitHub/GitLab: Unsupported hosting service
+- If repository host detection fails: The `detect-repo-host` skill provides detailed error messages (not a git repo, no remotes, unsupported host)
 - If MCP server is unavailable: Inform user and suggest manual creation

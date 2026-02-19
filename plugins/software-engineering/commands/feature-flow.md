@@ -2,7 +2,7 @@
 name: feature-flow
 description: Complete git workflow orchestration - branch, issue, commit
 argument-hint: "[context | #issue-number] [--skip-branch] [--skip-issue] [--skip-lint] [--skip-test] [--skip-mr] [--squash] [--msg \"text\"] [--dry-run] [--force]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(git:*), Bash(make:*), Bash(npm:*), Bash(npx:*), Bash(go:*), Bash(python:*), Bash(cargo:*), Bash(task:*), Bash(golangci-lint:*), Bash(eslint:*), Bash(ruff:*), Bash(mypy:*), Bash(auto-mr:*), mcp__github__create_issue, mcp__github__issue_read, mcp__github__list_labels, mcp__gitlab-mcp__create_issues, mcp__gitlab-mcp__list_issues, mcp__gitlab-mcp__list_labels, AskUserQuestion
+allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(git:*), Bash(make:*), Bash(npm:*), Bash(npx:*), Bash(go:*), Bash(python:*), Bash(cargo:*), Bash(task:*), Bash(golangci-lint:*), Bash(eslint:*), Bash(ruff:*), Bash(mypy:*), Bash(auto-mr:*), mcp__github__create_issue, mcp__github__issue_read, mcp__github__list_labels, mcp__gitlab-mcp__create_issues, mcp__gitlab-mcp__list_issues, mcp__gitlab-mcp__list_labels, AskUserQuestion
 ---
 
 # Feature Flow Command
@@ -57,16 +57,12 @@ This command automates the repetitive steps developers perform when starting or 
 ```bash
 git status
 git diff --staged
-git remote -v
 ```
 
-**Analysis steps:**
-1. **Detect repository host** from remote URL (pattern from create-issue.md):
-   - GitHub: `github.com`
-   - GitLab: `gitlab.com` or self-hosted GitLab
-   - Abort if unsupported host
+**Detect Repository Host**: Use the `detect-repo-host` skill to identify the hosting service (GitHub or GitLab) and extract owner/repo details.
 
-2. **Analyze staged changes:**
+**Analysis steps:**
+1. **Analyze staged changes:**
    - Extract file paths, extensions, and types
    - Determine change type:
      - New files/functions → `feat`
@@ -93,8 +89,7 @@ git remote -v
 
 **Error handling:**
 - No staged changes → Abort: "No staged changes found. Stage files with 'git add' first."
-- Not a git repo → Abort: "Not a git repository. Initialize with 'git init' first."
-- Unsupported host → Abort: "Only GitHub and GitLab are supported."
+- Repository host detection fails → The `detect-repo-host` skill provides detailed error messages (not a git repo, no remotes, unsupported host)
 
 ### Phase 2: Branch Creation (User Confirmation)
 
@@ -309,16 +304,12 @@ Next steps:
 
 ### Phase I-1: Issue Retrieval (Automatic)
 
-**Execute parallel git commands:**
+**Detect Repository Host**: Use the `detect-repo-host` skill to identify the hosting service (GitHub or GitLab) and extract owner/repo details.
+
+**Get current branch:**
 ```bash
-git remote -v
 git rev-parse --abbrev-ref HEAD
 ```
-
-**Detect repository host** from remote URL:
-- GitHub: `github.com` → extract `owner/repo`
-- GitLab: `gitlab.com` or self-hosted → extract `project_path`
-- Abort if unsupported host
 
 **Fetch issue details:**
 - GitHub: `mcp__github__issue_read(method="get", owner, repo, issue_number)`
