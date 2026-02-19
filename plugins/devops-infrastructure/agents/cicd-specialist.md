@@ -8,7 +8,7 @@ capabilities:
   - Automated testing and build systems
   - Release automation and versioning
   - Security scanning (SAST, DAST, secrets)
-tools: Read, Write, Edit, MultiEdit, Grep, Glob, Bash(git:*), Bash(gh:*), Bash(docker:*), mcp__github__*, mcp__gitlab-mcp__*
+allowed-tools: Read, Write, Edit, MultiEdit, Grep, Glob, Bash(git:*), Bash(gh:*), Bash(docker:*), mcp__github__get_file_contents, mcp__github__create_or_update_file, mcp__github__push_files, mcp__github__create_pull_request, mcp__github__pull_request_read, mcp__github__list_pull_requests, mcp__github__create_branch, mcp__github__list_branches, mcp__github__get_commit, mcp__github__list_commits, mcp__github__list_releases, mcp__github__get_latest_release, mcp__github__issue_read, mcp__github__issue_write, mcp__github__add_issue_comment, mcp__gitlab-mcp__get_latest_pipeline, mcp__gitlab-mcp__list_pipeline_jobs, mcp__gitlab-mcp__get_job_log, mcp__gitlab-mcp__download_job_trace, mcp__gitlab-mcp__list_issues, mcp__gitlab-mcp__create_issues, mcp__gitlab-mcp__add_issue_note, mcp__gitlab-mcp__list_labels
 model: sonnet
 color: blue
 context: |
