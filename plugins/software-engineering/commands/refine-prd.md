@@ -11,7 +11,7 @@ Review and refine an existing PRD document by identifying unclear statements, ga
 
 ## Process
 
-1. **Read PRD**: Load the PRD file: `$ARGUMENTS`
+1. **Read PRD**: Load the PRD file: `$argument`
 
 2. **Analyze for Issues**: Systematically review each section for:
 
