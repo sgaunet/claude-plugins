@@ -219,7 +219,6 @@ curl -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/user
 - `license-specialist` - Open source license compliance for SaaS
 - `payment-integrator` - Stripe, PayPal, subscription billing
 - `security-auditor` - Security vulnerability detection
-- `task-checker` - Task validation and QA
 
 **Commands**:
 - `/analyze-and-create-issue` - Analyze codebase issues and create GitHub/GitLab issues

@@ -242,7 +242,6 @@ Risk Level: 🔴 Critical | 🟠 High | 🟡 Medium | 🟢 Low
 ## Coordination with Other Agents
 
 - **code-review-enforcer**: Share security findings for holistic quality review
-- **task-checker**: Validate security requirements in task acceptance criteria
 - **debugger**: Investigate security-related errors and anomalies
 - **golang-pro/language specialists**: Enforce language-specific security patterns
 

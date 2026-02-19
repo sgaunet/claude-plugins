@@ -13,7 +13,6 @@ model: sonnet
 color: purple
 context: |
   Reviews code changes made by other agents or developers.
-  Shares quality standards with task-checker for validation alignment.
   Enforces security patterns in coordination with security-auditor.
 ---
 
