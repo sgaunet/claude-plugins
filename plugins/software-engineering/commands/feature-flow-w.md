@@ -240,6 +240,8 @@ Display workflow summary showing:
 
 **Error handling:** Pre-commit hook fails → abort with recovery steps; commit fails → abort.
 
+**On successful commit:** Immediately proceed to Phase I-8.
+
 ### Phase I-8: Merge via auto-mr + Summary (Automatic, Skippable)
 
 **Parse flags:** `--skip-mr` → skip this phase.
