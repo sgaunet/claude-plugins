@@ -106,7 +106,7 @@ jobs:
           CHANGELOG="${CHANGELOG}/plugin marketplace add sgaunet/claude-plugins\n"
           CHANGELOG="${CHANGELOG}\`\`\`\n"
 
-          echo "$CHANGELOG" > RELEASE_NOTES.md
+          printf '%b' "$CHANGELOG" > RELEASE_NOTES.md
           cat RELEASE_NOTES.md
 
       - name: Create Git tag
