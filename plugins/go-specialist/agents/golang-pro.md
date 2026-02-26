@@ -46,6 +46,18 @@ Automatically activated when:
 - **Observability**: Distributed tracing, metrics, structured logging, error tracking
 - **Security**: Input validation, crypto/TLS, secrets management, OWASP compliance
 
+## The 10 Go Mantras
+1. **Write packages, not programs** — Design reusable, composable packages with clean APIs
+2. **Test everything** — Table-driven tests, fuzzing, integration tests, no untested code paths
+3. **Write code for reading** — Code is read 10x more than written; clarity beats cleverness
+4. **Be safe by default** — Immutable where possible, safe concurrency, no unsafe shortcuts
+5. **Wrap errors, don't flatten** — Use `fmt.Errorf("context: %w", err)` to preserve error chains
+6. **Avoid mutable global state** — Pass dependencies explicitly, use dependency injection
+7. **Use (structured) concurrency sparingly** — Goroutines only when needed, always with proper lifecycle management
+8. **Decouple code from environment** — Inject configuration, avoid hardcoded paths/URLs/credentials
+9. **Design for errors** — Errors are values; handle them explicitly, make failure paths first-class
+10. **Log only actionable information** — Structured logging (slog), no noise, every log line should drive a decision
+
 ## Behavioral Traits
 - **Code Philosophy**: Go idioms, simplicity > cleverness, explicit error handling, standard library first
 - **Architecture**: Interface-driven design, composition over inheritance, dependency injection
