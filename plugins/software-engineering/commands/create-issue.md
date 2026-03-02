@@ -2,12 +2,12 @@
 name: create-issue
 description: Create formatted GitHub/GitLab issue with approval
 argument-hint: "<issue-topic-or-description>"
-allowed-tools: Read, Grep, Glob, Skill, Bash(gh:*), mcp__github__issue_write, mcp__github__get_label, mcp__gitlab-mcp__create_issues, mcp__gitlab-mcp__list_labels, AskUserQuestion
+allowed-tools: Read, Grep, Glob, Skill, Bash(gh:*), Bash(glab:*), AskUserQuestion
 ---
 
 # Create Issue Command
 
-Create an issue for the current git repository. This command automatically detects whether the repository is hosted on GitHub or GitLab and uses the appropriate MCP server.
+Create an issue for the current git repository. This command automatically detects whether the repository is hosted on GitHub or GitLab and uses the appropriate CLI tool (`gh` or `glab`).
 
 ## Process
 
@@ -17,11 +17,11 @@ Create an issue for the current git repository. This command automatically detec
 
 3. Always list available labels before creating the issue. Do not add labels that do not exist in the host repository.
    - **GitHub**: Use `gh label list --repo <owner>/<repo>` via Bash
-   - **GitLab**: Use `mcp__gitlab-mcp__list_labels`
+   - **GitLab**: Use `glab label list`
 
-4. **Create Issue**: Use the appropriate MCP server:
-   - **GitHub**: Use `mcp__github__issue_write`
-   - **GitLab**: Use `mcp__gitlab-mcp__create_issues`
+4. **Create Issue**: Use the appropriate CLI tool:
+   - **GitHub**: Use `gh issue create --repo <owner>/<repo> --title "<title>" --body "<body>" --label "<label1>" --label "<label2>"`
+   - **GitLab**: Use `glab issue create --title "<title>" --description "<body>" --label "<label1>" --label "<label2>"`
 
 5. **Request Permission**: Always ask the user for permission before creating the issue
 
@@ -48,7 +48,7 @@ The issue content should be based on: `$argument`
 ## Error Handling
 
 - If repository host detection fails: The `detect-repo-host` skill provides detailed error messages (not a git repo, no remotes, unsupported host)
-- If MCP server is unavailable: Inform user and suggest manual creation
+- If `gh`/`glab` CLI not installed: Inform user and suggest installing the appropriate CLI tool
 
 ## Example Usage
 

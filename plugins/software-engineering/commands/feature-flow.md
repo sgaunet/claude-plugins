@@ -1,8 +1,8 @@
 ---
 name: feature-flow
 description: Complete git workflow orchestration - branch, issue, commit
-argument-hint: "[context | #issue-number] [--skip-branch] [--skip-issue] [--skip-lint] [--skip-test] [--skip-mr] [--squash] [--msg \"text\"] [--dry-run] [--force]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(git:*), Bash(make:*), Bash(npm:*), Bash(npx:*), Bash(go:*), Bash(python:*), Bash(cargo:*), Bash(task:*), Bash(golangci-lint:*), Bash(eslint:*), Bash(ruff:*), Bash(mypy:*), Bash(auto-mr:*), Bash(gh:*), mcp__github__issue_write, mcp__github__issue_read, mcp__gitlab-mcp__create_issues, mcp__gitlab-mcp__list_issues, mcp__gitlab-mcp__list_labels, AskUserQuestion
+argument-hint: "[context | #issue-number] [--skip-branch] [--skip-issue] [--skip-mr] [--squash] [--msg \"text\"] [--dry-run] [--force]"
+allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(git:*), Bash(make:*), Bash(npm:*), Bash(npx:*), Bash(go:*), Bash(python:*), Bash(cargo:*), Bash(task:*), Bash(golangci-lint:*), Bash(eslint:*), Bash(ruff:*), Bash(mypy:*), Bash(auto-mr:*), Bash(gh:*), Bash(glab:*), AskUserQuestion
 ---
 
 # Feature Flow Command
@@ -68,8 +68,9 @@ Staged Mode examples: `/feature-flow`, `/feature-flow add user auth`, `/feature-
 
 **If not skipped:**
 
-1. **List available labels** using MCP (same pattern as `/create-issue` command):
-   - GitHub: `gh label list --repo <owner>/<repo>` via Bash / GitLab: `mcp__gitlab-mcp__list_labels`
+1. **List available labels** (same pattern as `/create-issue` command):
+   - GitHub: `gh label list --repo <owner>/<repo>`
+   - GitLab: `glab label list`
 
 2. **Generate issue content** following `/create-issue` conventions:
    - Title: under 80 chars, imperative mood, based on change type and scope
@@ -79,12 +80,12 @@ Staged Mode examples: `/feature-flow`, `/feature-flow add user auth`, `/feature-
 3. Display preview, ask confirmation: "Create issue with this content?" → "Yes, create issue" / "Skip issue creation"
 
 4. Create issue if approved:
-   - GitHub: `mcp__github__issue_write(method="create", owner, repo, title, body, labels)`
-   - GitLab: `mcp__gitlab-mcp__create_issues(project_path, title, description, labels)`
-   - Store issue number for Phase 4
+   - GitHub: `gh issue create --repo <owner>/<repo> --title "<title>" --body "<body>" --label "<label1>" --label "<label2>"`
+   - GitLab: `glab issue create --title "<title>" --description "<body>" --label "<label1>" --label "<label2>"`
+   - Parse issue number from command output; store for Phase 4
 
 **Error handling:**
-- MCP unavailable → Skip issue creation, warn, continue to commit
+- `gh`/`glab` CLI not installed → Skip issue creation, warn, continue to commit
 - Invalid labels → Remove silently, warn user
 - Issue creation fails → Log error, continue to Phase 4 without issue reference
 
@@ -119,14 +120,14 @@ Display workflow summary showing completed steps (branch created, issue created,
 **Get current branch:** `git rev-parse --abbrev-ref HEAD`
 
 **Fetch issue details:**
-- GitHub: `mcp__github__issue_read(method="get", owner, repo, issue_number)`
-- GitLab: `mcp__gitlab-mcp__list_issues(project_path, state="opened")` → filter by IID
+- GitHub: `gh issue view <number> --repo <owner>/<repo> --json title,body,labels`
+- GitLab: `glab issue view <number>`
 
 **Extract:** Title (→ branch name, commit, MR title), Body (→ implementation spec), Labels (→ type detection)
 
 **Error handling:**
 - Issue not found → Abort: "Issue #N not found in <owner/repo>."
-- MCP unavailable → Abort: "Cannot connect to GitHub/GitLab. Issue retrieval requires MCP."
+- `gh`/`glab` CLI not installed → Abort: "Cannot retrieve issue. Install `gh` (GitHub) or `glab` (GitLab) CLI first."
 
 ### Phase I-2: Branch Creation (User Confirmation)
 
@@ -161,21 +162,17 @@ Display workflow summary showing completed steps (branch created, issue created,
 4. Display change summary (files created/modified)
 5. Ask confirmation: "Implementation complete. Review changes and continue?" → "Yes, continue to lint & test" / "Make adjustments" / "Cancel workflow"
 
-### Phase I-4: Lint (Automatic, Skippable)
-
-**Parse flags:** `--skip-lint` or `-l` → skip this phase.
+### Phase I-4: Lint (Automatic)
 
 **Use the `run-lint` skill** to auto-detect and execute the project linter. If lint fails, ask user whether to continue.
 
-### Phase I-5: Test (Automatic, Skippable)
-
-**Parse flags:** `--skip-test` or `-t` → skip this phase.
+### Phase I-5: Test (Automatic)
 
 **Use the `run-tests` skill** to auto-detect and execute the project test runner. If tests fail, ask user whether to continue.
 
 ### Phase I-6: Verification (User Confirmation)
 
-1. Re-run lint (unless `--skip-lint`) and tests (unless `--skip-test`) to confirm clean
+1. Re-run lint and tests to confirm clean
 2. Display `git diff --stat` summary
 3. Show pass/fail gate: Lint ✓/⚠/✗, Tests ✓/⚠/✗, file stats
 4. Ask confirmation: "Verification complete. Proceed to commit?" → "Yes, commit changes" / "Go back and fix issues" / "Cancel workflow"
@@ -225,8 +222,6 @@ Display workflow summary showing completed steps (branch created, issue created,
 |------|-------|--------|
 | `--squash` | `-s` | Pass `--squash` to auto-mr |
 | `--msg "text"` | `-m "text"` | Custom MR message for auto-mr |
-| `--skip-lint` | `-l` | Skip lint phase (I-4) |
-| `--skip-test` | `-t` | Skip test phase (I-5) |
 | `--skip-mr` | none | Skip auto-mr phase (I-8) |
 
 **Flag parsing:** Split `$argument` by spaces. Tokens starting with `--` or `-` are flags. `#<number>` or bare `<number>` as first positional → Issue Mode. Remaining non-flag text → context for branch/commit description.
@@ -237,7 +232,7 @@ Display workflow summary showing completed steps (branch created, issue created,
 
 ## Integration
 
-Works with `/create-issue` (same MCP logic), `/commit` (same conventional format), and `/analyze-pr` (compatible output).
+Works with `/create-issue` (same CLI logic), `/commit` (same conventional format), and `/analyze-pr` (compatible output).
 
 ## Examples
 
@@ -270,9 +265,6 @@ git add config.yml
 # With squash merge
 /feature-flow #42 --squash
 
-# Skip quality checks for quick iteration
-/feature-flow #42 --skip-lint --skip-test
-
 # Implement and commit only, no MR
 /feature-flow #42 --skip-mr
 
@@ -290,7 +282,7 @@ git add config.yml
 | 2 | Not a git repository | "Not a git repository. Initialize with 'git init' first." |
 | 3 | Branch already exists | Suggest `<name>-v2` or ask for alternative |
 | 4 | Pre-commit hook fails | Display hook output, abort, suggest fixing and retrying |
-| 5 | MCP unavailable (issue) | Skip issue creation, warn, continue to commit |
+| 5 | `gh`/`glab` CLI not found (issue) | Skip issue creation, warn, continue to commit |
 | 6 | Invalid labels | Remove invalid labels silently, warn user |
 | 7 | Issue creation fails | Log error, continue to commit without issue reference |
 | 8 | Commit fails | Display git error, abort |
@@ -300,7 +292,7 @@ git add config.yml
 | # | Error | Message / Action |
 |---|-------|-----------------|
 | 9 | Issue not found | "Issue #N not found in <owner/repo>." Abort. |
-| 10 | MCP unavailable (retrieval) | "Cannot connect to GitHub/GitLab." Abort. |
+| 10 | `gh`/`glab` CLI not found (retrieval) | "Cannot retrieve issue. Install `gh` or `glab` CLI first." Abort. |
 | 11 | Lint failure | Display errors, attempt auto-fix, ask user to continue or abort |
 | 12 | Test failure | Display output, attempt fix (max 2 retries), ask user |
 | 13 | auto-mr not installed | Warn, show manual push: `git push -u origin <branch-name>` |
@@ -312,6 +304,5 @@ git add config.yml
 - Use `--dry-run` first to preview either mode
 - Use `--skip-issue` for trivial changes (staged mode)
 - Use custom context for better branch names: `/feature-flow add OAuth2 integration`
-- Use `--skip-lint --skip-test` for quick iterations (issue mode)
 - Use `--skip-mr` to commit without creating a merge request (issue mode)
 - Combine with existing commands: `/feature-flow` → work → `/commit` → `/analyze-pr`
