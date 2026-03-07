@@ -1,6 +1,6 @@
 {
   "name": "go-specialist",
-  "version": "0.12.1",
+  "version": "0.13.0",
   "description": "Master Go 1.25+ development with modern patterns, advanced concurrency, performance optimization, and production-ready microservices. Skills: golangci-lint, goreleaser, GitHub Actions, GitLab CI. MCP: github, gitlab-mcp, perplexity-ai, context7",
   "keywords": [
     "go",
@@ -14,5 +14,6 @@
   },
   "license": "MIT",
   "repository": "https://github.com/sgaunet/claude-plugins",
-  "homepage": "https://github.com/sgaunet/claude-plugins#readme"
+  "homepage": "https://github.com/sgaunet/claude-plugins#readme",
+  "hooks": "./hooks/hooks.json"
 }
