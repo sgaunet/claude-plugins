@@ -188,7 +188,7 @@ curl -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/user
 
 ## Plugin Details
 
-### devops-infrastructure (v0.2.0)
+### devops-infrastructure
 
 **Agents**:
 - `aws-specialist` - AWS cloud architecture, Well-Architected Framework, cost optimization
@@ -209,7 +209,7 @@ curl -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/user
 
 ---
 
-### software-engineering (v0.8.0)
+### software-engineering
 
 **Agents**:
 - `code-review-enforcer` - Code quality, security, best practices
@@ -239,7 +239,7 @@ curl -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/user
 
 ---
 
-### go-specialist (v0.7.0)
+### go-specialist
 
 **Agents**:
 - `golang-pro` - Go 1.25+ expert with generics, concurrency, performance optimization
@@ -263,6 +263,30 @@ curl -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/user
 - CI/CD pipeline generation (GitHub Actions or GitLab CI)
 - Automated releases with GoReleaser
 - Code quality enforcement with golangci-lint
+
+---
+
+## Extras
+
+The `extras/` directory contains standalone utilities for Claude Code that are **not plugins** — they are helper scripts you install independently.
+
+### statusline
+
+A lightweight bash statusline for Claude Code that displays the active model, context window usage with a color-coded progress bar, and total context size.
+
+```
+[Opus] ▓▓▓░░░░░░░ 30% | 200k ctx
+```
+
+**Install**: `./extras/statusline/configure-statusline.sh`
+**Details**: [extras/statusline/install-statusline.md](extras/statusline/install-statusline.md)
+
+### no-leak
+
+A `PreToolUse` hook that prevents Claude Code from reading or modifying sensitive files (`.env`, credentials, private keys, vault files). Unlike CLAUDE.md instructions, hooks are **deterministic** — the LLM cannot bypass them.
+
+**Install**: `./extras/no-leak/configure-no-leak.sh`
+**Details**: [extras/no-leak/install-no-leak.md](extras/no-leak/install-no-leak.md)
 
 ---
 
@@ -298,6 +322,9 @@ cd plugins/go-specialist && claude plugin validate .
 .
 ├── .claude-plugin/
 │   └── marketplace.json          # Marketplace definition
+├── extras/
+│   ├── statusline/              # Custom statusline script
+│   └── no-leak/                 # Sensitive file protection hook
 ├── plugins/
 │   ├── devops-infrastructure/
 │   │   ├── .claude-plugin/
