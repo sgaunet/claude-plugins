@@ -2,7 +2,7 @@
 name: auto-mr
 description: Push current branch, create MR/PR, wait for CI pipeline, merge, and clean up branch using auto-mr CLI
 argument-hint: '[--squash] [--no-squash] [--msg "text"] [--labels "label1,label2"] [--list-labels] [--pipeline-timeout "30m"] [--log-level debug|info|warn|error]'
-user-invokable: true
+user-invocable: true
 ---
 
 # auto-mr Skill
