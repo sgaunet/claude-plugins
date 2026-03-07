@@ -2,14 +2,14 @@
 name: analyze-and-create-issue
 description: Analyze codebase and create GitHub/GitLab issues per finding
 argument-hint: "[optional: domain to focus analysis, e.g., 'security', 'performance', 'documentation']"
-allowed-tools: Read, Grep, Glob, Skill, Task, Bash(gh:*), mcp__github__issue_write, mcp__gitlab-mcp__create_issues, mcp__gitlab-mcp__list_labels, AskUserQuestion
+allowed-tools: Read, Grep, Glob, Skill, Task, Bash(gh:*), Bash(glab:*), AskUserQuestion
 ---
 
 # Analyze And Create Issue Command
 
 Analyze codebase to find improvements. For each improvement:
 * Describe concisely to the user and ask if they want to create an issue
-* If yes, create the issue in the git repository (GitHub or GitLab) using the appropriate MCP server.
+* If yes, create the issue in the git repository (GitHub or GitLab) using the appropriate CLI.
 
 ## Process
 
@@ -18,14 +18,14 @@ Analyze codebase to find improvements. For each improvement:
 2. **Validate Arguments**: Ensure the issues are in the domain of `$argument`. If no `$argument` is provided, consider all types of issues.
 
 3. Get the list of labels for the current project:
-   - **GitHub**: Use `gh label list --repo <owner>/<repo>` via Bash
-   - **GitLab**: Use `mcp__gitlab-mcp__list_labels`
-  
+   - **GitHub**: `gh label list --repo <owner>/<repo>`
+   - **GitLab**: `glab label list`
+
 4. For each improvement, Ask the user if they want to create an issue
 
-5. If yes, **Create Issue**: Use the appropriate MCP server:
-   - **GitHub**: Use `mcp__github__issue_write`
-   - **GitLab**: Use `mcp__gitlab-mcp__create_issues`
+5. If yes, **Create Issue**: Use the appropriate CLI:
+   - **GitHub**: `gh issue create --repo <owner>/<repo> --title "<title>" --body "<body>" --label "<label>"`
+   - **GitLab**: `glab issue create --title "<title>" --description "<body>" --label "<label>"`
 
 ## Issue Content Guidelines
 
@@ -48,4 +48,4 @@ Analyze codebase to find improvements. For each improvement:
 ## Error Handling
 
 - If repository host detection fails: The `detect-repo-host` skill provides detailed error messages (not a git repo, no remotes, unsupported host)
-- If MCP server is unavailable: Inform user and suggest manual creation
+- If CLI is unavailable: Inform user to install `gh` or `glab` and suggest manual creation

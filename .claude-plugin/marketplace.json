@@ -1,7 +1,7 @@
 {
   "name": "sylvain-marketplace",
   "metadata": {
-    "version": "0.7.2",
+    "version": "0.7.3",
     "description": "Specialized Claude Code agents for DevOps infrastructure, software engineering workflows, and Go development. Includes proactive agents for IaC, CI/CD, database optimization, code review, debugging, documentation, and more."
   },
   "owner": {
@@ -12,8 +12,8 @@
     {
       "name": "devops-infrastructure",
       "source": "./plugins/devops-infrastructure",
-      "description": "Infrastructure as Code (Terraform, Ansible, CloudFormation), CI/CD pipelines (GitHub Actions, GitLab CI), and database specialists (PostgreSQL, MySQL) for DevOps workflows. MCP: github, gitlab-mcp, perplexity-ai, context7",
-      "version": "0.5.0",
+      "description": "Infrastructure as Code (Terraform, Ansible, CloudFormation), CI/CD pipelines (GitHub Actions, GitLab CI), and database specialists (PostgreSQL, MySQL) for DevOps workflows. MCP: perplexity-ai",
+      "version": "0.5.1",
       "author": {
         "name": "Sylvain"
       }
@@ -21,8 +21,8 @@
     {
       "name": "software-engineering",
       "source": "./plugins/software-engineering",
-      "description": "Code review, debugging, documentation, license compliance (AGPL/MIT/Apache), payment integration (Stripe/PayPal), and frontend development (HTMX/Alpine.js) workflows. MCP: github, gitlab-mcp, perplexity-ai, context7",
-      "version": "0.14.3",
+      "description": "Code review, debugging, documentation, license compliance (AGPL/MIT/Apache), payment integration (Stripe/PayPal), and frontend development (HTMX/Alpine.js) workflows. MCP: perplexity-ai, context7",
+      "version": "0.14.4",
       "author": {
         "name": "Sylvain"
       }
@@ -30,8 +30,8 @@
     {
       "name": "go-specialist",
       "source": "./plugins/go-specialist",
-      "description": "Master Go 1.25+ development with modern patterns, advanced concurrency, performance optimization, and production-ready microservices. Skills: golangci-lint, goreleaser, GitHub Actions, GitLab CI. MCP: github, gitlab-mcp, perplexity-ai, context7",
-      "version": "0.13.0",
+      "description": "Master Go 1.25+ development with modern patterns, advanced concurrency, performance optimization, and production-ready microservices. Skills: golangci-lint, goreleaser, GitHub Actions, GitLab CI. MCP: perplexity-ai, context7",
+      "version": "0.13.1",
       "author": {
         "name": "Sylvain"
       }

@@ -2,7 +2,7 @@
 name: analyze-pr
 description: Review PR for quality, security, and coverage
 argument-hint: "<pr-number>"
-allowed-tools: Read, Grep, Glob, Skill, Task, mcp__github__pull_request_read, mcp__gitlab-mcp__get_merge_request, mcp__github__add_comment_to_pending_review, mcp__gitlab-mcp__add_merge_request_note, AskUserQuestion
+allowed-tools: Read, Grep, Glob, Skill, Task, Bash(gh:*), Bash(glab:*), AskUserQuestion
 ---
 
 # Analyze Pull Request Command
@@ -13,9 +13,9 @@ Perform comprehensive analysis of a pull request including code review, security
 
 1. **Detect Repository Type**: Use the `detect-repo-host` skill to identify the hosting service (GitHub or GitLab) and extract owner/repo details.
 
-2. **Fetch PR Details**: Use appropriate MCP server
-   - GitHub: `mcp__github__pull_request_read` (method: get, get_files, get_diff)
-   - GitLab: `mcp__gitlab-mcp__get_merge_request`
+2. **Fetch PR Details**: Use the appropriate CLI
+   - GitHub: `gh pr view <number> --json title,body,author,files,commits`, `gh pr diff <number>`
+   - GitLab: `glab mr view <number>`, `glab mr diff <number>`
 
 3. **Analyze Changes**: Launch 4 parallel Sonnet agents to independently review the pull request:
 
@@ -58,9 +58,9 @@ Launch agents concurrently using the Task tool:
 
 ```
 # Fetch PR details first
-pr_details = mcp__github__pull_request_read(method: "get", owner: owner, repo: repo, pullNumber: pr_number)
-pr_files = mcp__github__pull_request_read(method: "get_files", owner: owner, repo: repo, pullNumber: pr_number)
-pr_diff = mcp__github__pull_request_read(method: "get_diff", owner: owner, repo: repo, pullNumber: pr_number)
+pr_details = Bash("gh pr view ${pr_number} --json title,body,author,headRefName,baseRefName,files,commits,labels,reviewDecision")
+pr_diff = Bash("gh pr diff ${pr_number}")
+# For GitLab: glab mr view ${mr_number}, glab mr diff ${mr_number}
 
 # Launch 4 parallel Sonnet agents for analysis
 Task(subagent_type: "code-review-enforcer", model: "sonnet", prompt: "Review PR #${pr_number} for code quality issues. Modified files: ${pr_files}. Diff: ${pr_diff}. Return findings with severity and line numbers.")

@@ -1,12 +1,12 @@
 ---
 name: upd-project-description
 description: Update repo description and topics from README analysis
-allowed-tools: Read, Skill, Bash(gh:*), Bash(glab:*), mcp__github__get_me, mcp__gitlab-mcp__get_project_description, mcp__gitlab-mcp__get_project_topics, mcp__gitlab-mcp__update_project_description, mcp__gitlab-mcp__update_project_topics
+allowed-tools: Read, Skill, Bash(gh:*), Bash(glab:*)
 ---
 
 # Update Project Description Command
 
-Update the description and topics of the current project. This command automatically detects whether the repository is hosted on GitHub or GitLab and uses the appropriate MCP server to update the project metadata (description and topics/tags).
+Update the description and topics of the current project. This command automatically detects whether the repository is hosted on GitHub or GitLab and uses the appropriate CLI to update the project metadata (description and topics/tags).
 
 ## Process
 
@@ -20,18 +20,18 @@ Update the description and topics of the current project. This command automatic
 3. **Launch 2 parallel Haiku agents** to update project metadata concurrently:
 
    **Agent #1: Update Project Description**
-   - **GitHub**: Use `gh repo edit --description "<description>"` via Bash
-   - **GitLab**: Use `mcp__gitlab-mcp__update_project_description` (or glab CLI if MCP unavailable)
+   - **GitHub**: `gh repo edit --description "<description>"`
+   - **GitLab**: `glab repo edit --description "<description>"`
    - Return: success/failure status
 
    **Agent #2: Update Project Topics/Tags**
-   - **GitHub**: Use `gh repo edit --add-topic "<topic>"` via Bash (one per topic)
-   - **GitLab**: Use `mcp__gitlab-mcp__update_project_topics` (or glab CLI if MCP unavailable)
+   - **GitHub**: `gh repo edit --add-topic "<topic>"` (one per topic)
+   - **GitLab**: `glab repo edit --tag "<topic>"` (one per topic)
    - Return: success/failure status
 
 4. **Verify Updates**: Confirm both description and topics were updated successfully.
 
-## Parallel MCP Invocation Pattern
+## Parallel CLI Invocation Pattern
 
 ```
 # Step 1: Detect repository host
@@ -48,17 +48,15 @@ if host_info.platform == "github":
     Task(tool: "Bash", params: {command: 'gh repo edit owner/repo --description "description"'})
     Task(tool: "Bash", params: {command: 'gh repo edit owner/repo --add-topic "topic1" --add-topic "topic2"'})
 elif host_info.platform == "gitlab":
-    Task(tool: "mcp__gitlab-mcp__update_project_description", params: {project_path: host_info.project_path, description: readme_analysis.description})
-    Task(tool: "mcp__gitlab-mcp__update_project_topics", params: {project_path: host_info.project_path, topics: readme_analysis.topics})
+    Task(tool: "Bash", params: {command: 'glab repo edit --description "description"'})
+    Task(tool: "Bash", params: {command: 'glab repo edit --tag "topic1" --tag "topic2"'})
 
 # Step 4: Verify both operations completed successfully
 ```
 
-Note: For GitHub, `gh repo edit` supports both `--description` and `--add-topic` flags in a single call for efficiency. For GitLab, two separate MCP calls are required by the API.
+Note: For GitHub, `gh repo edit` supports both `--description` and `--add-topic` flags in a single call for efficiency.
 
 ## Error Handling
 
 - If repository host detection fails: The `detect-repo-host` skill provides detailed error messages (not a git repo, no remotes, unsupported host)
-- If MCP server is unavailable, use:
-  - For GitHub: use gh cli tool to update description and topics
-  - For GitLab: use glab cli tool to update description and topics
+- If CLI is unavailable: Inform user to install `gh` or `glab`

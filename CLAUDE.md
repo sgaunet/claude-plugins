@@ -19,21 +19,21 @@ plugins/
 │   │   └── plugin.json
 │   ├── agents/               # Agent definitions (5 agents)
 │   ├── commands/             # Custom slash commands (1 command)
-│   └── .mcp.json             # MCP server integration (4 servers)
+│   └── .mcp.json             # MCP server integration
 │
 ├── software-engineering/     # General engineering workflows
 │   ├── .claude-plugin/
 │   │   └── plugin.json
 │   ├── agents/               # Agent definitions (7 agents)
 │   ├── commands/             # Custom slash commands (9 commands)
-│   └── .mcp.json             # MCP server integration (4 servers)
+│   └── .mcp.json             # MCP server integration
 │
 └── go-specialist/            # Go language expertise
     ├── .claude-plugin/
     │   └── plugin.json
     ├── agents/               # Agent definitions (1 agent)
     ├── commands/             # Custom slash commands (10 commands)
-    └── .mcp.json             # MCP server integration (4 servers)
+    └── .mcp.json             # MCP server integration
 ```
 
 ### Agent Architecture
@@ -187,7 +187,7 @@ See existing agents in `plugins/*/agents/*.md` for advanced patterns (multi-agen
 - **Plugin metadata**: `plugins/*/\.claude-plugin/plugin.json`
 - **Agent definitions**: `plugins/*/agents/*.md` (13 total agents)
 - **Commands**: `plugins/*/commands/*.md` (20 custom commands)
-- **MCP config**: `plugins/*/.mcp.json` (4 MCP servers integrated)
+- **MCP config**: `plugins/*/.mcp.json`
 
 ## Design Patterns
 
@@ -217,7 +217,7 @@ Agents document collaboration patterns in a `## Multi-Agent Coordination` body s
 Plugin descriptions include inline keywords and MCP server lists for better search and documentation:
 ```json
 {
-  "description": "Infrastructure as Code (Terraform, Ansible), CI/CD pipelines. MCP: github, gitlab-mcp",
+  "description": "Infrastructure as Code (Terraform, Ansible), CI/CD pipelines. MCP: perplexity-ai",
   "repository": "https://github.com/..."
 }
 ```
@@ -228,11 +228,11 @@ Agents and commands use **different** field names per the official spec:
 - **Commands/Skills** use `allowed-tools` (per [skills spec](https://code.claude.com/docs/en/skills))
 
 ### MCP Integration
-All plugins declare MCP server dependencies:
-- **github**: GitHub API integration
-- **gitlab-mcp**: GitLab API integration
+Plugins declare MCP server dependencies:
 - **perplexity-ai**: Research and documentation
 - **context7**: Library documentation lookup
+
+GitHub/GitLab operations use `gh` and `glab` CLIs instead of MCP servers.
 
 ## Commands vs Skills vs Agents
 

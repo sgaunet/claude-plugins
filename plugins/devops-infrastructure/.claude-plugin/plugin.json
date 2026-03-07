@@ -1,7 +1,7 @@
 {
   "name": "devops-infrastructure",
-  "version": "0.5.0",
-  "description": "Infrastructure as Code (Terraform, Ansible, CloudFormation), CI/CD pipelines (GitHub Actions, GitLab CI), and database specialists (PostgreSQL, MySQL) for DevOps workflows. MCP: github, gitlab-mcp, perplexity-ai, context7",
+  "version": "0.5.1",
+  "description": "Infrastructure as Code (Terraform, Ansible, CloudFormation), CI/CD pipelines (GitHub Actions, GitLab CI), and database specialists (PostgreSQL, MySQL) for DevOps workflows. MCP: perplexity-ai",
   "keywords": [
     "terraform",
     "ansible",

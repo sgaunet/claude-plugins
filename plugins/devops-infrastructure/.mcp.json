@@ -1,25 +1,8 @@
 {
 	"mcpServers": {
-		"github": {
-			"transport": "http",
-			"url": "https://api.githubcopilot.com/mcp",
-			"headers": {
-				"Authorization": "Bearer ${GITHUB_TOKEN}"
-			}
-		},
-		"gitlab-mcp": {
-			"command": "gitlab-mcp"
-		},
 		"perplexity-ai": {
 			"command": "pplx",
 			"args": ["mcp-stdio"]
-		},
-		"context7": {
-			"transport": "http",
-			"url": "https://mcp.context7.com/mcp",
-			"headers": {
-				"CONTEXT7_API_KEY": "${CONTEXT7_API_KEY}"
-			}
 		}
 	}
 }

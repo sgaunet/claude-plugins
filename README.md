@@ -44,15 +44,24 @@ within claude:
 /plugin
 ```
 
-## MCP Server Requirements
+## Prerequisites
 
-These plugins leverage **Model Context Protocol (MCP) servers** to provide powerful integrations with external services. You must install and configure these MCP servers before using the plugins.
+### CLI Tools
 
-### Required MCP Servers
+These plugins use `gh` and `glab` CLIs for GitHub/GitLab operations:
 
-All three plugins depend on the following MCP servers:
+- **[gh](https://cli.github.com/)** — GitHub CLI (for GitHub repositories)
+- **[glab](https://gitlab.com/gitlab-org/cli)** — GitLab CLI (for GitLab repositories)
 
-#### 1. **perplexity-ai** - AI-Powered Research
+Authenticate after installation:
+```bash
+gh auth login
+glab auth login
+```
+
+### MCP Server (Optional)
+
+#### perplexity-ai — AI-Powered Research
 
 **Repository**: [sgaunet/pplx](https://github.com/sgaunet/pplx)
 
@@ -74,115 +83,11 @@ go install
 claude mcp add perplexity-ai -- pplx mcp-stdio
 
 # Set environment variable
-export PERPLEXITY_API_KEY="your-perplexity-api-key"
+export PPLX_API_KEY="your-perplexity-api-key"
 ```
 
 **Environment Variables**:
 - `PPLX_API_KEY` - Your Perplexity AI API key (get from [perplexity.ai](https://www.perplexity.ai/settings/api))
-
----
-
-#### 2. **gitlab-mcp** - GitLab Integration
-
-**Repository**: [sgaunet/gitlab-mcp](https://github.com/sgaunet/gitlab-mcp)
-
-Enables GitLab operations including issues, merge requests, projects, and CI/CD pipelines.
-
-**Installation**:
-```bash
-# Install from source
-git clone https://github.com/sgaunet/gitlab-mcp.git
-cd gitlab-mcp
-go install
-
-# Or download pre-built binary from releases
-```
-
-**Configuration**:
-```bash
-# Add to Claude Code MCP configuration
-claude mcp add gitlab-mcp -- gitlab-mcp
-
-# Set environment variables
-export GITLAB_TOKEN="your-gitlab-token"
-# export GITLAB_API_URL="https://gitlab.com/api/v4"  # If self-hosted GitLab URL
-```
-
-**Environment Variables**:
-- `GITLAB_TOKEN` - GitLab Personal Access Token with `api` scope
-- `GITLAB_API_URL` - GitLab API endpoint (default: `https://gitlab.com/api/v4`)
-
-**Generate GitLab Token**:
-1. Go to GitLab Settings → Access Tokens
-2. Create token with `api` scope
-3. Copy and set as environment variable
-
----
-
-#### 3. **github** - GitHub Copilot Integration
-
-**Official GitHub Integration** via GitHub Copilot MCP server (HTTP transport).
-
-**Configuration**:
-```bash
-# Set environment variable
-export GITHUB_TOKEN="your-github-personal-access-token"
-```
-
-**Environment Variables**:
-- `GITHUB_TOKEN` - GitHub Personal Access Token with appropriate scopes
-
-**Generate GitHub Token**:
-1. Go to GitHub Settings → Developer Settings → Personal Access Tokens → Tokens (classic)
-2. Create token with scopes: `repo`, `read:org`, `workflow`
-3. Copy and set as environment variable
-
----
-
-### Environment Variable Setup
-
-Add these to your shell profile (`~/.bashrc`, `~/.zshrc`, or `~/.profile`):
-
-```bash
-# Perplexity AI
-export PPLX_API_KEY="pplx-xxxxxxxxxxxxxxxxxxxx"
-
-# GitLab
-export GITLAB_TOKEN="glpat-xxxxxxxxxxxxxxxxxxxx"
-export GITLAB_API_URL="https://gitlab.com/api/v4"
-
-# GitHub
-export GITHUB_TOKEN="ghp_xxxxxxxxxxxxxxxxxxxx"
-```
-
-Reload your shell:
-```bash
-source ~/.bashrc  # or ~/.zshrc
-```
-
-### Verifying MCP Server Installation
-
-Test that each MCP server is installed and configured correctly:
-
-```bash
-# Test perplexity-ai
-pplx --version
-
-# Test gitlab-mcp
-gitlab-mcp --version
-
-# Test GitHub token
-curl -H "Authorization: Bearer $GITHUB_TOKEN" https://api.github.com/user
-
-```
-
-### MCP Server Features by Plugin
-
-| Plugin | github | gitlab-mcp | perplexity-ai |
-|--------|--------|------------|---------------|
-| **devops-infrastructure** | ✅ CI/CD workflows | ✅ Pipeline management | ✅ Research & docs |
-| **software-engineering** | ✅ PR/Issue management | ✅ MR/Issue management | ✅ Library research |
-| **go-specialist** | ✅ Go workflows | ✅ Go CI/CD | ✅ Go library docs |
 
 ---
 
@@ -353,7 +258,6 @@ cd plugins/go-specialist && claude plugin validate .
 
 - **MCP Servers**:
   - [sgaunet/pplx](https://github.com/sgaunet/pplx) - Perplexity AI MCP server
-  - [sgaunet/gitlab-mcp](https://github.com/sgaunet/gitlab-mcp) - GitLab MCP server
 
 - **Documentation**:
   - [Claude Code Docs](https://docs.claude.ai/claude-code)
