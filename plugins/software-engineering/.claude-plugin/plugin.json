@@ -1,7 +1,7 @@
 {
   "name": "software-engineering",
-  "version": "0.14.4",
-  "description": "Code review, debugging, documentation, license compliance (AGPL/MIT/Apache), payment integration (Stripe/PayPal), and frontend development (HTMX/Alpine.js) workflows. MCP: perplexity-ai, context7",
+  "version": "0.14.5",
+  "description": "Code review, debugging, documentation, license compliance (AGPL/MIT/Apache), payment integration (Stripe/PayPal), and frontend development (HTMX/Alpine.js) workflows. MCP: context7",
   "keywords": [
     "code-review",
     "security",

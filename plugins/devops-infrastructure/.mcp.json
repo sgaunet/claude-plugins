@@ -1,8 +1,3 @@
 {
-	"mcpServers": {
-		"perplexity-ai": {
-			"command": "pplx",
-			"args": ["mcp-stdio"]
-		}
-	}
+	"mcpServers": {}
 }
