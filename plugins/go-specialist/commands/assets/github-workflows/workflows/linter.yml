@@ -44,24 +44,24 @@ jobs:
         uses: jaxxstorm/action-install-gh-release@v2.1.0
         with:
           repo: golangci/golangci-lint
-          tag: v2.2.2  # CUSTOMIZE: Use latest or pin to specific version
+          tag: [GOLANGCI_LINT_VERSION]  # CUSTOMIZE: Use latest or pin to specific version
           cache: enable
-          binaries-location: golangci-lint-2.2.2-linux-amd64
+          binaries-location: [GOLANGCI_LINT_BINARIES_LOCATION]
 
       # Run linter via Task
-      # Requires: Taskfile.yml with 'linter' task defined
+      # Requires: Taskfile.yml with 'lint' task defined
       # Example task: golangci-lint run --timeout=5m ./...
       - name: Run linter
         shell: /usr/bin/bash {0}
         run: |
-          task linter
+          task lint
 
 # Optional: Add linter annotations
 # This posts linter findings as PR comments
 # - name: golangci-lint
 #   uses: golangci/golangci-lint-action@v6
 #   with:
-#     version: v2.2.2
+#     version: [GOLANGCI_LINT_VERSION]
 #     args: --timeout=5m
 
 # Optional: Cancel outdated runs

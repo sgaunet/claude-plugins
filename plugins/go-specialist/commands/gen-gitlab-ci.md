@@ -94,12 +94,37 @@ for each arg in arguments:
    - Target: `.gitlab-ci.yml` (project root)
 
 **Template handling:**
-- Copy file as-is (no variable substitution)
+- Store content in memory for Phase 3.5 substitution
 - Preserve all `# CUSTOMIZE:` comments
-- Store content in memory for Phase 5 writing
 
 **Error handling:**
 - If Read fails: Exit with error "Failed to read template file. Plugin may be corrupted."
+
+### Phase 3.5: Auto-Detection & Substitution
+
+**Detection Function Library:** Use the shared detection functions from `${CLAUDE_PLUGIN_ROOT}/commands/assets/detection-functions.md`. Read that file to get all bash detection functions (`detect_go_version`, `detect_docker_dind_version`, `detect_goreleaser_version`, `substitute_version_placeholders`).
+
+**Detection Workflow:**
+
+1. **Detect version values:**
+   ```bash
+   GO_VERSION=$(detect_go_version)
+   DOCKER_DIND_VERSION=$(detect_docker_dind_version)
+   GORELEASER_VERSION=$(detect_goreleaser_version)
+   ```
+
+2. **Handle missing values (fallback defaults):**
+   - If `GO_VERSION` is empty: Use `1.25.1`
+   - If `DOCKER_DIND_VERSION` is empty: Use `20.10.16-dind`
+   - If `GORELEASER_VERSION` is empty: Use `v2.12.0`
+
+3. **Substitute version placeholders in .gitlab-ci.yml template:**
+   ```bash
+   gitlab_ci_template=$(substitute_version_placeholders "$gitlab_ci_template" \
+       "GO_VERSION=${GO_VERSION:-1.25.1}" \
+       "DOCKER_DIND_VERSION=${DOCKER_DIND_VERSION:-20.10.16-dind}" \
+       "GORELEASER_VERSION=${GORELEASER_VERSION:-v2.12.0}")
+   ```
 
 ### Phase 4: User Confirmation
 
@@ -168,7 +193,7 @@ If `dryRunMode == true`:
 
 Write `.gitlab-ci.yml` to current working directory (project root):
 - Use Write tool with file path: `.gitlab-ci.yml`
-- Write content from Phase 3 template (no modifications)
+- Write content from Phase 3.5 (with version substitutions applied)
 - Track success/failure status
 
 **Error handling:**
@@ -202,6 +227,12 @@ Pipeline Structure:
    - build-snapshot: Test releases without publishing
    - build-release: Production releases on Git tags
 
+Auto-detected Versions:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ✓ Go version: <GO_VERSION> (from go.mod)
+  ✓ Docker DinD: <DOCKER_DIND_VERSION> (latest from Docker Hub)
+  ✓ GoReleaser: <GORELEASER_VERSION> (latest from GitHub)
+
 Required Customizations:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ⚠️  PRIORITY 1 - Must configure for pipeline to work:
@@ -212,13 +243,13 @@ Required Customizations:
    - How to find tags: GitLab Settings → CI/CD → Runners
    - Common tags: docker, linux, kubernetes
 
-2. Update Go version (4 locations):
-   - Find: image: golang:1.25.1
-   - Replace: With your Go version (e.g., golang:1.24.2)
+2. Verify auto-detected Go version:
+   - Auto-configured from go.mod: golang:<GO_VERSION>
+   - Adjust if you need a different version
 
-3. Update GoReleaser version (2 locations):
-   - Find: goreleaser/goreleaser:v2.12.0
-   - Replace: With desired version or 'latest'
+3. Verify auto-detected GoReleaser version:
+   - Auto-configured from latest release: goreleaser/goreleaser:<GORELEASER_VERSION>
+   - Adjust if you need a specific version
 
 4. Enable coverage job (optional):
    - Uncomment lines 74-92 in .gitlab-ci.yml
@@ -438,7 +469,7 @@ git push origin main
 
 3. **Custom tag patterns:**
    - Edit build-release job in .gitlab-ci.yml
-   - Adjust `only: tags` to filter specific patterns
+   - Adjust `rules: - if: $CI_COMMIT_TAG` to filter specific tag patterns
 
 ## Template Customization Points
 
@@ -446,8 +477,8 @@ All template files include `# CUSTOMIZE:` comments marking required changes:
 
 **.gitlab-ci.yml:**
 - `tags: [gitlab-org-docker]` (4 locations) → Replace with your runner tags
-- `image: golang:1.25.1` (4 locations) → Update to your Go version
-- `goreleaser/goreleaser:v2.12.0` (2 locations) → Update GoReleaser version
+- `image: golang:<GO_VERSION>` → Auto-detected from go.mod, verify if needed
+- `goreleaser/goreleaser:<GORELEASER_VERSION>` → Auto-detected latest, verify if needed
 - Coverage job (lines 74-92) → Uncomment to enable
 - Coverage exclusions → Configure sed patterns if needed
 - Tag filtering → Adjust in build-release job

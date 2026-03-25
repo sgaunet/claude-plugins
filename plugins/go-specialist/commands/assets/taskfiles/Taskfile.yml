@@ -10,14 +10,16 @@ tasks:
   default:
     desc: "List tasks"
     preconditions:
-      - test -f .git/hooks/pre-commit
+      - sh: test -f .git/hooks/pre-commit
+        msg: "Pre-commit hook is not set up. Please run 'task pre-commit-setup' first."
     cmds:
       - task -a
 
   check-before-commit:
     desc: "Run checks before committing"
     preconditions:
-      - test -f .git/hooks/pre-commit
+      - sh: test -f .git/hooks/pre-commit
+        msg: "Pre-commit hook is not set up. Please run 'task pre-commit-setup' first."
     deps:
       - test
       - snapshot

@@ -129,41 +129,7 @@ for each arg in arguments:
 
 ### Phase 3.5: Auto-Detection & Substitution
 
-**Detection Function:**
-
-```bash
-# Extract owner from git remote URL
-detect_git_owner() {
-    local remote_url=$(git remote get-url origin 2>/dev/null)
-    [[ -z "$remote_url" ]] && return 1
-
-    # SSH: git@github.com:sgaunet/repo.git → sgaunet
-    if [[ "$remote_url" =~ git@[^:]+:([^/]+)/ ]]; then
-        echo "${BASH_REMATCH[1]}"
-        return 0
-    fi
-
-    # HTTPS: https://github.com/sgaunet/repo.git → sgaunet
-    if [[ "$remote_url" =~ https?://[^/]+/([^/]+)/ ]]; then
-        echo "${BASH_REMATCH[1]}"
-        return 0
-    fi
-
-    return 1
-}
-
-# Substitute placeholder in FUNDING.yml
-substitute_github_username() {
-    local content="$1"
-    local username="$2"
-
-    # Escape special characters
-    username=$(echo "$username" | sed 's/[&\/]/\\&/g')
-
-    # Replace placeholder
-    echo "$content" | sed "s|\[GITHUB_USERNAME\]|${username}|g"
-}
-```
+**Detection Function Library:** Use the shared detection functions from `${CLAUDE_PLUGIN_ROOT}/commands/assets/detection-functions.md`. Read that file to get all bash detection functions (`detect_git_owner`, `detect_golangci_lint_version`, `derive_golangci_lint_binaries_location`, `substitute_version_placeholders`).
 
 **Detection Workflow:**
 
@@ -172,14 +138,29 @@ substitute_github_username() {
    GITHUB_USERNAME=$(detect_git_owner)
    ```
 
-2. **Substitute in FUNDING.yml template (only if not in minimal mode):**
+2. **Detect golangci-lint version:**
+   ```bash
+   GOLANGCI_LINT_VERSION=$(detect_golangci_lint_version)
+   GOLANGCI_LINT_BINARIES_LOCATION=$(derive_golangci_lint_binaries_location "${GOLANGCI_LINT_VERSION:-v2.2.2}")
+   ```
+   - If `GOLANGCI_LINT_VERSION` is empty (gh not available or API failure): Use fallback `v2.2.2`
+   - If `GOLANGCI_LINT_BINARIES_LOCATION` is empty: Use fallback `golangci-lint-2.2.2-linux-amd64`
+
+3. **Substitute in FUNDING.yml template (only if not in minimal mode):**
    ```bash
    if [[ "$minimalMode" != "true" ]]; then
-       funding_template=$(substitute_github_username "$funding_template" "$GITHUB_USERNAME")
+       funding_template=$(echo "$funding_template" | sed "s|\[GITHUB_USERNAME\]|${GITHUB_USERNAME}|g")
    fi
    ```
 
-3. **Handle missing value:**
+4. **Substitute version placeholders in linter.yml template:**
+   ```bash
+   linter_template=$(substitute_version_placeholders "$linter_template" \
+       "GOLANGCI_LINT_VERSION=${GOLANGCI_LINT_VERSION:-v2.2.2}" \
+       "GOLANGCI_LINT_BINARIES_LOCATION=${GOLANGCI_LINT_BINARIES_LOCATION:-golangci-lint-2.2.2-linux-amd64}")
+   ```
+
+5. **Handle missing values:**
    - If `GITHUB_USERNAME` is empty: Preserve `[GITHUB_USERNAME]` placeholder with warning
    - Non-blocking: User can still create files and edit manually later
 
@@ -282,7 +263,7 @@ Write files in order (root files first, then workflows):
 
 **For each file:**
 - Use Write tool with full file path
-- Write content from Phase 3 templates (no modifications)
+- Write content from Phase 3.5 templates (with substitutions applied)
 - Track success/failure status
 - Continue with remaining files if one fails (partial success acceptable)
 
@@ -333,6 +314,7 @@ Total: [N] files ([X] lines)
 Auto-configured with detected values:
   ✓ GitHub username: <GITHUB_USERNAME> (from git remote)
   ✓ FUNDING.yml is ready to use!
+  ✓ golangci-lint version: <GOLANGCI_LINT_VERSION> (from GitHub releases)
 
 Required Customizations:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -566,7 +548,7 @@ git push origin main
    version: '3'
 
    tasks:
-     linter:
+     lint:
        desc: Run golangci-lint
        cmds:
          - golangci-lint run --timeout=5m ./...

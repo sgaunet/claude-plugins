@@ -20,7 +20,7 @@ All workflow templates are available in the `assets/workflows/` directory:
 - Checks out code
 - Sets up Go environment
 - Installs Task and golangci-lint
-- Runs linting via `task linter`
+- Runs linting via `task lint`
 
 **Customization**:
 ```yaml
@@ -36,7 +36,7 @@ All workflow templates are available in the `assets/workflows/` directory:
 
 **Requirements**:
 - `.golangci.yml` or `.golangci.yaml` in repository root
-- Task defined: `linter`
+- Task defined: `lint`
 
 ### 2. Snapshot Workflow
 
@@ -331,7 +331,7 @@ task test
 
 ### Running Linter
 ```bash
-task linter
+task lint
 ```
 
 ### Creating Releases

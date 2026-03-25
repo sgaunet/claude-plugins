@@ -134,7 +134,19 @@ for each arg in arguments:
        "$PROJECT_NAME" "$OWNER" "$REGISTRY" "$MAIN_DIR")
    ```
 
-   Note: Taskfile_dev.yml and .pre-commit-config.yaml have no placeholders
+4. **Detect pre-commit-hooks version:**
+   ```bash
+   PRE_COMMIT_HOOKS_VERSION=$(detect_pre_commit_hooks_version)
+   ```
+   - If empty (gh not available or API failure): Use fallback `v4.3.0`
+
+5. **Substitute version placeholders in .pre-commit-config.yaml template:**
+   ```bash
+   precommit_template=$(substitute_version_placeholders "$precommit_template" \
+       "PRE_COMMIT_HOOKS_VERSION=${PRE_COMMIT_HOOKS_VERSION:-v4.3.0}")
+   ```
+
+   Note: Taskfile_dev.yml has no placeholders
 
 ### Phase 4: User Confirmation
 
@@ -296,6 +308,7 @@ Auto-configured with detected values:
   ✓ Main directory: <MAIN_DIR> (auto-detected)
   ✓ Owner: <OWNER> (from git remote)
   ✓ Registry: <REGISTRY>
+  ✓ Pre-commit hooks version: <PRE_COMMIT_HOOKS_VERSION>
 
 Available Tasks:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
