@@ -1,12 +1,13 @@
 {
   "name": "go-specialist",
-  "version": "0.13.6",
-  "description": "Master Go 1.25+ development with modern patterns, advanced concurrency, performance optimization, and production-ready microservices. Skills: golangci-lint, goreleaser, GitHub Actions, GitLab CI. MCP: context7",
+  "version": "0.15.0",
+  "description": "Master Go 1.25+ development with modern patterns, advanced concurrency, performance optimization, and production-ready microservices. Skills: golangci-lint, goreleaser, go-tool (Go 1.24+ tool dependencies), GitHub Actions, GitLab CI. MCP: context7",
   "keywords": [
     "go",
     "golang",
     "goreleaser",
-    "golangci-lint"
+    "golangci-lint",
+    "go-tool"
   ],
   "author": {
     "name": "Sylvain",
