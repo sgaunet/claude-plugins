@@ -49,6 +49,7 @@ Implement a Go feature using strict **RED → GREEN → REFACTOR** TDD methodolo
    - Scan existing packages, test patterns, coding conventions
    - Identify existing test helpers or shared fixtures
    - Note the project's import style, error handling patterns, naming conventions
+   - Check existing `*_test.go` files for package naming: flag any white box tests (`package <pkgname>` without `_test` suffix) for potential conversion
 
 4. **Identify libraries needed** for the feature:
    - Determine which standard library packages are involved
@@ -72,6 +73,7 @@ Implement a Go feature using strict **RED → GREEN → REFACTOR** TDD methodolo
 ### Phase 2: RED — Write Failing Tests
 
 1. **Create or edit `*_test.go` files** with:
+   - **Black box package naming**: use `package <pkgname>_test` (not `package <pkgname>`). Import the package under test explicitly so tests validate the public API. If internals must be tested, create an `export_test.go` in `package <pkgname>` that exports needed symbols (e.g., `var InternalFunc = internalFunc`)
    - Table-driven tests covering: happy path, edge cases, error cases
    - Test function names following Go conventions: `TestFeatureName_Scenario`
    - Use patterns from Context7 docs (e.g., testify assertions if project uses testify)
@@ -175,6 +177,7 @@ Display a structured summary:
 - Lint:   ✓ / ✗ / skipped
 - Race:   ✓ / ✗
 - Cover:  XX%
+- Black box: ✓ all tests use _test suffix / ✗ N files use white box naming
 
 ### Next Steps
 - Review changes

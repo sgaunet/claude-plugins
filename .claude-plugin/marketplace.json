@@ -1,7 +1,7 @@
 {
   "name": "sylvain-marketplace",
   "metadata": {
-    "version": "0.8.0",
+    "version": "0.9.0",
     "description": "Specialized Claude Code agents for DevOps infrastructure, software engineering workflows, and Go development. Includes proactive agents for IaC, CI/CD, database optimization, code review, debugging, documentation, and more."
   },
   "owner": {
@@ -30,8 +30,8 @@
     {
       "name": "go-specialist",
       "source": "./plugins/go-specialist",
-      "description": "Master Go 1.25+ development with modern patterns, advanced concurrency, performance optimization, and production-ready microservices. Skills: golangci-lint, goreleaser, GitHub Actions, GitLab CI. MCP: context7",
-      "version": "0.15.0",
+      "description": "Master Go 1.25+ development with modern patterns, advanced concurrency, performance optimization, and production-ready microservices. Skills: golangci-lint, goreleaser, go-blackbox, GitHub Actions, GitLab CI. MCP: context7",
+      "version": "0.16.0",
       "author": {
         "name": "Sylvain"
       }
