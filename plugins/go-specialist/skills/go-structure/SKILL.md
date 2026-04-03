@@ -34,8 +34,11 @@ Recommend and scaffold idiomatic Go project layouts. Matches structure to projec
 | Over-nesting (`internal/services/user/handlers/http/v1/`) | Cognitive load, cumbersome imports | Flatten to `internal/user/handler.go` |
 | Circular dependencies (`A` imports `B`, `B` imports `A`) | Compilation error, poor separation | Extract shared types into a separate package or use interfaces |
 | Business logic in HTTP handlers | Couples domain to transport, hard to test | Move to service layer, handlers only do HTTP concerns |
+| The `main.go` monster (all logic in one file) | Untestable, circular deps, impossible to maintain | Extract into packages; `main.go` only wires deps and starts |
+| Shared database across microservices | Distributed monolith, schema changes break all services | Each service owns its data; communicate via APIs |
 | Using `pkg/` for non-library code | Misleading signal, unnecessary indirection | Move to `internal/` or project root |
 | Premature `cmd/` for single-binary projects | Unnecessary nesting | Keep `main.go` at root until multiple binaries are needed |
+| Hardcoded DB credentials / config values | Security risk, not deployable across environments | Use env vars or config system; never commit secrets |
 
 ## Workflow: Recommend Structure
 
@@ -126,6 +129,51 @@ myapi/
 ```
 
 **Key rule**: `cmd/*/main.go` is minimal — only dependency wiring, config loading, and server start. All logic lives in `internal/`.
+
+#### Layer Responsibilities Inside a Feature Package
+
+Each file in a feature package (`internal/user/`) has a clear, single responsibility:
+
+| File | Layer | Responsibility | Imports |
+|---|---|---|---|
+| `handler.go` | Transport | HTTP request/response only: parse input, call service, write response. No business logic. | `net/http`, service interface |
+| `service.go` | Business | Domain logic and orchestration. Validates rules, coordinates repositories. Pure Go — no HTTP, no SQL. | Repository interface, domain types |
+| `repository.go` | Data access | Defines the `Repository` interface (port) AND its implementation. Talks to DB. | `database/sql`, domain types |
+| `model.go` | Domain | Entities, value objects, custom error types. No external dependencies. | Standard library only |
+
+**Dependency flow**: Handler → Service → Repository (interfaces). Dependencies always point inward.
+
+#### Dependency Injection Wiring
+
+Services receive their dependencies as interfaces via constructors — never create them internally:
+
+```go
+// internal/user/repository.go — define the interface (port)
+type Repository interface {
+    FindByID(ctx context.Context, id string) (*User, error)
+    Save(ctx context.Context, user *User) error
+}
+
+// internal/user/service.go — accept interface, not concrete type
+type Service struct {
+    repo Repository
+}
+
+func NewService(repo Repository) *Service {
+    return &Service{repo: repo}
+}
+
+// cmd/api/main.go — wire everything together
+func main() {
+    db := connectDB()
+    userRepo := user.NewPostgresRepository(db)
+    userService := user.NewService(userRepo)
+    userHandler := user.NewHandler(userService)
+    // ... register routes
+}
+```
+
+This keeps services testable (mock the interface) and swappable (change DB without touching business logic).
 
 ### Hexagonal / DDD (Large Service)
 
@@ -256,6 +304,42 @@ internal/
 ```
 
 Feature-based packages are self-contained, reduce cross-package imports, and make it easy to understand a domain in one place.
+
+## Workflow: Review Layer Violations
+
+When reviewing an existing project, check for these structural violations:
+
+### Step 1: Scan for Logic in Handlers
+
+Grep handler files for signs of business logic leaking into the transport layer:
+
+- Direct SQL queries (`db.Query`, `db.Exec`) in handler files
+- Complex conditionals or domain validation beyond input parsing
+- Direct calls to external services (HTTP clients, message queues)
+
+### Step 2: Scan for Transport in Services
+
+Check service files for HTTP or framework imports that don't belong:
+
+- `net/http` imports in service layer
+- Framework-specific types (gin.Context, echo.Context) in service signatures
+- JSON marshaling in service code
+
+### Step 3: Check Dependency Direction
+
+Verify dependencies flow inward (handler → service → repository):
+
+- Services must not import handler packages
+- Repositories must not import service packages
+- Domain types must not import infrastructure packages
+
+### Step 4: Report
+
+| File | Violation | Severity | Fix |
+|---|---|---|---|
+| `user/handler.go` | Contains `db.Query` call | Error | Move to repository |
+| `order/service.go` | Imports `net/http` | Warning | Accept domain types, not HTTP types |
+| `auth/handler.go` | 50+ lines of validation logic | Warning | Extract to service method |
 
 ## Error Handling
 
