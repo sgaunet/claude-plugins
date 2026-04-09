@@ -105,8 +105,8 @@ Store `<worktree-path>` and `<original-path>` (result of `pwd`) for use througho
 3. Display preview, ask confirmation: "Create issue with this content?" → "Yes, create issue" / "Skip issue creation"
 
 4. Create issue if approved:
-   - GitHub: `gh issue create --repo <owner>/<repo> --title "<title>" --body "<body>" --label "<label1>" --label "<label2>"`
-   - GitLab: `glab issue create --title "<title>" --description "<body>" --label "<label1>" --label "<label2>"`
+   - GitHub: `gh issue create --repo <owner>/<repo> --title "<title>" --body "<body>" --label "<label1>" --label "<label2>" --assignee @me`
+   - GitLab: `glab issue create --title "<title>" --description "<body>" --label "<label1>" --label "<label2>" --assignee "$(glab api user | jq -r '.username')"`
    - Parse issue number from command output; store for Phase 4
 
 **Error handling:**
@@ -123,7 +123,7 @@ Store `<worktree-path>` and `<original-path>` (result of `pwd`) for use througho
 - Scope from primary directory
 - Description: imperative mood, lowercase, under 50 chars, no period
 - Body: bullet points for multi-file changes
-- Footer: `Refs #<issue-number>` or `Closes #<N>` for fixes
+- Footer: `Closes #<issue-number>` (always use `Closes`, not `Refs`, when an issue was created in Phase 3)
 - **CRITICAL**: NO Claude Code attribution (per commit command's no-attribution policy)
 
 **Display preview, ask confirmation:** "Commit with this message?" → "Yes, commit now" / "Edit message" / "Cancel workflow"
