@@ -25,6 +25,7 @@ tasks:
       - claude plugin validate plugins/devops-infrastructure
       - claude plugin validate plugins/software-engineering
       - claude plugin validate plugins/go-specialist
+      - claude plugin validate plugins/bash-specialist
       - claude plugin validate .
 
   check-versions:
