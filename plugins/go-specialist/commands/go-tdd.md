@@ -79,6 +79,7 @@ Implement a Go feature using strict **RED → GREEN → REFACTOR** TDD methodolo
    - Use patterns from Context7 docs (e.g., testify assertions if project uses testify)
    - Include benchmark tests if the feature is performance-sensitive
    - Use `t.Helper()` in test helpers, `t.Parallel()` where safe
+   - Add `defer goleak.VerifyNone(t)` to test functions that test goroutine-spawning code; import `go.uber.org/goleak`
 
 2. **Run tests** to confirm RED state:
    ```bash
