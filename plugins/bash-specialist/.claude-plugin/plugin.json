@@ -1,0 +1,20 @@
+{
+  "name": "bash-specialist",
+  "version": "0.1.0",
+  "description": "Production-quality bash scripting with shellcheck compliance, robust error handling, and beautiful terminal UX via Charmbracelet gum. Skills: gum-beautify (TTY-safe interactive output). MCP: context7",
+  "keywords": [
+    "bash",
+    "shell",
+    "scripting",
+    "gum",
+    "charmbracelet",
+    "cli"
+  ],
+  "author": {
+    "name": "Sylvain",
+    "email": "1552102+sgaunet@users.noreply.github.com"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/sgaunet/claude-plugins",
+  "homepage": "https://github.com/sgaunet/claude-plugins#readme"
+}

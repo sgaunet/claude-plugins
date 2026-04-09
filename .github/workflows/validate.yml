@@ -27,6 +27,7 @@ jobs:
           - devops-infrastructure
           - software-engineering
           - go-specialist
+          - bash-specialist
 
     steps:
       - name: Checkout code
