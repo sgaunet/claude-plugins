@@ -114,7 +114,7 @@ This ensures generated Go code follows official library best practices and uses 
 
 - Uses specialized commands: /gen-linter (golangci-lint setup), /gen-github-dir (GitHub Actions CI/CD), /gen-gitlab-ci (GitLab pipelines), /gen-goreleaser (release automation), /gen-taskfiles (task runner setup)
 - **go-tool skill**: Manages Go tool dependencies via `go get -tool` (Go 1.24+). Invoke automatically when setting up code generation tools (sqlc, templ, buf, moq, swag, wire, stringer, oapi-codegen, gotailwindcss) or when indicator files are detected (.templ, .proto, .css with @tailwind, sqlc.yml, swagger.yaml, openapi.yaml). Reference catalog at `docs/go-tool-catalog.md`.
-- **go-blackbox skill**: Detects white box tests and proposes conversion to black box (`package foo_test`). Invoke automatically when reviewing or creating test files. Handles `export_test.go` creation for internals that need external test access.
+- **go-blackbox skill**: Detects white box tests and proposes conversion to black box (`package foo_test`). Invoke automatically when reviewing or creating test files. Handles `export_test.go` creation for internals that need external test access. Also adds `go.uber.org/goleak` goroutine leak detection to test functions that exercise goroutine-spawning code.
 - **go-structure skill**: Recommends and scaffolds idiomatic project layouts (flat, cmd/internal, hexagonal/DDD, monorepo). Invoke when initializing projects, reviewing structure, or detecting anti-patterns (generic package names, over-nesting, circular deps).
 - **code-review-enforcer**: Shares implementation patterns for Go-specific quality checks
 - Uses context7 MCP server for official Go library documentation and best practices
