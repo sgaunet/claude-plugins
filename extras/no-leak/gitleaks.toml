@@ -1,0 +1,54 @@
+# Gitleaks configuration for Claude Code no-leak hook
+# Extends the default gitleaks ruleset with custom DSN detection rules.
+# Installed to: ~/.claude/gitleaks.toml
+# Docs: https://github.com/gitleaks/gitleaks#configuration
+
+[extend]
+useDefault = true
+
+# --- Custom rule: Database/service connection strings with embedded credentials ---
+# Detects: postgres://, postgresql://, mysql://, mongodb://, mongodb+srv://,
+#          redis://, rediss://, amqp://, amqps:// with user:password@host patterns.
+
+[[rules]]
+id = "dsn-credentials"
+description = "Connection string (DSN) with embedded credentials"
+regex = '''(?i)(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis(?:s)?|amqps?)://[^\s'"]+:[^\s'"]+@[^\s'"]+'''
+keywords = ["postgres", "postgresql", "mysql", "mongodb", "redis", "amqp"]
+tags = ["dsn", "credentials"]
+
+  [[rules.allowlists]]
+  description = "Allow localhost, loopback, example domains, common test credentials, and docker-compose service names"
+  regexTarget = "match"
+  regexes = [
+    # Localhost and loopback
+    '''@localhost[:/]''',
+    '''@127\.0\.0\.1[:/]''',
+    '''@\[::1\][:/]''',
+
+    # Common test/example credentials
+    '''://user:password@''',
+    '''://root:root@''',
+    '''://test:test@''',
+    '''://postgres:postgres@''',
+    '''://admin:admin@''',
+    '''://guest:guest@''',
+    '''://default:default@''',
+
+    # RFC 2606 reserved example domains
+    '''@example\.com''',
+    '''@example\.net''',
+    '''@example\.org''',
+
+    # Docker Compose service name patterns (bare hostname:port)
+    '''@db:''',
+    '''@database:''',
+    '''@redis:''',
+    '''@mongo:''',
+    '''@mongodb:''',
+    '''@mysql:''',
+    '''@postgres:''',
+    '''@postgresql:''',
+    '''@rabbitmq:''',
+    '''@amqp:'''
+  ]
