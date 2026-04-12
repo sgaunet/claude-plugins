@@ -45,8 +45,9 @@ Agents are defined in **markdown files with YAML frontmatter** in `plugins/*/age
 - `description`: When to use this agent (required, shown in Claude Code UI)
 - `model`: LLM model to use (sonnet/opus/haiku/inherit)
 - `tools`: Optional tool restrictions (agents use `tools`, not `allowed-tools`)
-- `color`: UI color for visual identification
-- `permissionMode`: Optional permission mode (default/acceptEdits/dontAsk/bypassPermissions/plan)
+- `color`: UI color (red/blue/green/yellow/purple/orange/pink/cyan)
+- `effort`: Optional effort level override (low/medium/high/max)
+- `maxTurns`: Optional max turns before agent must complete
 - `skills`: Optional skill references for specialized workflows
 
 **Content sections:**
@@ -172,7 +173,7 @@ color: purple
 ---
 ```
 
-See existing agents in `plugins/*/agents/*.md` for advanced patterns (multi-agent coordination, permissionMode, skills).
+See existing agents in `plugins/*/agents/*.md` for advanced patterns (multi-agent coordination, skills, effort).
 
 ## Plugin Manifest Schema
 

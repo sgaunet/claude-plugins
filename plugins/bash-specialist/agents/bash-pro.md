@@ -3,7 +3,6 @@ name: bash-pro
 description: Production-quality bash scripting with shellcheck compliance, robust error handling, and beautiful terminal UX. Use for shell scripts, CLI tools, and automation.
 model: sonnet
 tools: Read, Write, Edit, MultiEdit, Grep, Glob, Bash(shellcheck:*), Bash(bash:*), Bash(chmod:*), Bash(cat:*), Bash(test:*)
-permissionMode: acceptEdits
 color: yellow
 skills:
   - gum-beautify

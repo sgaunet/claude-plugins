@@ -1,6 +1,6 @@
 {
   "name": "bash-specialist",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Production-quality bash scripting with shellcheck compliance, robust error handling, and beautiful terminal UX via Charmbracelet gum. Skills: gum-beautify (TTY-safe interactive output). MCP: context7",
   "keywords": [
     "bash",

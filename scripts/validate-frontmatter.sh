@@ -50,16 +50,20 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Valid fields per component type
-AGENT_FIELDS="name description tools disallowedTools model permissionMode maxTurns skills mcpServers hooks memory"
-AGENT_WARN_FIELDS="color"
+AGENT_FIELDS="name description tools disallowedTools model permissionMode maxTurns skills mcpServers hooks memory effort background isolation initialPrompt color"
+AGENT_WARN_FIELDS=""
 AGENT_WRONG_FIELDS="allowed-tools"
 
-COMMAND_FIELDS="name description argument-hint disable-model-invocation user-invocable allowed-tools model context agent hooks"
+COMMAND_FIELDS="name description argument-hint disable-model-invocation user-invocable allowed-tools model context agent hooks effort paths shell"
 COMMAND_WRONG_FIELDS="tools"
 
 # Valid values
 VALID_MODELS="sonnet opus haiku inherit"
-VALID_PERMISSION_MODES="default acceptEdits dontAsk bypassPermissions plan"
+VALID_PERMISSION_MODES="default acceptEdits auto dontAsk bypassPermissions plan"
+VALID_COLORS="red blue green yellow purple orange pink cyan"
+VALID_EFFORTS="low medium high max"
+VALID_MEMORY="user project local"
+VALID_SHELL="bash powershell"
 
 # Counters
 total_files=0
@@ -89,6 +93,20 @@ in_list() {
         [ "$item" = "$val" ] && return 0
     done
     return 1
+}
+
+# Extract value of a specific field from frontmatter
+# Args: field_name frontmatter_text
+get_field_value() {
+    local field="$1"
+    local fm="$2"
+    echo "$fm" | awk -v f="$field" 'BEGIN{FS=": *"} $1 == f { print $2 }' | tr -d '[:space:]'
+}
+
+# Extract full description value (preserves spaces, handles colons in value)
+get_description_value() {
+    local fm="$1"
+    echo "$fm" | awk '/^description:/ { sub(/^description: */, ""); print }'
 }
 
 # Validate a single file
@@ -161,18 +179,34 @@ validate_file() {
         fi
     fi
 
+    # Validate name format if present
+    local name_val
+    name_val=$(get_field_value "name" "$fm")
+    if [ -n "$name_val" ]; then
+        if [ ${#name_val} -gt 64 ]; then
+            messages="${messages}\n  ${RED}ERROR${NC}: Name '$name_val' exceeds 64 character limit (${#name_val} chars)"
+            file_errors=$((file_errors + 1))
+        elif ! echo "$name_val" | grep -qE '^[a-z0-9-]+$'; then
+            messages="${messages}\n  ${RED}ERROR${NC}: Name '$name_val' must contain only lowercase letters, numbers, and hyphens"
+            file_errors=$((file_errors + 1))
+        fi
+    fi
+
     # Validate model value if present
     local model_val
-    model_val=$(echo "$fm" | awk -F': *' '/^model:/ { print $2 }' | tr -d '[:space:]')
+    model_val=$(get_field_value "model" "$fm")
     if [ -n "$model_val" ] && ! in_list "$model_val" "$VALID_MODELS"; then
-        messages="${messages}\n  ${RED}ERROR${NC}: Invalid model '$model_val' (valid: $VALID_MODELS)"
-        file_errors=$((file_errors + 1))
+        # Also accept full model IDs starting with "claude-"
+        if ! echo "$model_val" | grep -qE '^claude-'; then
+            messages="${messages}\n  ${RED}ERROR${NC}: Invalid model '$model_val' (valid: $VALID_MODELS or claude-* model ID)"
+            file_errors=$((file_errors + 1))
+        fi
     fi
 
     # Validate permissionMode value if present (agents only)
     if [ "$type" = "agent" ]; then
         local perm_val
-        perm_val=$(echo "$fm" | awk -F': *' '/^permissionMode:/ { print $2 }' | tr -d '[:space:]')
+        perm_val=$(get_field_value "permissionMode" "$fm")
         if [ -n "$perm_val" ] && ! in_list "$perm_val" "$VALID_PERMISSION_MODES"; then
             messages="${messages}\n  ${RED}ERROR${NC}: Invalid permissionMode '$perm_val' (valid: $VALID_PERMISSION_MODES)"
             file_errors=$((file_errors + 1))
@@ -180,6 +214,126 @@ validate_file() {
     elif echo "$fields" | grep -qx "permissionMode"; then
         messages="${messages}\n  ${RED}ERROR${NC}: Field 'permissionMode' is not valid for commands"
         file_errors=$((file_errors + 1))
+    fi
+
+    # Validate maxTurns is a positive integer (agents only)
+    if [ "$type" = "agent" ]; then
+        local max_turns_val
+        max_turns_val=$(get_field_value "maxTurns" "$fm")
+        if [ -n "$max_turns_val" ] && ! echo "$max_turns_val" | grep -qE '^[1-9][0-9]*$'; then
+            messages="${messages}\n  ${RED}ERROR${NC}: maxTurns '$max_turns_val' must be a positive integer"
+            file_errors=$((file_errors + 1))
+        fi
+    fi
+
+    # Validate color value if present (agents only)
+    if [ "$type" = "agent" ]; then
+        local color_val
+        color_val=$(get_field_value "color" "$fm")
+        if [ -n "$color_val" ] && ! in_list "$color_val" "$VALID_COLORS"; then
+            messages="${messages}\n  ${RED}ERROR${NC}: Invalid color '$color_val' (valid: $VALID_COLORS)"
+            file_errors=$((file_errors + 1))
+        fi
+    fi
+
+    # Validate effort value if present (both agents and commands)
+    local effort_val
+    effort_val=$(get_field_value "effort" "$fm")
+    if [ -n "$effort_val" ] && ! in_list "$effort_val" "$VALID_EFFORTS"; then
+        messages="${messages}\n  ${RED}ERROR${NC}: Invalid effort '$effort_val' (valid: $VALID_EFFORTS)"
+        file_errors=$((file_errors + 1))
+    fi
+
+    # Validate memory value if present (agents only)
+    if [ "$type" = "agent" ]; then
+        local memory_val
+        memory_val=$(get_field_value "memory" "$fm")
+        if [ -n "$memory_val" ] && ! in_list "$memory_val" "$VALID_MEMORY"; then
+            messages="${messages}\n  ${RED}ERROR${NC}: Invalid memory '$memory_val' (valid: $VALID_MEMORY)"
+            file_errors=$((file_errors + 1))
+        fi
+    fi
+
+    # Validate boolean fields
+    if [ "$type" = "agent" ]; then
+        local background_val
+        background_val=$(get_field_value "background" "$fm")
+        if [ -n "$background_val" ] && [ "$background_val" != "true" ] && [ "$background_val" != "false" ]; then
+            messages="${messages}\n  ${RED}ERROR${NC}: Field 'background' must be true or false (got '$background_val')"
+            file_errors=$((file_errors + 1))
+        fi
+    fi
+
+    if [ "$type" = "command" ]; then
+        local dmi_val
+        dmi_val=$(get_field_value "disable-model-invocation" "$fm")
+        if [ -n "$dmi_val" ] && [ "$dmi_val" != "true" ] && [ "$dmi_val" != "false" ]; then
+            messages="${messages}\n  ${RED}ERROR${NC}: Field 'disable-model-invocation' must be true or false (got '$dmi_val')"
+            file_errors=$((file_errors + 1))
+        fi
+
+        local ui_val
+        ui_val=$(get_field_value "user-invocable" "$fm")
+        if [ -n "$ui_val" ] && [ "$ui_val" != "true" ] && [ "$ui_val" != "false" ]; then
+            messages="${messages}\n  ${RED}ERROR${NC}: Field 'user-invocable' must be true or false (got '$ui_val')"
+            file_errors=$((file_errors + 1))
+        fi
+    fi
+
+    # Validate isolation value if present (agents only)
+    if [ "$type" = "agent" ]; then
+        local isolation_val
+        isolation_val=$(get_field_value "isolation" "$fm")
+        if [ -n "$isolation_val" ] && [ "$isolation_val" != "worktree" ]; then
+            messages="${messages}\n  ${RED}ERROR${NC}: Invalid isolation '$isolation_val' (valid: worktree)"
+            file_errors=$((file_errors + 1))
+        fi
+    fi
+
+    # Validate context value if present (commands only)
+    if [ "$type" = "command" ]; then
+        local context_val
+        context_val=$(get_field_value "context" "$fm")
+        if [ -n "$context_val" ] && [ "$context_val" != "fork" ]; then
+            messages="${messages}\n  ${RED}ERROR${NC}: Invalid context '$context_val' (valid: fork)"
+            file_errors=$((file_errors + 1))
+        fi
+    fi
+
+    # Validate shell value if present (commands only)
+    if [ "$type" = "command" ]; then
+        local shell_val
+        shell_val=$(get_field_value "shell" "$fm")
+        if [ -n "$shell_val" ] && ! in_list "$shell_val" "$VALID_SHELL"; then
+            messages="${messages}\n  ${RED}ERROR${NC}: Invalid shell '$shell_val' (valid: $VALID_SHELL)"
+            file_errors=$((file_errors + 1))
+        fi
+    fi
+
+    # Plugin-specific warnings: hooks, mcpServers, permissionMode are ignored in plugin agents
+    if [ "$type" = "agent" ]; then
+        if echo "$fields" | grep -qx "hooks"; then
+            messages="${messages}\n  ${YELLOW}WARN${NC}: Field 'hooks' is silently ignored in plugin agents"
+            file_warnings=$((file_warnings + 1))
+        fi
+        if echo "$fields" | grep -qx "mcpServers"; then
+            messages="${messages}\n  ${YELLOW}WARN${NC}: Field 'mcpServers' is silently ignored in plugin agents"
+            file_warnings=$((file_warnings + 1))
+        fi
+        if echo "$fields" | grep -qx "permissionMode"; then
+            messages="${messages}\n  ${YELLOW}WARN${NC}: Field 'permissionMode' is silently ignored in plugin agents"
+            file_warnings=$((file_warnings + 1))
+        fi
+    fi
+
+    # Warn if command/skill description exceeds 250 chars (truncated in listing)
+    if [ "$type" = "command" ]; then
+        local desc_val
+        desc_val=$(get_description_value "$fm")
+        if [ -n "$desc_val" ] && [ ${#desc_val} -gt 250 ]; then
+            messages="${messages}\n  ${YELLOW}WARN${NC}: Description exceeds 250 chars (${#desc_val} chars) - will be truncated in listing"
+            file_warnings=$((file_warnings + 1))
+        fi
     fi
 
     # Update counters

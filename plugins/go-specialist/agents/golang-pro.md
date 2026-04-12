@@ -2,7 +2,6 @@
 name: golang-pro
 description: Master Go 1.25+ with modern patterns, concurrency, and performance optimization. Use for Go development, architecture, or microservices.
 model: sonnet
-permissionMode: acceptEdits
 color: green
 skills:
   - go-tool
