@@ -182,6 +182,14 @@ Parse command arguments (from argument string):
 
 This file provides guidance to Claude Code when working with this repository.
 
+[If --no-docs NOT set:]
+## Operating Guidelines
+
+**Read `docs/operating-guidelines.md` at the start of every session.** It
+defines how to plan, verify, and iterate in this repository: plan mode,
+subagent strategy, verification gates, self-improvement loop, and the
+communication contract. Treat it as load-bearing context.
+
 ## Repository Overview
 [2-3 sentences from Agent #4 README analysis + detected tech stack from Agent #1]
 
@@ -242,12 +250,17 @@ Example:
 
 **Merge Algorithm (if `!isNew`):**
 1. Parse existing CLAUDE.md sections (split by `^## `)
-2. Identify standard sections: "Repository Overview", "Architecture", "Development Commands", "Code Quality Standards", "File Locations", "Documentation"
+2. Identify standard sections: "Operating Guidelines", "Repository Overview", "Architecture", "Development Commands", "Code Quality Standards", "File Locations", "Documentation"
 3. Identify custom sections: everything else
 4. Update standard sections with fresh analysis from agents
 5. Preserve all custom sections verbatim at end of file
 6. Keep user-added bullet points within standard sections
 7. Calculate token count: if > 2000, apply compression (see Phase 5)
+
+**Operating Guidelines section — merge rules:**
+- If `--no-docs` is set: do NOT insert the section. If it already exists in the current file, leave it untouched (user may have curated it).
+- If the section exists: replace its body with the canonical wording from the content template above.
+- If the section is missing: insert it as the first section, immediately after the file title and before `## Repository Overview`.
 
 **New File (`isNew == true`):**
 Generate from template using agent results.
@@ -257,14 +270,18 @@ Generate from template using agent results.
 **Parse flag:** Check if `--no-docs` in arguments. If yes, skip this phase.
 
 **Validate asset templates:**
-- Use Read tool to verify `${CLAUDE_PLUGIN_ROOT}/commands/assets/gen-claude/architecture-template.md` exists
-- If fails: Exit with error "Command assets directory not found at ${CLAUDE_PLUGIN_ROOT}/commands/assets/gen-claude/. Plugin may be corrupted. Reinstall the software-engineering plugin."
+- Use Read tool to verify these assets exist in `${CLAUDE_PLUGIN_ROOT}/commands/assets/gen-claude/`:
+  - `architecture-template.md`
+  - `workflows-template.md`
+  - `patterns-template.md`
+  - `operating-guidelines.md`
+- If any fails: Exit with error "Command assets directory not found or incomplete at ${CLAUDE_PLUGIN_ROOT}/commands/assets/gen-claude/. Plugin may be corrupted. Reinstall the software-engineering plugin."
 
 **Create docs/ folder structure** (only if missing):
 
 ```bash
 # Check if docs/ exists
-# If not, create: docs/architecture.md, docs/workflows.md, docs/patterns.md
+# If not, create: docs/architecture.md, docs/workflows.md, docs/patterns.md, docs/operating-guidelines.md
 ```
 
 **docs/architecture.md** (30-50 lines):
@@ -279,11 +296,16 @@ Generate from template using agent results.
 - Read template from `${CLAUDE_PLUGIN_ROOT}/commands/assets/gen-claude/patterns-template.md`
 - Populate placeholders with Phase 1 agent results
 
+**docs/operating-guidelines.md** (static, ~110 lines):
+- Read file from `${CLAUDE_PLUGIN_ROOT}/commands/assets/gen-claude/operating-guidelines.md`
+- Write verbatim to `./docs/operating-guidelines.md` — this is a static asset, not a template; do NOT substitute placeholders or alter content
+- Defines workflow orchestration, verification, self-improvement loop, and the communication contract that `CLAUDE.md` references
+
 **Creation Rules:**
 - Only create `docs/` if it doesn't exist
-- Only create individual files (`architecture.md`, `workflows.md`, `patterns.md`) if they don't exist
+- Only create individual files (`architecture.md`, `workflows.md`, `patterns.md`, `operating-guidelines.md`) if they don't exist
 - If files exist, do NOT overwrite (unless `--force` flag present)
-- Populate with insights from Phase 1 agents
+- Populate the three templates with insights from Phase 1 agents; copy `operating-guidelines.md` verbatim
 
 ### Phase 5: Validation & User Approval
 
@@ -308,6 +330,7 @@ cp CLAUDE.md CLAUDE.md.backup
    - Target: < 2000 tokens (leaves buffer)
    - If > 2000: Show warning
    - If > 2500: Apply compression (see below)
+   - Note: the `## Operating Guidelines` section costs ~40 tokens and is already accounted for in the 2000-token target
 
 2. **Linter references:**
    - For each linter config mentioned in CLAUDE.md
@@ -323,6 +346,7 @@ cp CLAUDE.md CLAUDE.md.backup
    - For each docs/ reference in CLAUDE.md
    - Verify file exists or will be created
    - Check internal section links valid
+   - Specifically verify that `docs/operating-guidelines.md` exists (or will be created in Phase 4) whenever CLAUDE.md contains the `## Operating Guidelines` section — the section must never reference a missing file
 
 **Token Overflow Handling:**
 
@@ -368,6 +392,7 @@ Created documentation:
 ✅ docs/architecture.md ([X] lines)
 ✅ docs/workflows.md ([X] lines)
 ✅ docs/patterns.md ([X] lines)
+✅ docs/operating-guidelines.md ([X] lines, static)
 
 [If existing CLAUDE.md was merged:]
 ℹ️  Preserved [X] custom sections from existing CLAUDE.md
@@ -520,6 +545,7 @@ Split by space, check for each flag presence
 - `docs/architecture.md`: System design (30-50 lines)
 - `docs/workflows.md`: Development processes (30-50 lines)
 - `docs/patterns.md`: Code patterns (30-50 lines)
+- `docs/operating-guidelines.md`: Workflow, verification, and self-improvement rules (~110 lines, static verbatim copy from plugin assets)
 
 **Backup (if --force used):**
 - `CLAUDE.md.backup`: Original CLAUDE.md before regeneration
@@ -556,6 +582,7 @@ Split by space, check for each flag presence
 ✅ Documents architectural patterns (3-6 patterns)
 ✅ Links to docs/ for extended info
 ✅ Preserves user customizations (if merging)
-✅ docs/ created with 3 template files (unless --no-docs)
+✅ docs/ created with 4 files — architecture, workflows, patterns, operating-guidelines (unless --no-docs)
+✅ CLAUDE.md includes `## Operating Guidelines` section pointing at docs/operating-guidelines.md (unless --no-docs)
 ✅ All validation checks pass
 ✅ Total runtime < 60 seconds (with parallel agents)

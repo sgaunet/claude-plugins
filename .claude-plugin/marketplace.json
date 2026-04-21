@@ -1,7 +1,7 @@
 {
   "name": "sylvain-marketplace",
   "metadata": {
-    "version": "0.12.2",
+    "version": "0.13.0",
     "description": "Specialized Claude Code agents for DevOps infrastructure, software engineering workflows, and Go development. Includes proactive agents for IaC, CI/CD, database optimization, code review, debugging, documentation, and more."
   },
   "owner": {
@@ -22,7 +22,7 @@
       "name": "software-engineering",
       "source": "./plugins/software-engineering",
       "description": "Code review, debugging, documentation, license compliance (AGPL/MIT/Apache), payment integration (Stripe/PayPal), and frontend development (HTMX/Alpine.js) workflows. MCP: context7",
-      "version": "0.14.8",
+      "version": "0.15.0",
       "author": {
         "name": "Sylvain"
       }
