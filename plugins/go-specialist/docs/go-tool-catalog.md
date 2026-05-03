@@ -10,10 +10,6 @@ Reference catalog for the `go-tool` skill. Contains detailed module paths, detec
 | moq | `github.com/matryer/moq` | Mock generation |
 | templ | `github.com/a-h/templ/cmd/templ` | HTML templating |
 | swag | `github.com/swaggo/swag/cmd/swag` | Swagger/OpenAPI docs (code-first) |
-| oapi-codegen | `github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen` | OpenAPI code generation (spec-first) |
-| gotailwindcss | `github.com/gotailwindcss/tailwind/cmd/gotailwindcss` | CSS (Tailwind, pure Go) |
-| buf | `github.com/bufbuild/buf/cmd/buf` | Protobuf tooling |
-| wire | `github.com/google/wire/cmd/wire` | Dependency injection |
 | stringer | `golang.org/x/tools/cmd/stringer` | Enum string generation |
 | enumer | `github.com/dmarkham/enumer` | Enhanced enum generation |
 
@@ -111,95 +107,6 @@ Common flags:
 
 ---
 
-## oapi-codegen
-
-**Install:** `go get -tool github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen`
-
-**Detection heuristics:**
-- OpenAPI spec files: `openapi.yaml`, `openapi.json`, `api.yaml`, `api.json`
-- Existing oapi-codegen config: `oapi-codegen.yaml`, `cfg.yaml`
-
-**go:generate directive:**
-```go
-//go:generate go tool oapi-codegen -config cfg.yaml openapi.yaml
-```
-
-Config example (`cfg.yaml`):
-```yaml
-package: api
-output: api.gen.go
-generate:
-  chi-server: true
-  models: true
-```
-
-**Notes:** Spec-first approach — write the OpenAPI YAML first, then generate Go server/client code. Use oapi-codegen when the API spec is the source of truth (e.g., shared with frontend teams or external consumers).
-
----
-
-## gotailwindcss
-
-**Install:** `go get -tool github.com/gotailwindcss/tailwind/cmd/gotailwindcss`
-
-**Detection heuristics:**
-- CSS files with `@tailwind` or `@apply` directives
-- Go web projects (templ, html/template) needing utility-first CSS without Node.js
-
-**go:generate directive:**
-```go
-//go:generate go tool gotailwindcss build -o static/output.css static/input.css
-```
-
-**Notes:** Pure Go implementation of Tailwind CSS — no Node.js or npm required. Supports `@tailwind base`, `@tailwind components`, `@tailwind utilities`, and `@apply` directives. The `twpurge` package can remove unused styles for production. Ideal for Go-only projects that want Tailwind without a JavaScript toolchain. Not a drop-in replacement for the full Node.js Tailwind CSS — check feature coverage for your needs.
-
----
-
-## buf
-
-**Install:** `go get -tool github.com/bufbuild/buf/cmd/buf`
-
-**Detection heuristics:**
-- Protobuf files: `**/*.proto`
-- Buf config: `buf.yaml`, `buf.gen.yaml`
-
-**go:generate directive:**
-```go
-//go:generate go tool buf generate
-```
-
-**Config required:** Yes. A `buf.gen.yaml` defines plugins and output:
-```yaml
-version: v2
-plugins:
-  - remote: buf.build/protocolbuffers/go
-    out: gen/go
-    opt: paths=source_relative
-  - remote: buf.build/grpc/go
-    out: gen/go
-    opt: paths=source_relative
-```
-
-**Notes:** buf replaces protoc with a more ergonomic workflow. Includes linting (`buf lint`) and breaking change detection (`buf breaking`).
-
----
-
-## wire
-
-**Install:** `go get -tool github.com/google/wire/cmd/wire`
-
-**Detection heuristics:**
-- Files with `//go:build wireinject` build tag
-- Existing `wire_gen.go` files
-
-**go:generate directive:**
-```go
-//go:generate go tool wire
-```
-
-**Notes:** Wire uses compile-time code generation for dependency injection — no reflection at runtime. The `wire.go` file (with `//go:build wireinject` tag) defines providers and injectors. Wire generates `wire_gen.go` with concrete initialization code.
-
----
-
 ## stringer
 
 **Install:** `go get -tool golang.org/x/tools/cmd/stringer`
@@ -247,10 +154,6 @@ Common flags:
 
 ## Choosing Between Overlapping Tools
 
-### swag vs oapi-codegen
-- **swag**: Code-first. Write Go handlers with annotations → generate OpenAPI spec. Best when Go is the single source of truth.
-- **oapi-codegen**: Spec-first. Write OpenAPI YAML → generate Go code. Best when the API contract is shared across teams/languages.
-
 ### stringer vs enumer
 - **stringer**: Minimal — generates only `String()` method. Use for display-only enums.
 - **enumer**: Full-featured — generates `String()` plus JSON, SQL, text, YAML marshaling. Use when enums cross serialization boundaries.
@@ -258,7 +161,3 @@ Common flags:
 ### moq vs gomock/mockery
 - **moq**: Simple, no framework. Generates standalone mock structs. Best for small interfaces and unit tests.
 - **gomock/mockery**: Framework-based with expectations, call ordering, argument matchers. Better for complex interaction testing.
-
-### gotailwindcss vs Node.js tailwindcss
-- **gotailwindcss**: Pure Go, no Node.js dependency. Supports core `@tailwind` and `@apply` directives. Ideal for Go-only projects.
-- **Node.js tailwindcss**: Full feature set, plugins ecosystem, JIT engine. Use when you need the complete Tailwind experience or specific plugins.
