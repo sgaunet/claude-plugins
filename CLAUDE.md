@@ -78,7 +78,7 @@ General development workflows and best practices.
 | `code-review-enforcer` | Code quality, security, best practices review | After file modifications |
 | `debugger` | Root cause analysis, error resolution | Errors, test failures |
 | `docs-architect` | Long-form technical documentation generation | Documentation requests (uses Opus model) |
-| `html-first-frontend` | HTMX, Alpine.js, Tailwind/Bootstrap | HTML/CSS without frameworks |
+| `html-first-frontend` | HTMX, Alpine.js, Bootstrap | HTML/CSS without frameworks |
 | `license-specialist` | Open source license compliance for SaaS | Dependency files, license terms |
 | `payment-integrator` | Stripe, PayPal, subscription billing | Payment SDKs, checkout flows |
 | `security-auditor` | Security vulnerability detection, OWASP compliance, auth/crypto review | After auth/crypto/API changes |

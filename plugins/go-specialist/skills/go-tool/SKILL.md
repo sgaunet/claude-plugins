@@ -1,6 +1,6 @@
 ---
 name: go-tool
-description: Manage Go tool dependencies using the tool directive (Go 1.24+). Use when a Go project needs code generation tools like sqlc, moq, templ, swag, oapi-codegen, gotailwindcss, buf, wire, or stringer managed as reproducible Go tool dependencies.
+description: Manage Go tool dependencies using the tool directive (Go 1.24+). Use when a Go project needs code generation tools like sqlc, moq, templ, swag, or stringer managed as reproducible Go tool dependencies.
 user-invocable: false
 allowed-tools: Bash(go:*), Read, Glob, Grep
 ---
@@ -42,11 +42,8 @@ Use Glob to detect files that suggest specific tools:
 |-----------|------|-------------|
 | `sqlc.yml` / `sqlc.yaml` / `sqlc.json` | sqlc | `github.com/sqlc-dev/sqlc/cmd/sqlc` |
 | `**/*.templ` | templ | `github.com/a-h/templ/cmd/templ` |
-| `**/*.proto` + (`buf.yaml` or `buf.gen.yaml`) | buf | `github.com/bufbuild/buf/cmd/buf` |
 | `swagger.yaml` / `swagger.json` | swag | `github.com/swaggo/swag/cmd/swag` |
-| `openapi.yaml` / `openapi.json` | oapi-codegen | `github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen` |
-| `**/*.css` with `@tailwind` or `@apply` | gotailwindcss | `github.com/gotailwindcss/tailwind/cmd/gotailwindcss` |
-| `//go:build wireinject` in Go source | wire | `github.com/google/wire/cmd/wire` |
+
 For **stringer** and **enumer**, detection requires context: `const` blocks with `iota` patterns. These are best suggested when the user is working with enum-like types.
 
 ### Step 3: Report Findings
@@ -147,8 +144,6 @@ The `go tool` directive only supports tools written in Go. For non-Go tools (Nod
 
 - **Taskfile.yml** or **Makefile** for running non-Go tools
 - **Docker** for tools with complex dependencies
-
-**Exception**: For Tailwind CSS, use `gotailwindcss` — a pure Go implementation that works with `go get -tool`. See the [reference catalog](${CLAUDE_SKILL_DIR}/../../docs/go-tool-catalog.md) for details.
 
 ## Error Handling
 

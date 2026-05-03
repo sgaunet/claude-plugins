@@ -120,7 +120,7 @@ export PPLX_API_KEY="your-perplexity-api-key"
 - `code-review-enforcer` - Code quality, security, best practices
 - `debugger` - Error analysis and root cause investigation
 - `docs-architect` - Long-form technical documentation (uses Opus model)
-- `html-first-frontend` - HTMX, Alpine.js, Tailwind development
+- `html-first-frontend` - HTMX, Alpine.js, Bootstrap development
 - `license-specialist` - Open source license compliance for SaaS
 - `payment-integrator` - Stripe, PayPal, subscription billing
 - `security-auditor` - Security vulnerability detection
