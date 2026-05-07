@@ -24,8 +24,8 @@ plugins/
 ├── software-engineering/     # General engineering workflows
 │   ├── .claude-plugin/
 │   │   └── plugin.json
-│   ├── agents/               # Agent definitions (7 agents)
-│   ├── commands/             # Custom slash commands (9 commands)
+│   ├── agents/               # Agent definitions (8 agents)
+│   ├── commands/             # Custom slash commands (10 commands)
 │   └── .mcp.json             # MCP server integration
 │
 └── go-specialist/            # Go language expertise
@@ -77,6 +77,7 @@ General development workflows and best practices.
 |-------|---------|---------------------|
 | `code-review-enforcer` | Code quality, security, best practices review | After file modifications |
 | `debugger` | Root cause analysis, error resolution | Errors, test failures |
+| `diagram-architect` | Software & infrastructure architecture diagrams via d2 + icons.terrastruct.com | .d2 files, "diagram", "architecture diagram", "sequence diagram" |
 | `docs-architect` | Long-form technical documentation generation | Documentation requests (uses Opus model) |
 | `html-first-frontend` | HTMX, Alpine.js, Bootstrap | HTML/CSS without frameworks |
 | `license-specialist` | Open source license compliance for SaaS | Dependency files, license terms |
@@ -186,8 +187,8 @@ See existing agents in `plugins/*/agents/*.md` for advanced patterns (multi-agen
 
 - **Marketplace metadata**: `.claude-plugin/marketplace.json`
 - **Plugin metadata**: `plugins/*/\.claude-plugin/plugin.json`
-- **Agent definitions**: `plugins/*/agents/*.md` (13 total agents)
-- **Commands**: `plugins/*/commands/*.md` (20 custom commands)
+- **Agent definitions**: `plugins/*/agents/*.md` (14 total agents)
+- **Commands**: `plugins/*/commands/*.md` (21 custom commands)
 - **MCP config**: `plugins/*/.mcp.json`
 
 ## Design Patterns
@@ -243,6 +244,7 @@ User-invoked workflows in `plugins/*/commands/`:
 - `/create-issue`: Create GitHub/GitLab issues
 - `/analyze-pr`: Comprehensive PR review
 - `/analyze-db-performance`: PostgreSQL performance analysis
+- `/gen-diagram`: Generate d2 architecture diagram with icons.terrastruct.com
 
 ### Skills
 Reusable sub-workflows invoked by agents or commands:
