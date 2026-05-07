@@ -1,13 +1,16 @@
 {
   "name": "software-engineering",
-  "version": "0.15.1",
-  "description": "Code review, debugging, documentation, license compliance (AGPL/MIT/Apache), payment integration (Stripe/PayPal), and frontend development (HTMX/Alpine.js) workflows. MCP: context7",
+  "version": "0.16.0",
+  "description": "Code review, debugging, documentation, license compliance (AGPL/MIT/Apache), payment integration (Stripe/PayPal), frontend development (HTMX/Alpine.js), and architecture diagrams (d2 via diagram-architect + /gen-diagram). MCP: context7",
   "keywords": [
     "code-review",
     "security",
     "documentation",
     "payments",
-    "git"
+    "git",
+    "diagrams",
+    "d2",
+    "architecture-diagrams"
   ],
   "author": {
     "name": "Sylvain",

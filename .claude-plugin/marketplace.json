@@ -21,8 +21,8 @@
     {
       "name": "software-engineering",
       "source": "./plugins/software-engineering",
-      "description": "Code review, debugging, documentation, license compliance (AGPL/MIT/Apache), payment integration (Stripe/PayPal), and frontend development (HTMX/Alpine.js) workflows. MCP: context7",
-      "version": "0.15.1",
+      "description": "Code review, debugging, documentation, license compliance (AGPL/MIT/Apache), payment integration (Stripe/PayPal), frontend development (HTMX/Alpine.js), and architecture diagrams (d2). MCP: context7",
+      "version": "0.16.0",
       "author": {
         "name": "Sylvain"
       }

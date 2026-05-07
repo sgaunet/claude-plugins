@@ -80,6 +80,10 @@ Every non-trivial task follows this lifecycle:
 - **Honesty Over Optimism** — If something is broken, unclear, or risky, say so. Do not paper over uncertainty with confident-sounding prose.
 - **Read Before Writing** — Before editing a file, read it. Before adding a dependency, check what already exists. Before proposing a pattern, look for the project's existing convention.
 - **Preserve Working Behavior** — If existing tests pass before your change, they pass after. If they do not, you have either broken something or the tests needed updating — be explicit about which.
+- **No Assumptions** — Don't assume. Don't hide confusion. Surface tradeoffs.
+- **Minimum Code** — Minimum code that solves the problem. Nothing speculative.
+- **Stay In Scope** — Touch only what you must. Clean up only your own mess.
+- **Verified Done** — Define success criteria. Loop until verified.
 
 ---
 
