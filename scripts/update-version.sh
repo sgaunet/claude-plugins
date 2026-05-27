@@ -29,11 +29,6 @@ validate_dependencies() {
         missing_deps+=("jq")
     fi
 
-    # Check semver
-    if ! command -v semver &> /dev/null; then
-        missing_deps+=("semver")
-    fi
-
     # Check git repo
     if ! git rev-parse --git-dir &> /dev/null; then
         echo -e "${RED}Error: Not in a git repository${NC}" >&2
@@ -47,10 +42,33 @@ validate_dependencies() {
         done
         echo "" >&2
         echo "Installation instructions:" >&2
-        echo "  - jq:     brew install jq" >&2
-        echo "  - semver: npm install -g semver" >&2
+        echo "  - jq: brew install jq  (macOS)  |  apt-get install jq  (Debian/Ubuntu)" >&2
         exit 1
     fi
+}
+
+bump_version() {
+    local bump_type="$1"
+    local current="$2"
+
+    if [[ ! "$current" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+        echo -e "${RED}ERROR: Invalid version '$current' (expected MAJOR.MINOR.PATCH)${NC}" >&2
+        exit 1
+    fi
+
+    local major="${BASH_REMATCH[1]}"
+    local minor="${BASH_REMATCH[2]}"
+    local patch="${BASH_REMATCH[3]}"
+
+    case "$bump_type" in
+        major) echo "$((major + 1)).0.0" ;;
+        minor) echo "${major}.$((minor + 1)).0" ;;
+        patch) echo "${major}.${minor}.$((patch + 1))" ;;
+        *)
+            echo -e "${RED}ERROR: Invalid bump type '$bump_type'${NC}" >&2
+            exit 1
+            ;;
+    esac
 }
 
 validate_bump_type() {
@@ -189,14 +207,18 @@ calculate_new_version() {
     local current_version="$1"
     local bump_type="$2"
 
-    # Calculate new version
     local new_version
-    new_version=$(semver next "$bump_type" "$current_version")
+    new_version=$(bump_version "$bump_type" "$current_version")
 
-    if [ $? -ne 0 ] || [ -z "$new_version" ]; then
+    if [ -z "$new_version" ]; then
         echo -e "${RED}ERROR: Failed to calculate new version${NC}" >&2
         echo "Current version: $current_version" >&2
         echo "Bump type: $bump_type" >&2
+        exit 1
+    fi
+
+    if [ "$new_version" = "$current_version" ]; then
+        echo -e "${RED}ERROR: New version equals current ($current_version) — bump produced no change${NC}" >&2
         exit 1
     fi
 
@@ -264,10 +286,15 @@ update_marketplace_version() {
     fi
 
     local new_version
-    new_version=$(semver next "$bump_type" "$current_version")
+    new_version=$(bump_version "$bump_type" "$current_version")
 
-    if [ $? -ne 0 ] || [ -z "$new_version" ]; then
+    if [ -z "$new_version" ]; then
         echo -e "${RED}ERROR: Failed to calculate new marketplace version${NC}" >&2
+        exit 1
+    fi
+
+    if [ "$new_version" = "$current_version" ]; then
+        echo -e "${RED}ERROR: New marketplace version equals current ($current_version) — bump produced no change${NC}" >&2
         exit 1
     fi
 
