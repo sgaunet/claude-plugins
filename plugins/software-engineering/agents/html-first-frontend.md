@@ -50,4 +50,4 @@ Build robust, fast, accessible interfaces without framework complexity.
 
 - **payment-integrator**: Coordinates for checkout UI implementation
 - **code-review-enforcer**: Shares accessibility patterns for quality validation
-- **golang-pro**: For Go backends, defers to `golang-pro` for server-side rendering, `html/template`/`templ` wiring, and asset embedding via `//go:embed`. See its `go-oat` skill when the project uses (or wants) the oat.ink semantic-HTML CSS library.
+- **golang-pro**: For Go backends, defers to `golang-pro` for server-side rendering, `html/template`/`templ` wiring, and asset embedding via `//go:embed`. See its `go-bulma` skill when the project uses (or wants) Bulma as the CSS framework, embedded into the Go binary with no Node toolchain.
