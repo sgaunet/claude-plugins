@@ -1,8 +1,8 @@
 ---
 name: feature-flow
-description: Complete git workflow orchestration - branch, issue, commit
+description: Complete git workflow orchestration (GitHub/GitLab/Forgejo) - branch, issue, commit
 argument-hint: "[context | #issue-number] [--skip-branch] [--skip-issue] [--skip-mr] [--squash] [--msg \"text\"] [--dry-run] [--force]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(git:*), Bash(make:*), Bash(npm:*), Bash(npx:*), Bash(go:*), Bash(python:*), Bash(cargo:*), Bash(task:*), Bash(golangci-lint:*), Bash(eslint:*), Bash(ruff:*), Bash(mypy:*), Bash(auto-mr:*), Bash(gh:*), Bash(glab:*), AskUserQuestion
+allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(git:*), Bash(make:*), Bash(npm:*), Bash(npx:*), Bash(go:*), Bash(python:*), Bash(cargo:*), Bash(task:*), Bash(golangci-lint:*), Bash(eslint:*), Bash(ruff:*), Bash(mypy:*), Bash(auto-mr:*), Bash(gh:*), Bash(glab:*), Bash(fgj:*), AskUserQuestion
 ---
 
 # Feature Flow Command
@@ -27,7 +27,7 @@ Staged Mode examples: `/feature-flow`, `/feature-flow add user auth`, `/feature-
 
 **Execute parallel git commands:** `git status` and `git diff --staged`
 
-**Detect Repository Host**: Use the `detect-repo-host` skill to identify the hosting service (GitHub or GitLab) and extract owner/repo details.
+**Detect Repository Host**: Use the `detect-repo-host` skill to identify the hosting service (GitHub, GitLab, or Forgejo) and extract owner/repo details.
 
 **Analysis steps:**
 1. **Analyze staged changes:**
@@ -71,6 +71,7 @@ Staged Mode examples: `/feature-flow`, `/feature-flow add user auth`, `/feature-
 1. **List available labels** (same pattern as `/create-issue` command):
    - GitHub: `gh label list --repo <owner>/<repo>`
    - GitLab: `glab label list`
+   - Forgejo: `fgj label list -R <owner>/<repo>`
 
 2. **Generate issue content** following `/create-issue` conventions:
    - Title: under 80 chars, imperative mood, based on change type and scope
@@ -82,10 +83,11 @@ Staged Mode examples: `/feature-flow`, `/feature-flow add user auth`, `/feature-
 4. Create issue if approved:
    - GitHub: `gh issue create --repo <owner>/<repo> --title "<title>" --body "<body>" --label "<label1>" --label "<label2>" --assignee @me`
    - GitLab: `glab issue create --title "<title>" --description "<body>" --label "<label1>" --label "<label2>" --assignee "$(glab api user | jq -r '.username')"`
+   - Forgejo: `fgj issue create -R <owner>/<repo> -t "<title>" -b "<body>" -l <label1> -l <label2>` (no assignee flag — `fgj` does not yet support issue assignment, so omit self-assign)
    - Parse issue number from command output; store for Phase 4
 
 **Error handling:**
-- `gh`/`glab` CLI not installed → Skip issue creation, warn, continue to commit
+- `gh`/`glab`/`fgj` CLI not installed → Skip issue creation, warn, continue to commit
 - Invalid labels → Remove silently, warn user
 - Issue creation fails → Log error, continue to Phase 4 without issue reference
 
@@ -122,12 +124,13 @@ Display workflow summary showing completed steps (branch created, issue created,
 **Fetch issue details:**
 - GitHub: `gh issue view <number> --repo <owner>/<repo> --json title,body,labels`
 - GitLab: `glab issue view <number>`
+- Forgejo: `fgj issue view <number> -R <owner>/<repo> --json`
 
 **Extract:** Title (→ branch name, commit, MR title), Body (→ implementation spec), Labels (→ type detection)
 
 **Error handling:**
 - Issue not found → Abort: "Issue #N not found in <owner/repo>."
-- `gh`/`glab` CLI not installed → Abort: "Cannot retrieve issue. Install `gh` (GitHub) or `glab` (GitLab) CLI first."
+- `gh`/`glab`/`fgj` CLI not installed → Abort: "Cannot retrieve issue. Install `gh` (GitHub), `glab` (GitLab), or `fgj` (Forgejo) CLI first."
 
 ### Phase I-2: Branch Creation (User Confirmation)
 
@@ -282,7 +285,7 @@ git add config.yml
 | 2 | Not a git repository | "Not a git repository. Initialize with 'git init' first." |
 | 3 | Branch already exists | Suggest `<name>-v2` or ask for alternative |
 | 4 | Pre-commit hook fails | Display hook output, abort, suggest fixing and retrying |
-| 5 | `gh`/`glab` CLI not found (issue) | Skip issue creation, warn, continue to commit |
+| 5 | `gh`/`glab`/`fgj` CLI not found (issue) | Skip issue creation, warn, continue to commit |
 | 6 | Invalid labels | Remove invalid labels silently, warn user |
 | 7 | Issue creation fails | Log error, continue to commit without issue reference |
 | 8 | Commit fails | Display git error, abort |
@@ -292,7 +295,7 @@ git add config.yml
 | # | Error | Message / Action |
 |---|-------|-----------------|
 | 9 | Issue not found | "Issue #N not found in <owner/repo>." Abort. |
-| 10 | `gh`/`glab` CLI not found (retrieval) | "Cannot retrieve issue. Install `gh` or `glab` CLI first." Abort. |
+| 10 | `gh`/`glab`/`fgj` CLI not found (retrieval) | "Cannot retrieve issue. Install `gh`, `glab`, or `fgj` CLI first." Abort. |
 | 11 | Lint failure | Display errors, attempt auto-fix, ask user to continue or abort |
 | 12 | Test failure | Display output, attempt fix (max 2 retries), ask user |
 | 13 | auto-mr not installed | Warn, show manual push: `git push -u origin <branch-name>` |

@@ -2,7 +2,7 @@
 
 Reusable bash functions for auto-detecting Go project settings from go.mod and git remote.
 
-Used by: `gen-goreleaser`, `gen-taskfiles`, `gen-gitlab-ci`, `gen-github-dir`, and other gen-* commands.
+Used by: `gen-goreleaser`, `gen-taskfiles`, `gen-gitlab-ci`, `gen-github-dir`, `gen-forgejo-dir`, and other gen-* commands.
 
 ## Detection Functions
 
@@ -57,6 +57,7 @@ detect_registry() {
     case "$remote_url" in
         *github.com*) echo "ghcr.io" ;;
         *gitlab.com*) echo "registry.gitlab.com" ;;
+        *git.sylvlab.fr*) echo "git.sylvlab.fr" ;;  # Forgejo: container/package registry shares the instance host
         *) echo "ghcr.io" ;;  # Default
     esac
 }

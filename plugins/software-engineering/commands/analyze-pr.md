@@ -1,8 +1,8 @@
 ---
 name: analyze-pr
-description: Review PR for quality, security, and coverage
+description: Review PR for quality, security, and coverage (GitHub/GitLab/Forgejo)
 argument-hint: "<pr-number>"
-allowed-tools: Read, Grep, Glob, Skill, Task, Bash(gh:*), Bash(glab:*), AskUserQuestion
+allowed-tools: Read, Grep, Glob, Skill, Task, Bash(gh:*), Bash(glab:*), Bash(fgj:*), Bash(git:*), AskUserQuestion
 ---
 
 # Analyze Pull Request Command
@@ -11,11 +11,17 @@ Perform comprehensive analysis of a pull request including code review, security
 
 ## Process
 
-1. **Detect Repository Type**: Use the `detect-repo-host` skill to identify the hosting service (GitHub or GitLab) and extract owner/repo details.
+1. **Detect Repository Type**: Use the `detect-repo-host` skill to identify the hosting service (GitHub, GitLab, or Forgejo) and extract owner/repo details.
 
 2. **Fetch PR Details**: Use the appropriate CLI
    - GitHub: `gh pr view <number> --json title,body,author,files,commits`, `gh pr diff <number>`
    - GitLab: `glab mr view <number>`, `glab mr diff <number>`
+   - Forgejo: `fgj pr view <number> -R <owner>/<repo> --json` for metadata. **`fgj` has no `pr diff` subcommand** — obtain the diff via a git fallback:
+     1. From the `fgj pr view` JSON, read the head and base branch names.
+     2. `git fetch origin`
+     3. `git diff origin/<base>...origin/<head>`
+
+     This works for same-repo PRs (both branches exist on `origin`); it does **not** cover cross-fork PRs whose head lives in a different repository. As a secondary option, fetch the diff directly from the Forgejo API: `GET https://git.sylvlab.fr/api/v1/repos/<owner>/<repo>/pulls/<n>.diff`.
 
 3. **Analyze Changes**: Launch 4 parallel Sonnet agents to independently review the pull request:
 
@@ -61,6 +67,10 @@ Launch agents concurrently using the Task tool:
 pr_details = Bash("gh pr view ${pr_number} --json title,body,author,headRefName,baseRefName,files,commits,labels,reviewDecision")
 pr_diff = Bash("gh pr diff ${pr_number}")
 # For GitLab: glab mr view ${mr_number}, glab mr diff ${mr_number}
+# For Forgejo: pr_details = fgj pr view ${pr_number} -R <owner>/<repo> --json
+#              (fgj has no pr diff) read head/base from pr_details, then:
+#              git fetch origin; pr_diff = git diff origin/<base>...origin/<head>
+#              (same-repo PRs only; for cross-fork use GET https://git.sylvlab.fr/api/v1/repos/<owner>/<repo>/pulls/${pr_number}.diff)
 
 # Launch 4 parallel Sonnet agents for analysis
 Task(subagent_type: "code-review-enforcer", model: "sonnet", prompt: "Review PR #${pr_number} for code quality issues. Modified files: ${pr_files}. Diff: ${pr_diff}. Return findings with severity and line numbers.")

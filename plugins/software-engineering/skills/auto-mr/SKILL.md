@@ -1,13 +1,15 @@
 ---
 name: auto-mr
-description: Push current branch, create MR/PR, wait for CI pipeline, merge, and clean up branch using auto-mr CLI
+description: Push current branch, create MR/PR on GitHub, GitLab, or Forgejo, wait for CI pipeline, merge, and clean up branch using auto-mr CLI
 argument-hint: '[--squash] [--no-squash] [--msg "text"] [--labels "label1,label2"] [--list-labels] [--pipeline-timeout "30m"] [--log-level debug|info|warn|error]'
 user-invocable: true
 ---
 
 # auto-mr Skill
 
-Push the current branch, create a MR/PR on GitHub or GitLab, wait for the CI pipeline, merge, and clean up the branch — all via the `auto-mr` CLI.
+Push the current branch, create a MR/PR on GitHub, GitLab, or Forgejo, wait for the CI pipeline, merge, and clean up the branch — all via the `auto-mr` CLI.
+
+For `git.sylvlab.fr` repositories, the underlying `auto-mr` binary routes via the `fgj` CLI; GitHub and GitLab remotes are handled automatically as before. Platform detection and routing are handled entirely by the binary — this skill does not branch on the host.
 
 ## CLI Reference
 
@@ -80,7 +82,7 @@ If the user declines, abort gracefully.
 
 Run the assembled command. `auto-mr` handles the full flow:
 1. Push branch to remote
-2. Create MR (GitLab) or PR (GitHub)
+2. Create MR (GitLab) or PR (GitHub/Forgejo)
 3. Wait for CI pipeline/checks
 4. Merge when CI passes
 5. Delete the remote branch

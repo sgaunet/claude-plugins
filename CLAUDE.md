@@ -32,7 +32,7 @@ plugins/
     ├── .claude-plugin/
     │   └── plugin.json
     ├── agents/               # Agent definitions (1 agent)
-    ├── commands/             # Custom slash commands (10 commands)
+    ├── commands/             # Custom slash commands (11 commands)
     └── .mcp.json             # MCP server integration
 ```
 
@@ -65,7 +65,7 @@ Infrastructure, deployment, and operations specialists.
 | Agent | Purpose | Proactive Activation |
 |-------|---------|---------------------|
 | `aws-specialist` | AWS cloud architecture, Well-Architected Framework, cost optimization | .tf (AWS), cloudformation, "aws", ARNs |
-| `cicd-specialist` | CI/CD pipelines (GitHub Actions, GitLab CI, Forgejo) | .github/workflows, pipeline terms |
+| `cicd-specialist` | CI/CD pipelines (GitHub Actions, GitLab CI, Forgejo Actions via `fgj`) | .github/workflows, .gitlab-ci.yml, .forgejo/workflows, pipeline terms |
 | `database-specialist` | Schema design, query optimization, migrations | .sql files, "slow query", "index" |
 | `devops-specialist` | Infrastructure as Code (Terraform, Ansible, CloudFormation) | .tf, .yml files, cloud terms |
 | `postgresql-specialist` | PostgreSQL 16+ advanced features, query optimization, replication | .sql, migrations, "postgresql", slow query |
@@ -188,7 +188,7 @@ See existing agents in `plugins/*/agents/*.md` for advanced patterns (multi-agen
 - **Marketplace metadata**: `.claude-plugin/marketplace.json`
 - **Plugin metadata**: `plugins/*/\.claude-plugin/plugin.json`
 - **Agent definitions**: `plugins/*/agents/*.md` (14 total agents)
-- **Commands**: `plugins/*/commands/*.md` (21 custom commands)
+- **Commands**: `plugins/*/commands/*.md` (22 custom commands)
 - **MCP config**: `plugins/*/.mcp.json`
 
 ## Design Patterns
@@ -234,17 +234,20 @@ Plugins declare MCP server dependencies:
 - **perplexity-ai**: Research and documentation
 - **context7**: Library documentation lookup
 
-GitHub/GitLab operations use `gh` and `glab` CLIs instead of MCP servers.
+GitHub, GitLab, and Forgejo operations use the `gh`, `glab`, and `fgj` CLIs instead of MCP servers. Platform-aware commands route via the `detect-repo-host` skill, which maps `git.sylvlab.fr` remotes to Forgejo (`fgj`).
 
 ## Commands vs Skills vs Agents
 
 ### Commands
 User-invoked workflows in `plugins/*/commands/`:
 - `/commit`: Generate git commits with conventional format
-- `/create-issue`: Create GitHub/GitLab issues
-- `/analyze-pr`: Comprehensive PR review
+- `/create-issue`: Create GitHub/GitLab/Forgejo issues
+- `/analyze-pr`: Comprehensive PR/MR review (GitHub/GitLab/Forgejo)
 - `/analyze-db-performance`: PostgreSQL performance analysis
 - `/gen-diagram`: Generate d2 architecture diagram with icons.terrastruct.com
+- `/gen-forgejo-dir`: Generate `.forgejo/workflows/` for Forgejo Actions
+
+Platform-aware commands (`/create-issue`, `/analyze-and-create-issue`, `/feature-flow`, `/feature-flow-w`, `/analyze-pr`, `/upd-project-description`) detect the host via `detect-repo-host` and route to `gh` (GitHub), `glab` (GitLab), or `fgj` (Forgejo, `git.sylvlab.fr`).
 
 ### Skills
 Reusable sub-workflows invoked by agents or commands:

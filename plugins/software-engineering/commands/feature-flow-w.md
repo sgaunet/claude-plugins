@@ -1,8 +1,8 @@
 ---
 name: feature-flow-w
-description: Complete git worktree workflow orchestration - worktree, branch, issue, commit
+description: Complete git worktree workflow orchestration (GitHub/GitLab/Forgejo) - worktree, branch, issue, commit
 argument-hint: "[context | #issue-number] [--skip-branch] [--skip-issue] [--skip-mr] [--squash] [--msg \"text\"] [--dry-run] [--force] [--worktree-path <path>]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(git:*), Bash(make:*), Bash(npm:*), Bash(npx:*), Bash(go:*), Bash(python:*), Bash(cargo:*), Bash(task:*), Bash(golangci-lint:*), Bash(eslint:*), Bash(ruff:*), Bash(mypy:*), Bash(auto-mr:*), Bash(gh:*), Bash(glab:*), AskUserQuestion
+allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(git:*), Bash(make:*), Bash(npm:*), Bash(npx:*), Bash(go:*), Bash(python:*), Bash(cargo:*), Bash(task:*), Bash(golangci-lint:*), Bash(eslint:*), Bash(ruff:*), Bash(mypy:*), Bash(auto-mr:*), Bash(gh:*), Bash(glab:*), Bash(fgj:*), AskUserQuestion
 ---
 
 # Feature Flow Worktree Command
@@ -38,7 +38,7 @@ Store `<worktree-path>` and `<original-path>` (result of `pwd`) for use througho
 
 **Execute parallel git commands:** `git status` and `git diff --staged`
 
-**Detect Repository Host**: Use the `detect-repo-host` skill to identify the hosting service (GitHub or GitLab) and extract owner/repo details.
+**Detect Repository Host**: Use the `detect-repo-host` skill to identify the hosting service (GitHub, GitLab, or Forgejo) and extract owner/repo details.
 
 **Analysis steps:**
 1. **Analyze staged changes:**
@@ -96,6 +96,7 @@ Store `<worktree-path>` and `<original-path>` (result of `pwd`) for use througho
 1. **List available labels** (same pattern as `/create-issue` command):
    - GitHub: `gh label list --repo <owner>/<repo>`
    - GitLab: `glab label list`
+   - Forgejo: `fgj label list -R <owner>/<repo>`
 
 2. **Generate issue content** following `/create-issue` conventions:
    - Title: under 80 chars, imperative mood, based on change type and scope
@@ -107,10 +108,11 @@ Store `<worktree-path>` and `<original-path>` (result of `pwd`) for use througho
 4. Create issue if approved:
    - GitHub: `gh issue create --repo <owner>/<repo> --title "<title>" --body "<body>" --label "<label1>" --label "<label2>" --assignee @me`
    - GitLab: `glab issue create --title "<title>" --description "<body>" --label "<label1>" --label "<label2>" --assignee "$(glab api user | jq -r '.username')"`
+   - Forgejo: `fgj issue create -R <owner>/<repo> -t "<title>" -b "<body>" -l <label1> -l <label2>` (no assignee flag — `fgj` does not yet support issue assignment, so omit self-assign)
    - Parse issue number from command output; store for Phase 4
 
 **Error handling:**
-- `gh`/`glab` CLI not installed → Skip issue creation, warn, continue to commit
+- `gh`/`glab`/`fgj` CLI not installed → Skip issue creation, warn, continue to commit
 - Invalid labels → Remove silently, warn user
 - Issue creation fails → Log error, continue to Phase 4 without issue reference
 
@@ -155,12 +157,13 @@ Display workflow summary showing:
 **Fetch issue details:**
 - GitHub: `gh issue view <number> --repo <owner>/<repo> --json title,body,labels`
 - GitLab: `glab issue view <number>`
+- Forgejo: `fgj issue view <number> -R <owner>/<repo> --json`
 
 **Extract:** Title (→ branch name, commit, MR title), Body (→ implementation spec), Labels (→ type detection)
 
 **Error handling:**
 - Issue not found → Abort: "Issue #N not found in <owner/repo>."
-- `gh`/`glab` CLI not installed → Abort: "Cannot retrieve issue. Install `gh` (GitHub) or `glab` (GitLab) CLI first."
+- `gh`/`glab`/`fgj` CLI not installed → Abort: "Cannot retrieve issue. Install `gh` (GitHub), `glab` (GitLab), or `fgj` (Forgejo) CLI first."
 
 ### Phase I-2: Worktree Creation (User Confirmation)
 
@@ -359,7 +362,7 @@ git add config.yml
 | 5 | Branch checked out in another worktree | Display the other worktree path, ask for different branch name |
 | 6 | Patch apply fails | Remove worktree, display error, suggest manual resolution |
 | 7 | Pre-commit hook fails | Display hook output, abort, suggest fixing and retrying |
-| 8 | `gh`/`glab` CLI not found (issue) | Skip issue creation, warn, continue to commit |
+| 8 | `gh`/`glab`/`fgj` CLI not found (issue) | Skip issue creation, warn, continue to commit |
 | 9 | Invalid labels | Remove invalid labels silently, warn user |
 | 10 | Issue creation fails | Log error, continue to commit without issue reference |
 | 11 | Commit fails | Display git error, abort |
@@ -370,7 +373,7 @@ git add config.yml
 | # | Error | Message / Action |
 |---|-------|-----------------|
 | 13 | Issue not found | "Issue #N not found in <owner/repo>." Abort. |
-| 14 | `gh`/`glab` CLI not found (retrieval) | "Cannot retrieve issue. Install `gh` or `glab` CLI first." Abort. |
+| 14 | `gh`/`glab`/`fgj` CLI not found (retrieval) | "Cannot retrieve issue. Install `gh`, `glab`, or `fgj` CLI first." Abort. |
 | 15 | Worktree directory already exists | Suggest `<path>-v2` or ask for alternative |
 | 16 | Branch checked out in another worktree | Display the other worktree path, ask for different branch name |
 | 17 | Lint failure | Display errors, attempt auto-fix, ask user to continue or abort |

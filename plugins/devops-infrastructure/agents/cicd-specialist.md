@@ -1,7 +1,7 @@
 ---
 name: cicd-specialist
 description: CI/CD expert for GitHub Actions, GitLab CI, and Forgejo. Use for pipeline creation, testing workflows, and release automation.
-tools: Read, Write, Edit, MultiEdit, Grep, Glob, Bash(git:*), Bash(gh:*), Bash(glab:*), Bash(docker:*)
+tools: Read, Write, Edit, MultiEdit, Grep, Glob, Bash(git:*), Bash(gh:*), Bash(glab:*), Bash(fgj:*), Bash(docker:*)
 model: sonnet
 color: blue
 ---
@@ -30,6 +30,7 @@ Automatically activated when:
 
 ### Forgejo Actions
 - GitHub Actions compatibility layer, Act runner, Gitea migrations
+- Driven via the `fgj` CLI (instance `git.sylvlab.fr`): `fgj actions workflow list/view/run`, `fgj actions run list/view/watch/rerun/cancel`, `fgj actions runner list/register`
 
 ### Cross-Platform Patterns
 - **Build**: Docker, Make, Gradle, Maven, npm, Go modules

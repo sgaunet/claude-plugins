@@ -2,7 +2,7 @@
 
 [![Plugins](https://img.shields.io/badge/plugins-3-blue)](./plugins)
 [![Agents](https://img.shields.io/badge/agents-14-green)](./plugins)
-[![Commands](https://img.shields.io/badge/commands-22-orange)](./plugins)
+[![Commands](https://img.shields.io/badge/commands-23-orange)](./plugins)
 [![License](https://img.shields.io/badge/license-MIT-purple)](./LICENSE)
 
 A curated collection of specialized Claude Code plugins designed to enhance your development workflow with intelligent agents, skills, and commands.
@@ -15,7 +15,7 @@ This marketplace provides three comprehensive plugin collections:
 
 - **devops-infrastructure**: Infrastructure as Code (IaC), CI/CD pipeline specialists, and database optimization experts for DevOps workflows
 - **software-engineering**: Code review, debugging, documentation, license compliance, payment integration, and HTML-first frontend development tools
-- **go-specialist**: Advanced Go 1.25+ development with modern patterns, concurrency optimization, and production-ready tooling (linting, GitHub workflows, GitLab CI, GoReleaser)
+- **go-specialist**: Advanced Go 1.25+ development with modern patterns, concurrency optimization, and production-ready tooling (linting, GitHub workflows, GitLab CI, Forgejo Actions, GoReleaser)
 
 Each plugin includes proactive agents that automatically assist with their specialized domains, plus skills and commands to streamline common development tasks.
 
@@ -48,16 +48,20 @@ within claude:
 
 ### CLI Tools
 
-These plugins use `gh` and `glab` CLIs for GitHub/GitLab operations:
+These plugins use `gh`, `glab`, and `fgj` CLIs for GitHub/GitLab/Forgejo operations:
 
 - **[gh](https://cli.github.com/)** — GitHub CLI (for GitHub repositories)
 - **[glab](https://gitlab.com/gitlab-org/cli)** — GitLab CLI (for GitLab repositories)
+- **[fgj](https://codeberg.org/forgejo-contrib/forgejo-cli)** — Forgejo CLI 
 
 Authenticate after installation:
 ```bash
 gh auth login
 glab auth login
+fgj auth login
 ```
+
+Platform-aware commands detect the repository host from the git remote and route to the matching CLI (`git.sylvlab.fr` → `fgj`).
 
 ### MCP Server (Optional)
 
@@ -97,7 +101,7 @@ export PPLX_API_KEY="your-perplexity-api-key"
 
 **Agents**:
 - `aws-specialist` - AWS cloud architecture, Well-Architected Framework, cost optimization
-- `cicd-specialist` - GitHub Actions, GitLab CI, Forgejo Actions expert
+- `cicd-specialist` - GitHub Actions, GitLab CI, Forgejo Actions (via `fgj`) expert
 - `database-specialist` - PostgreSQL, MySQL optimization and schema design
 - `devops-specialist` - Terraform, Ansible, CloudFormation, cloud automation
 - `postgresql-specialist` - PostgreSQL 16+ advanced features, query optimization, replication
@@ -126,15 +130,17 @@ export PPLX_API_KEY="your-perplexity-api-key"
 - `security-auditor` - Security vulnerability detection
 
 **Commands**:
-- `/analyze-and-create-issue` - Analyze codebase issues and create GitHub/GitLab issues
-- `/analyze-pr` - Comprehensive PR review for quality, security, and coverage
+- `/analyze-and-create-issue` - Analyze codebase issues and create GitHub/GitLab/Forgejo issues
+- `/analyze-pr` - Comprehensive PR/MR review for quality, security, and coverage (GitHub/GitLab/Forgejo)
 - `/audit-codebase` - Security and performance audit
 - `/check-claude-md-tokens` - Monitor and optimize CLAUDE.md token count
 - `/commit` - Generate conventional commit messages
-- `/create-issue` - Create GitHub or GitLab issue
+- `/create-issue` - Create GitHub, GitLab, or Forgejo issue
 - `/feature-flow` - Complete git workflow orchestration (branch, issue, commit)
 - `/gen-claude` - Generate or enhance CLAUDE.md with project guidance
-- `/upd-project-description` - Update GitHub/GitLab project metadata
+- `/upd-project-description` - Update GitHub/GitLab/Forgejo project metadata
+
+Platform-aware commands detect the host from the git remote and route to `gh` (GitHub), `glab` (GitLab), or `fgj` (Forgejo, `git.sylvlab.fr`).
 
 **Use Cases**:
 - Automated code review and security scanning
@@ -152,6 +158,7 @@ export PPLX_API_KEY="your-perplexity-api-key"
 **Commands**:
 - `/gen-github-dir` - Generate complete .github directory with workflows and configs
 - `/gen-gitlab-ci` - Generate GitLab CI/CD pipeline for Go projects
+- `/gen-forgejo-dir` - Generate complete .forgejo/workflows directory with Forgejo Actions for Go projects
 - `/gen-goreleaser` - Generate GoReleaser configuration with multi-arch builds
 - `/gen-linter` - Generate .golangci.yml with 90+ linters
 - `/gen-taskfiles` - Generate Taskfile.yml and .pre-commit-config.yaml
@@ -165,7 +172,7 @@ export PPLX_API_KEY="your-perplexity-api-key"
 
 **Use Cases**:
 - Go project scaffolding with best practices
-- CI/CD pipeline generation (GitHub Actions or GitLab CI)
+- CI/CD pipeline generation (GitHub Actions, GitLab CI, or Forgejo Actions)
 - Automated releases with GoReleaser
 - Code quality enforcement with golangci-lint
 
