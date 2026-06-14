@@ -10,7 +10,7 @@ allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(git:*), Bash(make:*), 
 Orchestrate a complete git workflow for feature development. Two modes:
 
 1. **Staged Changes Mode** (default): Analyze staged changes → branch → create issue → commit
-2. **Issue Mode** (`#<number>`): Retrieve issue → branch → implement → lint → test → verify → commit → merge
+2. **Issue Mode** (`#<number>`): Retrieve issue → **validate relevance** → branch → implement → lint → test → verify → commit → merge
 
 Automates repetitive workflow setup (branching, issues, commits, quality checks, merge requests).
 
@@ -115,7 +115,7 @@ Display workflow summary showing completed steps (branch created, issue created,
 
 ## Issue Mode Process (8 Phases)
 
-### Phase I-1: Issue Retrieval (Automatic)
+### Phase I-1: Issue Retrieval & Relevance Check
 
 **Detect Repository Host**: Use the `detect-repo-host` skill.
 
@@ -127,6 +127,20 @@ Display workflow summary showing completed steps (branch created, issue created,
 - Forgejo: `fgj issue view <number> -R <owner>/<repo> --json`
 
 **Extract:** Title (→ branch name, commit, MR title), Body (→ implementation spec), Labels (→ type detection)
+
+**Validate the issue is still relevant (ESSENTIAL — never skip):**
+
+The codebase may have changed since the issue was opened, so the issue may already be resolved or no longer applicable. Before doing any work, confirm it still holds:
+
+1. Locate the code the issue refers to (Glob/Grep/Read for the files, symbols, or behavior named in the title/body).
+2. Verify against the **current** code:
+   - **Bug / fix:** does the faulty code still exist and the bug still reproduce?
+   - **Feature / enhancement:** is it still missing, or already implemented?
+   - **Refactor / docs / chore:** does the targeted code still exist in the form the issue describes?
+3. **If still relevant →** continue to Phase I-2.
+4. **If already resolved, partially done, or no longer applicable →** STOP, report the findings with evidence (`file:line`), then ask via AskUserQuestion: "Proceed anyway" / "Adjust scope to remaining work" / "Abort" (optionally comment on or close the issue).
+
+This check is read-only and always runs, including under `--dry-run` and `--force`. In `--force` mode, run the check and auto-proceed when the issue is still valid; if it is clearly already resolved, abort with the evidence instead of implementing redundant changes.
 
 **Error handling:**
 - Issue not found → Abort: "Issue #N not found in <owner/repo>."
@@ -296,6 +310,7 @@ git add config.yml
 |---|-------|-----------------|
 | 9 | Issue not found | "Issue #N not found in <owner/repo>." Abort. |
 | 10 | `gh`/`glab`/`fgj` CLI not found (retrieval) | "Cannot retrieve issue. Install `gh`, `glab`, or `fgj` CLI first." Abort. |
+| 10b | Issue already resolved / no longer relevant | Report evidence (`file:line`); ask to proceed / adjust scope / abort |
 | 11 | Lint failure | Display errors, attempt auto-fix, ask user to continue or abort |
 | 12 | Test failure | Display output, attempt fix (max 2 retries), ask user |
 | 13 | auto-mr not installed | Warn, show manual push: `git push -u origin <branch-name>` |

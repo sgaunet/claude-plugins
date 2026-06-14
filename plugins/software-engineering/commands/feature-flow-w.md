@@ -10,7 +10,7 @@ allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(git:*), Bash(make:*), 
 Orchestrate a complete git workflow using **worktrees** for feature development. Creates a parallel working directory instead of switching branches, keeping your current branch untouched. Two modes:
 
 1. **Staged Changes Mode** (default): Analyze staged changes → worktree + branch → create issue → commit (in worktree)
-2. **Issue Mode** (`#<number>`): Retrieve issue → worktree + branch → implement → lint → test → verify → commit → merge (all in worktree)
+2. **Issue Mode** (`#<number>`): Retrieve issue → **validate relevance** → worktree + branch → implement → lint → test → verify → commit → merge (all in worktree)
 
 Use `feature-flow-w` instead of `feature-flow` when you want to work on multiple features simultaneously without leaving your current branch.
 
@@ -148,7 +148,7 @@ Display workflow summary showing:
 
 ## Issue Mode Process (8 Phases)
 
-### Phase I-1: Issue Retrieval (Automatic)
+### Phase I-1: Issue Retrieval & Relevance Check
 
 **Detect Repository Host**: Use the `detect-repo-host` skill.
 
@@ -160,6 +160,20 @@ Display workflow summary showing:
 - Forgejo: `fgj issue view <number> -R <owner>/<repo> --json`
 
 **Extract:** Title (→ branch name, commit, MR title), Body (→ implementation spec), Labels (→ type detection)
+
+**Validate the issue is still relevant (ESSENTIAL — never skip):**
+
+The codebase may have changed since the issue was opened, so the issue may already be resolved or no longer applicable. Before doing any work, confirm it still holds:
+
+1. Locate the code the issue refers to (Glob/Grep/Read for the files, symbols, or behavior named in the title/body).
+2. Verify against the **current** code:
+   - **Bug / fix:** does the faulty code still exist and the bug still reproduce?
+   - **Feature / enhancement:** is it still missing, or already implemented?
+   - **Refactor / docs / chore:** does the targeted code still exist in the form the issue describes?
+3. **If still relevant →** continue to Phase I-2.
+4. **If already resolved, partially done, or no longer applicable →** STOP, report the findings with evidence (`file:line`), then ask via AskUserQuestion: "Proceed anyway" / "Adjust scope to remaining work" / "Abort" (optionally comment on or close the issue).
+
+This check is read-only and always runs, including under `--dry-run` and `--force`. In `--force` mode, run the check and auto-proceed when the issue is still valid; if it is clearly already resolved, abort with the evidence instead of implementing redundant changes.
 
 **Error handling:**
 - Issue not found → Abort: "Issue #N not found in <owner/repo>."
@@ -374,6 +388,7 @@ git add config.yml
 |---|-------|-----------------|
 | 13 | Issue not found | "Issue #N not found in <owner/repo>." Abort. |
 | 14 | `gh`/`glab`/`fgj` CLI not found (retrieval) | "Cannot retrieve issue. Install `gh`, `glab`, or `fgj` CLI first." Abort. |
+| 14b | Issue already resolved / no longer relevant | Report evidence (`file:line`); ask to proceed / adjust scope / abort |
 | 15 | Worktree directory already exists | Suggest `<path>-v2` or ask for alternative |
 | 16 | Branch checked out in another worktree | Display the other worktree path, ask for different branch name |
 | 17 | Lint failure | Display errors, attempt auto-fix, ask user to continue or abort |
