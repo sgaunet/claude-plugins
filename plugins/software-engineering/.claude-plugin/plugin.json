@@ -1,6 +1,6 @@
 {
   "name": "software-engineering",
-  "version": "0.18.0",
+  "version": "0.18.1",
   "description": "Code review, debugging, documentation, license compliance (AGPL/MIT/Apache), payment integration (Stripe/PayPal), frontend development (HTMX/Alpine.js), and architecture diagrams (d2 via diagram-architect + /gen-diagram). MCP: context7",
   "keywords": [
     "code-review",
