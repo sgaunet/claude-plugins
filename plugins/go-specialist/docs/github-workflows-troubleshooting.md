@@ -64,32 +64,36 @@ permissions:
 
 **Symptoms**:
 - Workflow fails with "task: command not found"
-- Steps after Task installation fail
+- Steps after the mise install step fail
 
-**Solution**: Workflow installs Task automatically, but verify:
+**Solution**: The tools (including `task`) are installed by `jdx/mise-action@v3`
+from `mise.toml`. Verify that:
+
+```toml
+# mise.toml MUST pin task (and every other tool the workflow calls)
+[tools]
+"github:go-task/task" = "3.51.1"
+```
 
 ```yaml
-- name: Install task
-  uses: jaxxstorm/action-install-gh-release@v2.1.0
+# The mise-action step must run BEFORE any `task ...` step
+- uses: jdx/mise-action@v3
   with:
-    repo: go-task/task
-    cache: enable  # Cache for faster subsequent runs
+    install: true   # runs `mise install`
+    cache: true
 ```
 
-**Manual installation alternative**:
+**Verify the tools are on PATH** (add a temporary debug step):
 ```yaml
-- name: Install Task
+- name: Verify tools
   run: |
-    sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
-```
-
-**Verify Task is in PATH**:
-```yaml
-- name: Verify Task installation
-  run: |
-    which task
+    mise ls
     task --version
 ```
+
+**Common causes**:
+- `mise.toml` is missing, or does not pin `task`
+- A `task ...` step runs before the `jdx/mise-action` step
 
 ## Linting Issues
 
@@ -130,19 +134,20 @@ linters:
 - Linter workflow times out
 - Large codebase takes too long
 
-**Solution**: Increase timeout and enable caching
+**Solution**: Increase the timeout in `.golangci.yml`. The linter runs via
+`task lint` (golangci-lint installed by mise), not a separate lint action.
 
 ```yaml
 # In .golangci.yml
 run:
   timeout: 10m  # Increase from default 1m
+```
 
-# In workflow
-- name: golangci-lint
-  uses: golangci/golangci-lint-action@v4
-  with:
-    args: --timeout=10m
-    skip-cache: false  # Enable caching
+```yaml
+# Or pass the flag from the lint task in Taskfile.yml
+lint:
+  cmds:
+    - golangci-lint run --timeout=10m
 ```
 
 ## GoReleaser Issues

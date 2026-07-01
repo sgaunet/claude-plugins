@@ -7,9 +7,11 @@ allowed-tools: Read, Write, Bash(git:*), Bash(test:*), Bash(fgj:*), AskUserQuest
 
 # Generate .forgejo Directory Command
 
-Instantly create a complete `.forgejo/workflows` directory structure for Go projects with production-ready Forgejo Actions workflows (linting, coverage, snapshot builds, releases).
+Instantly create a complete `.forgejo/workflows` directory structure for Go projects with production-ready, **mise-based** Forgejo Actions workflows (linting, coverage, snapshot builds, releases).
 
-Forgejo Actions reuses **GitHub-Actions-compatible workflow syntax**, so the workflow content is largely identical to what `/gen-github-dir` produces. The key differences are the directory location (`.forgejo/workflows/` instead of `.github/workflows/`), the `runs-on` runner label, and the action/registry source assumptions described below.
+Forgejo Actions reuses **GitHub-Actions-compatible workflow syntax**, so the workflow content is identical to what `/gen-github-dir` produces. The key differences are the directory location (`.forgejo/workflows/` instead of `.github/workflows/`), the `runs-on` runner label, and the action/registry source assumptions described below.
+
+Like the GitHub variant, the workflows install tooling via `jdx/mise-action@v3` and run `task …`, so CI uses the exact tool versions pinned in `mise.toml` (created at the repo root if missing). This also **shrinks the set of GitHub actions that must be mirrored** on your instance to just `actions/checkout` and `jdx/mise-action`.
 
 ## Why This Command Exists
 
@@ -32,9 +34,15 @@ This command makes the following assumptions about your Forgejo instance. Review
    ```
    If your runner uses a different label (e.g. `self-hosted`, `ubuntu-latest`, or a custom label), edit `runs-on:` in the generated files or re-run after adjusting your runner registration. Without a matching registered runner, workflows will queue forever.
 
-2. **Action source / GitHub mirror** — Workflows reference actions by their GitHub coordinates (`actions/checkout`, `actions/setup-go`, `jaxxstorm/action-install-gh-release`, `docker/setup-qemu-action`, etc.). Forgejo pulls actions from a **configurable registry**; on instances configured with a GitHub Actions proxy/mirror (the common default, e.g. `https://data.forgejo.org` or a `code.forgejo.org` mirror), these GitHub action references resolve transparently. If your instance is not configured to mirror GitHub actions, replace the `uses:` references with mirrored equivalents available on your instance.
+2. **Action source / GitHub mirror** — Because tooling is installed via mise, the workflows only reference **two** GitHub actions: `actions/checkout` and `jdx/mise-action`. Forgejo pulls actions from a **configurable registry**; on instances configured with a GitHub Actions proxy/mirror (the common default, e.g. `https://data.forgejo.org` or a `code.forgejo.org` mirror), these references resolve transparently. If your instance is not configured to mirror GitHub actions, replace these two `uses:` references with mirrored equivalents available on your instance. (The optional docker-publishing blocks add `docker/setup-qemu-action` / `docker/login-action` only if you uncomment them.)
 
-3. **Container/package registry** — When publishing Docker images, the registry shares the Forgejo instance host (e.g. `git.sylvlab.fr`). The release workflow's registry login is generated accordingly via the shared `detect_registry()` helper.
+3. **Container/package registry** — Docker image publishing is **off by default** (mirrors the binary-only baseline). To publish images, uncomment the docker tools in `mise.toml` and the QEMU + registry-login block in the release/snapshot workflows. On a Forgejo instance the registry shares the instance host (e.g. `git.sylvlab.fr`); set the login `registry:` accordingly (detected via the shared `detect_registry()` helper).
+
+4. **Release token & SCM (goreleaser)** — This is the one place the shared GitHub release template is *not* drop-in correct for Forgejo. The shared `release.yml` exports only `GITHUB_TOKEN` and the GitHub templates assume goreleaser publishes to github.com. Publishing a release to your Forgejo/Gitea instance instead requires **both**:
+   - A **`gitea_urls:` block in `.goreleaser.yml`** pointing goreleaser at your instance API (e.g. `api: https://git.sylvlab.fr/api/v1`, `download: https://git.sylvlab.fr`). This switches goreleaser to its **gitea** release publisher. Generate/edit it with `/gen-goreleaser`.
+   - The release job to export **`GITEA_TOKEN`** — goreleaser's gitea publisher reads this variable, not `GITHUB_TOKEN`. This command adds `GITEA_TOKEN` to the generated `.forgejo/workflows/release.yml` (Phase 3.5), defaulting it to the job token Forgejo auto-provides (exposed as `secrets.GITHUB_TOKEN`). For broader scope (cross-repo pushes, package registry), create a dedicated `GITEA_TOKEN` repository secret and reference it instead.
+
+   Without both, the release job either targets github.com or fails to authenticate against your instance. `snapshot.yml` is unaffected — it runs goreleaser in `--snapshot` mode and never publishes.
 
 ## Content Generation Rules
 
@@ -73,7 +81,15 @@ This command makes the following assumptions about your Forgejo instance. Review
 4. **Verify command assets directory:**
    - Use Read tool to verify `${CLAUDE_PLUGIN_ROOT}/commands/assets/github-workflows/workflows/linter.yml` exists
      (Forgejo reuses the GitHub-Actions-compatible workflow templates.)
-   - If fails: Exit with error "Command assets directory not found at ${CLAUDE_PLUGIN_ROOT}/commands/assets/github-workflows/. Plugin may be corrupted. Reinstall the go-specialist plugin."
+   - Use Read tool to verify `${CLAUDE_PLUGIN_ROOT}/commands/assets/mise/mise.toml` exists
+   - If either fails: Exit with error "Command assets directory not found at ${CLAUDE_PLUGIN_ROOT}/commands/assets/. Plugin may be corrupted. Reinstall the go-specialist plugin."
+
+5. **Check existing mise.toml:**
+   ```bash
+   test -f mise.toml
+   ```
+   - Store `existingMise = true|false`. The workflows depend on `mise.toml`; if it
+     is missing this command creates one (Phase 3.5). An existing one is preserved.
 
 ### Phase 2: Argument Parsing
 
@@ -128,8 +144,14 @@ for each arg in arguments:
    - Path: `${CLAUDE_PLUGIN_ROOT}/commands/assets/github-workflows/workflows/release.yml`
    - Target: `.forgejo/workflows/release.yml`
 
+5. **mise.toml** [Only if `existingMise == false`]
+   - Path: `${CLAUDE_PLUGIN_ROOT}/commands/assets/mise/mise.toml`
+   - Target: `mise.toml` (repo root)
+
 **Template handling:**
 - Store content in memory for Phase 3.5 substitution
+- The workflow templates are **static** apart from the `runs-on` runner label —
+  tool versioning lives in `mise.toml`.
 - Preserve all `# CUSTOMIZE:` comments
 
 **Error handling:**
@@ -137,20 +159,11 @@ for each arg in arguments:
 
 ### Phase 3.5: Auto-Detection & Substitution
 
-**Detection Function Library:** Use the shared detection functions from `${CLAUDE_PLUGIN_ROOT}/commands/assets/detection-functions.md`. Read that file to get all bash detection functions (`detect_git_owner`, `detect_registry`, `detect_golangci_lint_version`, `derive_golangci_lint_binaries_location`, `substitute_version_placeholders`).
+**Detection Function Library:** Use the shared detection functions from `${CLAUDE_PLUGIN_ROOT}/commands/assets/detection-functions.md`. Read that file to get the bash detection functions (`detect_registry`, `detect_go_version`, `detect_golangci_lint_version`, `detect_goreleaser_version`, `strip_leading_v`, `substitute_version_placeholders`).
 
 **Detection Workflow:**
 
-1. **Detect golangci-lint version:**
-   ```bash
-   GOLANGCI_LINT_VERSION=$(detect_golangci_lint_version)
-   GOLANGCI_LINT_BINARIES_LOCATION=$(derive_golangci_lint_binaries_location "${GOLANGCI_LINT_VERSION:-v2.2.2}")
-   ```
-   - `detect_golangci_lint_version` uses `gh release view` for the upstream golangci-lint repo. golangci-lint is an external GitHub-hosted tool, so keep this GitHub-based detection (Forgejo has no equivalent for third-party GitHub repos).
-   - If `GOLANGCI_LINT_VERSION` is empty (gh not available or API failure): Use fallback `v2.2.2`
-   - If `GOLANGCI_LINT_BINARIES_LOCATION` is empty: Use fallback `golangci-lint-2.2.2-linux-amd64`
-
-2. **Detect Forgejo runner label (best-effort):**
+1. **Detect Forgejo runner label (best-effort):**
    - Prefer the Forgejo CLI when available to pick a real runner label instead of the `docker` default:
      ```bash
      # Best-effort: pick the first label advertised by a registered runner
@@ -159,24 +172,59 @@ for each arg in arguments:
    - If `fgj` is not installed or returns nothing, fall back to the default label `docker`.
    - `FORGEJO_RUNNER_LABEL=${FORGEJO_RUNNER_LABEL:-docker}`
 
-3. **Substitute the runner label (`runs-on`):**
+2. **Substitute the runner label (`runs-on`):**
    The shared GitHub templates use `runs-on: ubuntu-latest`. Rewrite this to the Forgejo runner label in every workflow template:
    ```bash
    workflow_template=$(echo "$workflow_template" | sed "s|runs-on: ubuntu-latest|runs-on: ${FORGEJO_RUNNER_LABEL}|g")
    ```
+   - `runs-on` is the only substitution **every** workflow needs; `release.yml`
+     additionally gets the release-token injection below.
 
-4. **Substitute version placeholders in linter.yml template:**
+3. **Inject the Forgejo release token (`release.yml` only):**
+   The shared `release.yml` job env exports only `GITHUB_TOKEN`, which is correct
+   for github.com. For a Forgejo/Gitea release, goreleaser's **gitea** publisher
+   authenticates with `GITEA_TOKEN` (and needs a `gitea_urls:` block in
+   `.goreleaser.yml`). Add `GITEA_TOKEN` to the release job env in the generated
+   `.forgejo/workflows/release.yml`. This rewrites only the Forgejo copy held in
+   memory — the shared GitHub asset is never modified:
    ```bash
-   linter_template=$(substitute_version_placeholders "$linter_template" \
-       "GOLANGCI_LINT_VERSION=${GOLANGCI_LINT_VERSION:-v2.2.2}" \
-       "GOLANGCI_LINT_BINARIES_LOCATION=${GOLANGCI_LINT_BINARIES_LOCATION:-golangci-lint-2.2.2-linux-amd64}")
+   # Applies to the release.yml content only; snapshot.yml never publishes.
+   release_template=$(printf '%s' "$release_template" | sed \
+     's|^\( *\)GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}$|\1# Forgejo/Gitea release: goreleaser authenticates with GITEA_TOKEN (needs gitea_urls: in .goreleaser.yml).\n\1# Defaults to the job token Forgejo auto-provides (exposed as secrets.GITHUB_TOKEN);\n\1# for broader scope, create a GITEA_TOKEN repo secret and reference it here.\n\1GITEA_TOKEN: ${{ secrets.GITHUB_TOKEN }}\n\1GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}|')
    ```
+   - Apply to `release.yml` only — `snapshot.yml` runs goreleaser in `--snapshot`
+     mode and needs no release token, so leave it untouched.
+   - Pair this with a `gitea_urls:` block in `.goreleaser.yml` (see `/gen-goreleaser`),
+     otherwise goreleaser still defaults to publishing on github.com.
 
-5. **Detect container registry (release.yml):**
+4. **Ensure `mise.toml` exists (create if missing):**
+   The workflows install tools from `mise.toml`. If the repo has no `mise.toml`,
+   create one from the asset with detected versions:
+   ```bash
+   if [[ "$existingMise" != "true" ]]; then
+       GO_VERSION=$(detect_go_version)
+       GOLANGCI_LINT_VERSION=$(detect_golangci_lint_version)   # gh release view (external GitHub repo)
+       GORELEASER_VERSION=$(detect_goreleaser_version)
+       GOLANGCI_LINT_VERSION_BARE=$(strip_leading_v "${GOLANGCI_LINT_VERSION:-v2.2.2}")
+
+       mise_template=$(substitute_version_placeholders "$mise_template" \
+           "GO_VERSION=${GO_VERSION:-1.25}" \
+           "GOLANGCI_LINT_VERSION_BARE=${GOLANGCI_LINT_VERSION_BARE:-2.2.2}" \
+           "GORELEASER_VERSION=${GORELEASER_VERSION:-v2.12.0}")
+       # Written in Phase 5.
+   fi
+   ```
+   - If `existingMise == true`: do NOT modify the existing `mise.toml`; note it in the report.
+   - golangci-lint/goreleaser/go are external GitHub-hosted tools; keep the
+     GitHub-based version detection (Forgejo has no equivalent for third-party repos).
+
+5. **Detect container registry (optional docker block):**
    ```bash
    REGISTRY=$(detect_registry)   # On a Forgejo instance like git.sylvlab.fr → git.sylvlab.fr
    ```
-   - Use this when reviewing the release workflow's registry login. On a Forgejo instance the registry shares the instance host (e.g. `git.sylvlab.fr`); update the `registry:` value in the generated `release.yml` login step if you publish container images.
+   - Only relevant if you enable the optional docker-publishing block: on a Forgejo
+     instance the registry shares the instance host; set the login `registry:` value
+     accordingly.
 
 6. **Handle missing values:**
    - If `FORGEJO_RUNNER_LABEL` could not be detected: Use `docker` and note it in the report so the user can verify against `fgj actions runner list`.
@@ -203,13 +251,18 @@ Total: 4 files
 
 Total: 2 files
 
+[If existingMise == false:]
+✅ mise.toml (created — pins go/task/golangci-lint/goreleaser for dev + CI)
+[If existingMise == true:]
+ℹ️  mise.toml already exists — preserved (workflows will use it as-is)
+
 ✅ Auto-detected Configuration
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Forgejo Settings:
   • Runner label: <FORGEJO_RUNNER_LABEL> (from `fgj actions runner list`, or default `docker`)
-  • golangci-lint version: <GOLANGCI_LINT_VERSION>
-  • Container registry: <REGISTRY> (from git remote)
+  • Tool versions (mise.toml): Go <GO_VERSION>, golangci-lint <GOLANGCI_LINT_VERSION_BARE>, goreleaser <GORELEASER_VERSION>
+  • Container registry: <REGISTRY> (only used by the optional docker block)
 
 [If existingForgejoDir == true:]
 ⚠️  WARNING: .forgejo directory already exists
@@ -263,10 +316,11 @@ If `dryRunMode == true`:
 
 **File writing sequence:**
 
-1. `.forgejo/workflows/linter.yml`
-2. `.forgejo/workflows/coverage.yml` [Skip if minimal mode]
-3. `.forgejo/workflows/snapshot.yml` [Skip if minimal mode]
-4. `.forgejo/workflows/release.yml`
+1. `mise.toml` [Only if `existingMise == false`] — repo root, version-substituted
+2. `.forgejo/workflows/linter.yml`
+3. `.forgejo/workflows/coverage.yml` [Skip if minimal mode]
+4. `.forgejo/workflows/snapshot.yml` [Skip if minimal mode]
+5. `.forgejo/workflows/release.yml`
 
 **For each file:**
 - Use Write tool with full file path
@@ -308,6 +362,7 @@ For each file in `successfulFiles`:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Created Files:
+✅ mise.toml [if created] / ℹ️ mise.toml preserved [if it already existed]
 ✅ .forgejo/workflows/linter.yml
 ✅ .forgejo/workflows/coverage.yml [if standard mode]
 ✅ .forgejo/workflows/snapshot.yml [if standard mode]
@@ -317,8 +372,8 @@ Total: [N] files
 
 Auto-configured with detected values:
   ✓ Runner label: <FORGEJO_RUNNER_LABEL>
-  ✓ golangci-lint version: <GOLANGCI_LINT_VERSION> (from GitHub releases)
-  ✓ Container registry: <REGISTRY> (from git remote)
+[If mise.toml was created:]
+  ✓ mise.toml: Go <GO_VERSION>, golangci-lint <GOLANGCI_LINT_VERSION_BARE>, goreleaser <GORELEASER_VERSION>
 
 Required Customizations:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -329,19 +384,28 @@ Required Customizations:
    - Or edit "runs-on:" in .forgejo/workflows/*.yml to match an existing label
 
 2. Confirm GitHub action mirroring:
-   - Workflows use GitHub action references (actions/checkout, actions/setup-go, ...)
+   - Workflows reference only actions/checkout and jdx/mise-action
    - These require your instance to mirror/proxy GitHub actions
-   - If not configured, replace "uses:" references with mirrored equivalents
+   - If not configured, replace these two "uses:" references with mirrored equivalents
 
-3. Update Go version in workflow files (optional):
-   - Templates read the version from go.mod via "go-version-file: 'go.mod'"
-   - No change needed unless you want to pin a different version
+3. Tool versions live in mise.toml (not the workflow files):
+   - Edit mise.toml to change Go / golangci-lint / goreleaser versions
+   - Same versions are used locally (`mise install`) and in CI
 
-4. Container registry (release.yml):
-   - Registry host detected as "<REGISTRY>"
-   - Update the registry login step's "registry:" / credentials if publishing images
+4. Configure the Forgejo/Gitea release publisher (release.yml + .goreleaser.yml):
+   - release.yml exports GITEA_TOKEN (added by this command), defaulting to the
+     job token Forgejo auto-provides (secrets.GITHUB_TOKEN). For broader scope,
+     create a GITEA_TOKEN repo secret and reference it in release.yml.
+   - Add a `gitea_urls:` block to .goreleaser.yml (api/download URLs of your
+     instance) so goreleaser publishes the release to Forgejo, not github.com.
+   - Generate/edit .goreleaser.yml with /gen-goreleaser.
 
-5. (Optional) Customize coverage threshold:
+5. (Optional) Publishing Docker images:
+   - Uncomment the docker tools in mise.toml (buildx, docker-cli)
+   - Uncomment the QEMU + registry-login block in snapshot.yml / release.yml
+   - Set the login registry to your instance host: "<REGISTRY>"
+
+6. (Optional) Customize coverage threshold:
    - Edit .forgejo/workflows/coverage.yml
    - Adjust "limit-coverage: 70" to your desired threshold
 
@@ -351,8 +415,8 @@ Next Steps:
 2. Ensure a Forgejo Actions runner is registered and online:
    fgj actions runner list
 3. Commit changes:
-   git add .forgejo/
-   git commit -m "ci: add Forgejo Actions workflows"
+   git add .forgejo/ mise.toml
+   git commit -m "ci: add mise-based Forgejo Actions workflows"
 
 4. Push to your Forgejo instance:
    git push origin main
@@ -495,6 +559,7 @@ Complete mapping from command assets to target locations. Forgejo reuses the Git
 
 | Source Path | Target (Relative to CWD) | Mode |
 |-------------|--------------------------|------|
+| `${CLAUDE_PLUGIN_ROOT}/commands/assets/mise/mise.toml` | `mise.toml` | Create-if-missing |
 | `${CLAUDE_PLUGIN_ROOT}/commands/assets/github-workflows/workflows/linter.yml` | `.forgejo/workflows/linter.yml` | All |
 | `${CLAUDE_PLUGIN_ROOT}/commands/assets/github-workflows/workflows/coverage.yml` | `.forgejo/workflows/coverage.yml` | Standard |
 | `${CLAUDE_PLUGIN_ROOT}/commands/assets/github-workflows/workflows/snapshot.yml` | `.forgejo/workflows/snapshot.yml` | Standard |
@@ -503,6 +568,7 @@ Complete mapping from command assets to target locations. Forgejo reuses the Git
 **Mode Legend:**
 - **All**: Created in both standard and minimal modes
 - **Standard**: Only created in standard mode (skipped in minimal)
+- **Create-if-missing**: Written only when the repo has no `mise.toml`; an existing one is preserved
 
 ## Difference vs /gen-github-dir
 
@@ -511,8 +577,11 @@ Complete mapping from command assets to target locations. Forgejo reuses the Git
 | Directory | `.github/workflows/` | `.forgejo/workflows/` |
 | `runs-on` | `ubuntu-latest` | Forgejo runner label (`docker` default, or detected via `fgj`) |
 | Actions source | GitHub Marketplace | Configurable registry (assumes GitHub action mirror/proxy) |
+| Actions referenced | `actions/checkout`, `jdx/mise-action` | Same two (fewer to mirror) |
+| Tool install | mise (`mise.toml`) | mise (`mise.toml`) |
 | Runner | GitHub-hosted | Self-hosted Forgejo Actions runner (`fgj actions runner register`) |
-| Registry | `ghcr.io` | Instance host (e.g. `git.sylvlab.fr`) |
+| Registry (optional docker) | `ghcr.io` | Instance host (e.g. `git.sylvlab.fr`) |
+| Release publishing | goreleaser → github.com via `GITHUB_TOKEN` | goreleaser → instance via `GITEA_TOKEN` + `gitea_urls:` in `.goreleaser.yml` |
 | FUNDING.yml | Yes (GitHub Sponsors) | No (not applicable) |
 | dependabot.yml | Yes | No (Forgejo handles deps differently, e.g. Renovate) |
 | Workflow YAML | GitHub Actions syntax | Same syntax (Forgejo Actions is GitHub-compatible) |
@@ -527,22 +596,22 @@ Complete mapping from command assets to target locations. Forgejo reuses the Git
 
 **Typical Workflow:**
 ```bash
-# 1. Generate .forgejo directory
+# 1. Generate dev tooling first (Taskfile.yml + mise.toml)
+/gen-taskfiles
+
+# 2. Generate .forgejo directory (reuses mise.toml; creates it if you skipped step 1)
 /gen-forgejo-dir
 
-# 2. Generate supporting configs
+# 3. Generate supporting configs
 /gen-linter          # Creates .golangci.yml
 /gen-goreleaser      # Creates .goreleaser.yml
-
-# 3. Create Taskfile.yml (or use /gen-taskfiles)
-# Add tasks: lint, snapshot, release
 
 # 4. Ensure a runner is registered
 fgj actions runner list   # or: fgj actions runner register
 
 # 5. Commit everything
-git add .forgejo/ .golangci.yml .goreleaser.yml Taskfile.yml
-git commit -m "ci: add Forgejo Actions workflows and supporting configs"
+git add .forgejo/ mise.toml Taskfile*.yml .golangci.yml .goreleaser.yml
+git commit -m "ci: add mise-based Forgejo Actions workflows and supporting configs"
 
 # 6. Push and verify
 git push origin main
@@ -559,35 +628,40 @@ git push origin main
    fgj actions runner register    # Register a new runner
    ```
 
-2. **GitHub action mirroring enabled** on the instance so `uses: actions/...` references resolve.
+2. **GitHub action mirroring enabled** on the instance so `uses: actions/checkout` and `uses: jdx/mise-action` resolve.
 
-3. **Taskfile.yml** with required tasks (`lint`, `snapshot`, `release`):
+3. **mise.toml** (auto-created by this command if missing) — pins the tool versions installed by `jdx/mise-action`. Managed canonically by `/gen-taskfiles`.
+
+4. **Taskfile.yml** with required tasks (`lint`, `snapshot`, `release`):
    ```yaml
    version: '3'
    tasks:
      lint:
-       cmds:
-         - golangci-lint run --timeout=5m ./...
+       cmds: [golangci-lint run ./...]
      snapshot:
-       cmds:
-         - goreleaser release --snapshot --clean --skip=publish
+       cmds: [goreleaser release --snapshot --clean]
      release:
-       cmds:
-         - goreleaser release --clean
+       cmds: [goreleaser release --clean]
    ```
+   - Generate with `/gen-taskfiles` (also emits mise.toml).
 
-4. **.golangci.yml** configuration — generate with `/gen-linter`.
+5. **.golangci.yml** configuration — generate with `/gen-linter` (golangci-lint itself comes from mise.toml).
 
-5. **.goreleaser.yml** configuration — generate with `/gen-goreleaser` (required for snapshot.yml and release.yml).
+6. **.goreleaser.yml** configuration — generate with `/gen-goreleaser` (required for snapshot.yml and release.yml). To publish releases to your Forgejo/Gitea instance (not github.com) it must include a `gitea_urls:` block, and the release job must export `GITEA_TOKEN` (this command adds it to `release.yml`, defaulting to the auto-provided job token).
 
 ## Template Customization Points
 
 All template files include `# CUSTOMIZE:` comments marking required changes:
 
+**mise.toml:**
+- Tool versions (`go`, `golangci-lint`, `goreleaser`) → adjust as needed (used by dev + CI)
+- Docker tools (`buildx`, `docker-cli`) → uncomment if publishing images
+
 **workflows/*.yml:**
 - `runs-on: <label>` → Match a label advertised by a registered Forgejo runner
-- `go-version-file: 'go.mod'` → Reads version from go.mod (change to `go-version:` to pin)
 - Tag patterns in release.yml → Adjust semver format if needed
+- `GITEA_TOKEN` in release.yml → defaults to the auto-provided job token; swap to a `GITEA_TOKEN` repo secret for broader scope (requires `gitea_urls:` in `.goreleaser.yml`)
+- Optional docker block in snapshot.yml / release.yml → uncomment for image publishing
 
 **coverage.yml:**
 - `limit-coverage: "70"` → Adjust coverage threshold
@@ -625,7 +699,8 @@ All template files include `# CUSTOMIZE:` comments marking required changes:
 ## Success Criteria
 
 ✅ Prerequisites validated (git repo, Go project)
-✅ Template files read from shared assets
+✅ Template files read from shared assets (+ mise.toml asset)
+✅ mise.toml ensured (created with detected versions if missing, else preserved)
 ✅ Runner label resolved (`fgj` detection or `docker` fallback)
 ✅ `runs-on` rewritten from `ubuntu-latest` to the Forgejo label
 ✅ User confirmation obtained (unless `--force`)
@@ -657,11 +732,11 @@ All template files include `# CUSTOMIZE:` comments marking required changes:
 ## Output Summary
 
 **Standard mode (default):**
-- 4 workflow files created
-- Comprehensive CI/CD pipeline (lint, coverage, snapshot, release)
+- 4 workflow files + mise.toml (if missing)
+- Comprehensive, mise-based CI/CD pipeline (lint, coverage, snapshot, release)
 
 **Minimal mode (`--minimal`):**
-- 2 workflow files created
+- 2 workflow files + mise.toml (if missing)
 - Essential linting + releases
 
 **Dry run mode (`--dry-run`):**

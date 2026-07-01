@@ -7,15 +7,16 @@ allowed-tools: Read, Write, Bash(git:*), Bash(test:*), AskUserQuestion
 
 # Generate .github Directory Command
 
-Instantly create a complete `.github` directory structure for Go projects with production-ready GitHub Actions workflows, Dependabot configuration, and sponsorship setup.
+Instantly create a complete `.github` directory structure for Go projects with production-ready, **mise-based** GitHub Actions workflows, Dependabot configuration, and sponsorship setup.
 
 ## Why This Command Exists
 
-**Problem**: Setting up CI/CD for Go projects requires manually creating multiple workflow files, understanding GitHub Actions syntax, and configuring dependencies - a 30-60 minute process.
+**Problem**: Setting up CI/CD for Go projects requires manually creating multiple workflow files, understanding GitHub Actions syntax, and keeping tool versions in sync between local development and CI - a 30-60 minute process.
 
 **Solution**: One-command generation that:
-- Creates complete `.github` directory structure (6 files, 549 lines)
-- Includes comprehensive workflows: linting, coverage, snapshot builds, releases
+- Creates a complete `.github` directory (6 files): FUNDING, dependabot, and the linter/coverage/snapshot/release workflows
+- Workflows are **mise-based**: each installs tools via `jdx/mise-action@v3` then runs a `task …`, so CI uses the exact versions pinned in `mise.toml`
+- Ensures a `mise.toml` exists at the repo root (creates one with detected versions if missing) — the single source of truth shared with local dev
 - Configures Dependabot for Go modules, Docker, and GitHub Actions
 - Sets up GitHub Sponsors integration
 - Preserves all customization comments for user control
@@ -56,7 +57,16 @@ Instantly create a complete `.github` directory structure for Go projects with p
 
 4. **Verify command assets directory:**
    - Use Read tool to verify `${CLAUDE_PLUGIN_ROOT}/commands/assets/github-workflows/FUNDING.yml` exists
-   - If fails: Exit with error "Command assets directory not found at ${CLAUDE_PLUGIN_ROOT}/commands/assets/github-workflows/. Plugin may be corrupted. Reinstall the go-specialist plugin."
+   - Use Read tool to verify `${CLAUDE_PLUGIN_ROOT}/commands/assets/mise/mise.toml` exists
+   - If either fails: Exit with error "Command assets directory not found at ${CLAUDE_PLUGIN_ROOT}/commands/assets/. Plugin may be corrupted. Reinstall the go-specialist plugin."
+
+5. **Check existing mise.toml:**
+   ```bash
+   test -f mise.toml
+   ```
+   - Store `existingMise = true|false`. The workflows depend on `mise.toml`; if it
+     is missing this command will create one (Phase 3.5). An existing `mise.toml`
+     is always preserved.
 
 ### Phase 2: Argument Parsing
 
@@ -96,32 +106,38 @@ for each arg in arguments:
 
 **Files to read:**
 
-1. **FUNDING.yml** (24 lines)
+1. **FUNDING.yml**
    - Path: `${CLAUDE_PLUGIN_ROOT}/commands/assets/github-workflows/FUNDING.yml`
    - Target: `.github/FUNDING.yml`
 
-2. **dependabot.yml** (103 lines)
+2. **dependabot.yml**
    - Path: `${CLAUDE_PLUGIN_ROOT}/commands/assets/github-workflows/dependabot.yml`
    - Target: `.github/dependabot.yml`
 
-3. **workflows/linter.yml** (72 lines)
+3. **workflows/linter.yml**
    - Path: `${CLAUDE_PLUGIN_ROOT}/commands/assets/github-workflows/workflows/linter.yml`
    - Target: `.github/workflows/linter.yml`
 
-4. **workflows/coverage.yml** (92 lines) [Skip if minimal mode]
+4. **workflows/coverage.yml** [Skip if minimal mode]
    - Path: `${CLAUDE_PLUGIN_ROOT}/commands/assets/github-workflows/workflows/coverage.yml`
    - Target: `.github/workflows/coverage.yml`
 
-5. **workflows/snapshot.yml** (114 lines) [Skip if minimal mode]
+5. **workflows/snapshot.yml** [Skip if minimal mode]
    - Path: `${CLAUDE_PLUGIN_ROOT}/commands/assets/github-workflows/workflows/snapshot.yml`
    - Target: `.github/workflows/snapshot.yml`
 
-6. **workflows/release.yml** (144 lines)
+6. **workflows/release.yml**
    - Path: `${CLAUDE_PLUGIN_ROOT}/commands/assets/github-workflows/workflows/release.yml`
    - Target: `.github/workflows/release.yml`
 
+7. **mise.toml** [Only if `existingMise == false`]
+   - Path: `${CLAUDE_PLUGIN_ROOT}/commands/assets/mise/mise.toml`
+   - Target: `mise.toml` (repo root)
+
 **Template handling:**
 - Store content in memory for Phase 3.5 substitution
+- The workflow templates are **static** (no placeholders) — they reference
+  `jdx/mise-action@v3` and run `task …`. No per-project substitution is needed.
 - Preserve all `# CUSTOMIZE:` comments
 
 **Error handling:**
@@ -129,7 +145,7 @@ for each arg in arguments:
 
 ### Phase 3.5: Auto-Detection & Substitution
 
-**Detection Function Library:** Use the shared detection functions from `${CLAUDE_PLUGIN_ROOT}/commands/assets/detection-functions.md`. Read that file to get all bash detection functions (`detect_git_owner`, `detect_golangci_lint_version`, `derive_golangci_lint_binaries_location`, `substitute_version_placeholders`).
+**Detection Function Library:** Use the shared detection functions from `${CLAUDE_PLUGIN_ROOT}/commands/assets/detection-functions.md`. Read that file to get the bash detection functions (`detect_git_owner`, `detect_go_version`, `detect_golangci_lint_version`, `detect_goreleaser_version`, `strip_leading_v`, `substitute_version_placeholders`).
 
 **Detection Workflow:**
 
@@ -138,31 +154,36 @@ for each arg in arguments:
    GITHUB_USERNAME=$(detect_git_owner)
    ```
 
-2. **Detect golangci-lint version:**
-   ```bash
-   GOLANGCI_LINT_VERSION=$(detect_golangci_lint_version)
-   GOLANGCI_LINT_BINARIES_LOCATION=$(derive_golangci_lint_binaries_location "${GOLANGCI_LINT_VERSION:-v2.2.2}")
-   ```
-   - If `GOLANGCI_LINT_VERSION` is empty (gh not available or API failure): Use fallback `v2.2.2`
-   - If `GOLANGCI_LINT_BINARIES_LOCATION` is empty: Use fallback `golangci-lint-2.2.2-linux-amd64`
-
-3. **Substitute in FUNDING.yml template (only if not in minimal mode):**
+2. **Substitute in FUNDING.yml template (only if not in minimal mode):**
    ```bash
    if [[ "$minimalMode" != "true" ]]; then
        funding_template=$(echo "$funding_template" | sed "s|\[GITHUB_USERNAME\]|${GITHUB_USERNAME}|g")
    fi
    ```
+   - If `GITHUB_USERNAME` is empty: Preserve `[GITHUB_USERNAME]` placeholder with warning (non-blocking)
 
-4. **Substitute version placeholders in linter.yml template:**
+3. **Workflow templates need no substitution.** They are static and reference
+   `jdx/mise-action@v3` + `task …`. All tool versioning lives in `mise.toml`.
+
+4. **Ensure `mise.toml` exists (create if missing):**
+   - The generated workflows install tools from `mise.toml`. If the repo has no
+     `mise.toml`, create one from the asset with detected versions:
    ```bash
-   linter_template=$(substitute_version_placeholders "$linter_template" \
-       "GOLANGCI_LINT_VERSION=${GOLANGCI_LINT_VERSION:-v2.2.2}" \
-       "GOLANGCI_LINT_BINARIES_LOCATION=${GOLANGCI_LINT_BINARIES_LOCATION:-golangci-lint-2.2.2-linux-amd64}")
-   ```
+   if [[ "$existingMise" != "true" ]]; then
+       GO_VERSION=$(detect_go_version)
+       GOLANGCI_LINT_VERSION=$(detect_golangci_lint_version)
+       GORELEASER_VERSION=$(detect_goreleaser_version)
+       GOLANGCI_LINT_VERSION_BARE=$(strip_leading_v "${GOLANGCI_LINT_VERSION:-v2.2.2}")
 
-5. **Handle missing values:**
-   - If `GITHUB_USERNAME` is empty: Preserve `[GITHUB_USERNAME]` placeholder with warning
-   - Non-blocking: User can still create files and edit manually later
+       mise_template=$(substitute_version_placeholders "$mise_template" \
+           "GO_VERSION=${GO_VERSION:-1.25}" \
+           "GOLANGCI_LINT_VERSION_BARE=${GOLANGCI_LINT_VERSION_BARE:-2.2.2}" \
+           "GORELEASER_VERSION=${GORELEASER_VERSION:-v2.12.0}")
+       # Written in Phase 5.
+   fi
+   ```
+   - If `existingMise == true`: do NOT modify the existing `mise.toml`; note it in
+     the report. (Prefer `/gen-taskfiles` to manage tool versions.)
 
 ### Phase 4: User Confirmation
 
@@ -172,21 +193,26 @@ for each arg in arguments:
 Files to be created:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 [If standard mode:]
-✅ .github/FUNDING.yml (24 lines)
-✅ .github/dependabot.yml (103 lines)
-✅ .github/workflows/linter.yml (72 lines)
-✅ .github/workflows/coverage.yml (92 lines)
-✅ .github/workflows/snapshot.yml (114 lines)
-✅ .github/workflows/release.yml (144 lines)
+✅ .github/FUNDING.yml
+✅ .github/dependabot.yml
+✅ .github/workflows/linter.yml
+✅ .github/workflows/coverage.yml
+✅ .github/workflows/snapshot.yml
+✅ .github/workflows/release.yml
 
-Total: 6 files (549 lines)
+Total: 6 files
 
 [If minimal mode:]
-✅ .github/dependabot.yml (103 lines)
-✅ .github/workflows/linter.yml (72 lines)
-✅ .github/workflows/release.yml (144 lines)
+✅ .github/dependabot.yml
+✅ .github/workflows/linter.yml
+✅ .github/workflows/release.yml
 
-Total: 3 files (319 lines)
+Total: 3 files
+
+[If existingMise == false:]
+✅ mise.toml (created — pins go/task/golangci-lint/goreleaser for dev + CI)
+[If existingMise == true:]
+ℹ️  mise.toml already exists — preserved (workflows will use it as-is)
 
 [If standard mode and GITHUB_USERNAME detected:]
 ✅ Auto-detected Configuration
@@ -194,6 +220,7 @@ Total: 3 files (319 lines)
 
 GitHub Settings:
   • GitHub username: <GITHUB_USERNAME> (from git remote)
+  • Tool versions (mise.toml): Go <GO_VERSION>, golangci-lint <GOLANGCI_LINT_VERSION_BARE>, goreleaser <GORELEASER_VERSION>
 
 [If existingGithubDir == true:]
 ⚠️  WARNING: .github directory already exists
@@ -252,14 +279,15 @@ If `dryRunMode == true`:
 
 **File writing sequence:**
 
-Write files in order (root files first, then workflows):
+Write files in order (mise.toml first, then root files, then workflows):
 
-1. `.github/FUNDING.yml` [Skip if minimal mode]
-2. `.github/dependabot.yml`
-3. `.github/workflows/linter.yml`
-4. `.github/workflows/coverage.yml` [Skip if minimal mode]
-5. `.github/workflows/snapshot.yml` [Skip if minimal mode]
-6. `.github/workflows/release.yml`
+1. `mise.toml` [Only if `existingMise == false`] — repo root, version-substituted
+2. `.github/FUNDING.yml` [Skip if minimal mode]
+3. `.github/dependabot.yml`
+4. `.github/workflows/linter.yml`
+5. `.github/workflows/coverage.yml` [Skip if minimal mode]
+6. `.github/workflows/snapshot.yml` [Skip if minimal mode]
+7. `.github/workflows/release.yml`
 
 **For each file:**
 - Use Write tool with full file path
@@ -301,6 +329,7 @@ For each file in `successfulFiles`:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Created Files:
+✅ mise.toml [if created] / ℹ️ mise.toml preserved [if it already existed]
 ✅ .github/FUNDING.yml [if standard mode] (ready to use)
 ✅ .github/dependabot.yml
 ✅ .github/workflows/linter.yml
@@ -308,20 +337,20 @@ Created Files:
 ✅ .github/workflows/snapshot.yml [if standard mode]
 ✅ .github/workflows/release.yml
 
-Total: [N] files ([X] lines)
+Total: [N] files
 
 [If GITHUB_USERNAME was detected:]
 Auto-configured with detected values:
   ✓ GitHub username: <GITHUB_USERNAME> (from git remote)
   ✓ FUNDING.yml is ready to use!
-  ✓ golangci-lint version: <GOLANGCI_LINT_VERSION> (from GitHub releases)
+[If mise.toml was created:]
+  ✓ mise.toml: Go <GO_VERSION>, golangci-lint <GOLANGCI_LINT_VERSION_BARE>, goreleaser <GORELEASER_VERSION>
 
 Required Customizations:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. Update Go version in workflow files:
-   - Edit .github/workflows/*.yml
-   - Find "go-version: stable" or "go-version: 1.24.x"
-   - Replace with your Go version (e.g., "1.24" or "stable")
+1. Tool versions live in mise.toml (not the workflow files):
+   - Edit mise.toml to change Go / golangci-lint / goreleaser versions
+   - The same versions are used locally (`mise install`) and in CI
 
 2. [If GITHUB_USERNAME was NOT detected:]
    Configure GitHub username:
@@ -333,21 +362,24 @@ Required Customizations:
    - Set "Workflow permissions" to "Read and write permissions"
    - Check "Allow GitHub Actions to create and approve pull requests"
 
-4. (Optional) Customize coverage threshold:
+4. (Optional) Publishing Docker images:
+   - Uncomment the docker tools in mise.toml (buildx, docker-cli)
+   - Uncomment the QEMU + registry-login steps in snapshot.yml / release.yml
+
+5. (Optional) Customize coverage threshold:
    - Edit .github/workflows/coverage.yml
    - Adjust "limit-coverage: 70" to your desired threshold
 
-5. (Optional) Customize Dependabot settings:
+6. (Optional) Customize Dependabot settings:
    - Edit .github/dependabot.yml
    - Adjust update intervals (daily/weekly/monthly)
-   - Configure grouping for minor updates
 
 Next Steps:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 1. Review and customize workflow files
 2. Commit changes:
-   git add .github/
-   git commit -m "ci: add GitHub Actions workflows"
+   git add .github/ mise.toml
+   git commit -m "ci: add mise-based GitHub Actions workflows"
 
 3. Push to GitHub:
    git push origin main
@@ -361,7 +393,8 @@ Documentation:
 - Workflow details: ${CLAUDE_PLUGIN_ROOT}/docs/github-workflows-reference.md
 - Troubleshooting: ${CLAUDE_PLUGIN_ROOT}/docs/github-workflows-troubleshooting.md
 - GoReleaser setup: Use /gen-goreleaser command for .goreleaser.yml
-- Task setup: Create Taskfile.yml with 'linter', 'snapshot', 'release' tasks
+- Task + mise setup: Use /gen-taskfiles for Taskfile.yml (lint/snapshot/release tasks) and mise.toml
+- mise docs: https://mise.jdx.dev
 
 [If partial success:]
 ⚠️  .github Directory Partially Created
@@ -496,18 +529,20 @@ Check permissions: ls -la .github/
 
 Complete mapping from command assets to target locations:
 
-| Source Path | Target (Relative to CWD) | Mode | Lines |
-|-------------|--------------------------|------|-------|
-| `${CLAUDE_PLUGIN_ROOT}/commands/assets/github-workflows/FUNDING.yml` | `.github/FUNDING.yml` | Standard | 24 |
-| `${CLAUDE_PLUGIN_ROOT}/commands/assets/github-workflows/dependabot.yml` | `.github/dependabot.yml` | All | 103 |
-| `${CLAUDE_PLUGIN_ROOT}/commands/assets/github-workflows/workflows/linter.yml` | `.github/workflows/linter.yml` | All | 72 |
-| `${CLAUDE_PLUGIN_ROOT}/commands/assets/github-workflows/workflows/coverage.yml` | `.github/workflows/coverage.yml` | Standard | 92 |
-| `${CLAUDE_PLUGIN_ROOT}/commands/assets/github-workflows/workflows/snapshot.yml` | `.github/workflows/snapshot.yml` | Standard | 114 |
-| `${CLAUDE_PLUGIN_ROOT}/commands/assets/github-workflows/workflows/release.yml` | `.github/workflows/release.yml` | All | 144 |
+| Source Path | Target (Relative to CWD) | Mode |
+|-------------|--------------------------|------|
+| `${CLAUDE_PLUGIN_ROOT}/commands/assets/mise/mise.toml` | `mise.toml` | Create-if-missing |
+| `${CLAUDE_PLUGIN_ROOT}/commands/assets/github-workflows/FUNDING.yml` | `.github/FUNDING.yml` | Standard |
+| `${CLAUDE_PLUGIN_ROOT}/commands/assets/github-workflows/dependabot.yml` | `.github/dependabot.yml` | All |
+| `${CLAUDE_PLUGIN_ROOT}/commands/assets/github-workflows/workflows/linter.yml` | `.github/workflows/linter.yml` | All |
+| `${CLAUDE_PLUGIN_ROOT}/commands/assets/github-workflows/workflows/coverage.yml` | `.github/workflows/coverage.yml` | Standard |
+| `${CLAUDE_PLUGIN_ROOT}/commands/assets/github-workflows/workflows/snapshot.yml` | `.github/workflows/snapshot.yml` | Standard |
+| `${CLAUDE_PLUGIN_ROOT}/commands/assets/github-workflows/workflows/release.yml` | `.github/workflows/release.yml` | All |
 
 **Mode Legend:**
 - **All**: Created in both standard and minimal modes
 - **Standard**: Only created in standard mode (skipped in minimal)
+- **Create-if-missing**: Written only when the repo has no `mise.toml`; an existing one is preserved
 
 ## Integration with Other Commands
 
@@ -519,19 +554,19 @@ Complete mapping from command assets to target locations:
 
 **Typical Workflow:**
 ```bash
-# 1. Generate .github directory
+# 1. Generate dev tooling first (Taskfile.yml + mise.toml)
+/gen-taskfiles
+
+# 2. Generate .github directory (reuses mise.toml; creates it if you skipped step 1)
 /gen-github-dir
 
-# 2. Generate supporting configs
+# 3. Generate supporting configs
 /gen-linter          # Creates .golangci.yml
 /gen-goreleaser      # Creates .goreleaser.yml
 
-# 3. Create Taskfile.yml manually or with /gen-taskfiles command
-# Add tasks: linter, snapshot, release
-
 # 4. Commit everything
-git add .github/ .golangci.yml .goreleaser.yml Taskfile.yml
-git commit -m "ci: add GitHub Actions workflows and supporting configs"
+git add .github/ mise.toml Taskfile*.yml .golangci.yml .goreleaser.yml
+git commit -m "ci: add mise-based GitHub Actions workflows and supporting configs"
 
 # 5. Push and verify
 git push origin main
@@ -542,37 +577,31 @@ git push origin main
 
 **Required for workflows to function:**
 
-1. **Taskfile.yml** with required tasks:
-   ```yaml
-   # Minimal Taskfile.yml for workflows
-   version: '3'
+1. **mise.toml** (auto-created by this command if missing):
+   - Pins the tool versions installed by `jdx/mise-action@v3` in every workflow
+   - Generated/managed canonically by `/gen-taskfiles`
+   - The single source of truth shared between local dev and CI
 
+2. **Taskfile.yml** with required tasks (`lint`, `snapshot`, `release`):
+   ```yaml
+   version: '3'
    tasks:
      lint:
-       desc: Run golangci-lint
-       cmds:
-         - golangci-lint run --timeout=5m ./...
-
+       cmds: [golangci-lint run ./...]
      snapshot:
-       desc: Create snapshot build (no publish)
-       cmds:
-         - goreleaser release --snapshot --clean --skip=publish
-
+       cmds: [goreleaser release --snapshot --clean]
      release:
-       desc: Create production release
-       cmds:
-         - goreleaser release --clean
+       cmds: [goreleaser release --clean]
    ```
+   - Generate with `/gen-taskfiles` (also emits mise.toml)
 
-2. **.golangci.yml** configuration:
-   - Generate with `/linter` command
-   - Or manually create with desired linters
+3. **.golangci.yml** configuration:
+   - Generate with `/gen-linter` (golangci-lint itself comes from mise.toml)
 
-3. **.goreleaser.yml** configuration:
-   - Generate with `/goreleaser` command
-   - Required for snapshot.yml and release.yml workflows
+4. **.goreleaser.yml** configuration:
+   - Generate with `/gen-goreleaser` (required for snapshot.yml and release.yml)
 
-4. **GitHub repository settings:**
+5. **GitHub repository settings:**
    - Settings → Actions → General
    - Workflow permissions: "Read and write permissions"
    - Allow GitHub Actions to create and approve pull requests
@@ -601,10 +630,13 @@ All template files include `# CUSTOMIZE:` comments marking required changes:
 **FUNDING.yml:**
 - `github: [YOUR_GITHUB_USERNAME]` → Replace with your username
 
+**mise.toml:**
+- Tool versions (`go`, `golangci-lint`, `goreleaser`) → adjust as needed (used by dev + CI)
+- Docker tools (`buildx`, `docker-cli`) → uncomment if publishing images
+
 **workflows/*.yml:**
-- `go-version: stable` → Set to specific version (e.g., "1.24.x")
-- `go-version: '>=1.24'` → Update minimum version
 - Tag patterns in release.yml → Adjust semver format if needed
+- Optional docker block in snapshot.yml / release.yml → uncomment for image publishing
 
 **dependabot.yml:**
 - `interval: monthly` → Change to daily/weekly for active projects
@@ -638,9 +670,10 @@ All template files include `# CUSTOMIZE:` comments marking required changes:
 ## Limitations
 
 **This command does NOT:**
-- Generate Taskfile.yml (too project-specific, create manually)
-- Generate .goreleaser.yml (use `/goreleaser` command)
-- Generate .golangci.yml (use `/linter` command)
+- Generate Taskfile.yml (use `/gen-taskfiles`, which also manages mise.toml)
+- Generate .goreleaser.yml (use `/gen-goreleaser` command)
+- Generate .golangci.yml (use `/gen-linter` command)
+- Modify an existing mise.toml (it is preserved; only created when missing)
 - Modify existing workflow files intelligently (use `--force` to overwrite)
 - Validate that workflows will work (requires proper setup)
 - Configure GitHub repository settings (must be done via UI)
@@ -654,7 +687,8 @@ All template files include `# CUSTOMIZE:` comments marking required changes:
 ## Success Criteria
 
 ✅ Prerequisites validated (git repo, Go project)
-✅ Template files read from skill assets (6 files)
+✅ Template files read from skill assets (6 .github files + mise.toml)
+✅ mise.toml ensured (created with detected versions if missing, else preserved)
 ✅ User confirmation obtained (unless `--force`)
 ✅ .github directory created
 ✅ .github/workflows/ subdirectory created
@@ -691,13 +725,11 @@ All template files include `# CUSTOMIZE:` comments marking required changes:
 ## Output Summary
 
 **Standard mode (default):**
-- 6 files created
-- 549 total lines
-- Comprehensive CI/CD pipeline
+- 6 `.github` files + mise.toml (if missing)
+- Comprehensive, mise-based CI/CD pipeline
 
 **Minimal mode (`--minimal`):**
-- 3 files created
-- 319 total lines
+- 3 `.github` files + mise.toml (if missing)
 - Essential linting + releases
 
 **Dry run mode (`--dry-run`):**

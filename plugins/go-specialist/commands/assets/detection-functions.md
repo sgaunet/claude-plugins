@@ -155,6 +155,13 @@ substitute_version_placeholders() {
     done
     echo "$content"
 }
+
+# Function 14: Strip a leading "v" from a version string
+# mise's `github:golangci/golangci-lint` backend expects a BARE version
+# (e.g. "2.12.2"), whereas gh release tags are "v"-prefixed (e.g. "v2.12.2").
+strip_leading_v() {
+    echo "${1#v}"
+}
 ```
 
 ## Usage
@@ -188,15 +195,13 @@ template=$(substitute_placeholders "$template" \
     "$PROJECT_NAME" "$OWNER" "$REGISTRY" "$MAIN_DIR" "$AUTHOR_NAME" "$AUTHOR_EMAIL")
 ```
 
-### Version detection (gen-taskfiles, gen-gitlab-ci, gen-github-dir)
+### Version detection
 
 ```bash
 PRE_COMMIT_HOOKS_VERSION=$(detect_pre_commit_hooks_version)
-DOCKER_DIND_VERSION=$(detect_docker_dind_version)
 GOLANGCI_LINT_VERSION=$(detect_golangci_lint_version)
 GORELEASER_VERSION=$(detect_goreleaser_version)
 GO_VERSION=$(detect_go_version)
-GOLANGCI_LINT_BINARIES_LOCATION=$(derive_golangci_lint_binaries_location "${GOLANGCI_LINT_VERSION:-v2.2.2}")
 ```
 
 ### Version placeholder substitution
@@ -205,18 +210,36 @@ GOLANGCI_LINT_BINARIES_LOCATION=$(derive_golangci_lint_binaries_location "${GOLA
 # gen-taskfiles (.pre-commit-config.yaml)
 template=$(substitute_version_placeholders "$template" \
     "PRE_COMMIT_HOOKS_VERSION=${PRE_COMMIT_HOOKS_VERSION:-v4.3.0}")
-
-# gen-gitlab-ci (.gitlab-ci.yml)
-template=$(substitute_version_placeholders "$template" \
-    "GO_VERSION=${GO_VERSION:-1.25.1}" \
-    "DOCKER_DIND_VERSION=${DOCKER_DIND_VERSION:-20.10.16-dind}" \
-    "GORELEASER_VERSION=${GORELEASER_VERSION:-v2.12.0}")
-
-# gen-github-dir (linter.yml)
-template=$(substitute_version_placeholders "$template" \
-    "GOLANGCI_LINT_VERSION=${GOLANGCI_LINT_VERSION:-v2.2.2}" \
-    "GOLANGCI_LINT_BINARIES_LOCATION=${GOLANGCI_LINT_BINARIES_LOCATION:-golangci-lint-2.2.2-linux-amd64}")
 ```
+
+### mise.toml substitution (gen-taskfiles, gen-github-dir, gen-forgejo-dir, gen-gitlab-ci)
+
+`mise.toml` is the single source of truth for tool versions. The CI workflow
+templates are now static (no version placeholders) — versions are substituted
+into `mise.toml` instead, then the workflows install via mise.
+
+```bash
+# Detect versions
+GO_VERSION=$(detect_go_version)
+GOLANGCI_LINT_VERSION=$(detect_golangci_lint_version)
+GORELEASER_VERSION=$(detect_goreleaser_version)
+
+# golangci-lint's github: backend wants a BARE version (strip the leading "v")
+GOLANGCI_LINT_VERSION_BARE=$(strip_leading_v "${GOLANGCI_LINT_VERSION:-v2.2.2}")
+
+# Substitute into the mise.toml template
+mise_template=$(substitute_version_placeholders "$mise_template" \
+    "GO_VERSION=${GO_VERSION:-1.25}" \
+    "GOLANGCI_LINT_VERSION_BARE=${GOLANGCI_LINT_VERSION_BARE:-2.2.2}" \
+    "GORELEASER_VERSION=${GORELEASER_VERSION:-v2.12.0}")
+```
+
+The **CI generators** (`/gen-github-dir`, `/gen-forgejo-dir`, `/gen-gitlab-ci`)
+only write `mise.toml` if it does not already exist in the target repo — they
+never overwrite a project's existing tool pins. The one exception is
+`/gen-taskfiles`, the canonical owner of `mise.toml`: it may regenerate and
+overwrite the file (e.g. when run with `--force`) to refresh the pinned tool
+versions.
 
 ## Placeholder Reference
 
@@ -232,8 +255,9 @@ template=$(substitute_version_placeholders "$template" \
 | `[AUTHOR_NAME]` | git config user.name | Empty string |
 | `[AUTHOR_EMAIL]` | git config user.email | Empty string |
 | `[PRE_COMMIT_HOOKS_VERSION]` | `gh release view --repo pre-commit/pre-commit-hooks` | `v4.3.0` |
-| `[DOCKER_DIND_VERSION]` | Docker Hub API | `20.10.16-dind` |
+| `[DOCKER_DIND_VERSION]` | Docker Hub API (legacy; pre-mise GitLab CI) | `20.10.16-dind` |
 | `[GO_VERSION]` | go.mod | `1.25.1` |
 | `[GORELEASER_VERSION]` | `gh release view --repo goreleaser/goreleaser` | `v2.12.0` |
 | `[GOLANGCI_LINT_VERSION]` | `gh release view --repo golangci/golangci-lint` | `v2.2.2` |
-| `[GOLANGCI_LINT_BINARIES_LOCATION]` | Derived from GOLANGCI_LINT_VERSION | `golangci-lint-2.2.2-linux-amd64` |
+| `[GOLANGCI_LINT_VERSION_BARE]` | `strip_leading_v` of GOLANGCI_LINT_VERSION (for mise.toml) | `2.2.2` |
+| `[GOLANGCI_LINT_BINARIES_LOCATION]` | Derived from GOLANGCI_LINT_VERSION (legacy; pre-mise workflows) | `golangci-lint-2.2.2-linux-amd64` |

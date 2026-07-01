@@ -7,17 +7,18 @@ allowed-tools: Read, Write, Bash(git:*), Bash(test:*), AskUserQuestion
 
 # Generate GitLab CI Configuration Command
 
-Instantly create a `.gitlab-ci.yml` file for Go projects with production-ready GitLab CI/CD pipeline including unit tests, optional coverage reporting, snapshot builds, and automated releases.
+Instantly create a `.gitlab-ci.yml` file for Go projects with a production-ready, **mise-based** GitLab CI/CD pipeline including unit tests, linting, optional coverage reporting, snapshot builds, and automated releases.
 
 ## Why This Command Exists
 
-**Problem**: Setting up GitLab CI/CD for Go projects requires manually creating pipeline configuration, understanding GitLab CI syntax, and configuring Docker-in-Docker - a 30-45 minute process.
+**Problem**: Setting up GitLab CI/CD for Go projects requires manually creating pipeline configuration, understanding GitLab CI syntax, and keeping tool versions in sync between local development and CI - a 30-45 minute process.
 
 **Solution**: One-command generation that:
-- Creates complete `.gitlab-ci.yml` configuration (139 lines)
-- Includes comprehensive pipeline: unit tests, coverage, snapshot builds, releases
-- Configures Docker-in-Docker for container builds
-- Supports multi-registry publishing (GitLab + external)
+- Creates a complete `.gitlab-ci.yml` configuration (mise-based)
+- Runs every job in the `jdx/mise:latest` image, installs tools via `mise install`, then runs `task …` — so CI uses the exact versions pinned in `mise.toml`
+- Ensures a `mise.toml` exists at the repo root (creates one with detected versions if missing) — the single source of truth shared with local dev
+- Includes a pipeline: unit tests, linter, snapshot builds, releases (+ optional coverage)
+- Keeps Docker-in-Docker image publishing as a clearly-marked optional block
 - Preserves all customization comments for user control
 
 ## Content Generation Rules
@@ -56,7 +57,8 @@ Instantly create a `.gitlab-ci.yml` file for Go projects with production-ready G
 
 4. **Verify command assets directory:**
    - Use Read tool to verify `${CLAUDE_PLUGIN_ROOT}/commands/assets/gitlab-ci/.gitlab-ci.yml` exists
-   - If fails: Exit with error "Command assets directory not found at ${CLAUDE_PLUGIN_ROOT}/commands/assets/gitlab-ci/. Plugin may be corrupted. Reinstall the go-specialist plugin."
+   - Use Read tool to verify `${CLAUDE_PLUGIN_ROOT}/commands/assets/mise/mise.toml` exists
+   - If either fails: Exit with error "Command assets directory not found at ${CLAUDE_PLUGIN_ROOT}/commands/assets/. Plugin may be corrupted. Reinstall the go-specialist plugin."
 
 5. **Check for .goreleaser.yml (non-blocking):**
    ```bash
@@ -64,6 +66,13 @@ Instantly create a `.gitlab-ci.yml` file for Go projects with production-ready G
    ```
    - If missing: Store `goreleaserMissing = true` (warn in Phase 6, don't block creation)
    - If exists: Store `goreleaserMissing = false`
+
+6. **Check existing mise.toml:**
+   ```bash
+   test -f mise.toml
+   ```
+   - Store `existingMise = true|false`. The pipeline depends on `mise.toml`; if it
+     is missing this command creates one (Phase 3.5). An existing one is preserved.
 
 ### Phase 2: Argument Parsing
 
@@ -81,20 +90,26 @@ for each arg in arguments:
   if arg == "--dry-run": set dryRunMode = true
 ```
 
-**No minimal mode:** Template is already compact at 139 lines with comprehensive coverage.
+**No minimal mode:** The template is already compact with comprehensive coverage.
 
 ### Phase 3: Template Reading
 
 **Read template file** from command assets directory:
 
-**File to read:**
+**Files to read:**
 
-1. **.gitlab-ci.yml** (139 lines)
+1. **.gitlab-ci.yml**
    - Path: `${CLAUDE_PLUGIN_ROOT}/commands/assets/gitlab-ci/.gitlab-ci.yml`
    - Target: `.gitlab-ci.yml` (project root)
 
+2. **mise.toml** [Only if `existingMise == false`]
+   - Path: `${CLAUDE_PLUGIN_ROOT}/commands/assets/mise/mise.toml`
+   - Target: `mise.toml` (repo root)
+
 **Template handling:**
 - Store content in memory for Phase 3.5 substitution
+- The `.gitlab-ci.yml` template is **static** apart from the runner `tags:` —
+  tool versioning lives in `mise.toml`.
 - Preserve all `# CUSTOMIZE:` comments
 
 **Error handling:**
@@ -102,29 +117,31 @@ for each arg in arguments:
 
 ### Phase 3.5: Auto-Detection & Substitution
 
-**Detection Function Library:** Use the shared detection functions from `${CLAUDE_PLUGIN_ROOT}/commands/assets/detection-functions.md`. Read that file to get all bash detection functions (`detect_go_version`, `detect_docker_dind_version`, `detect_goreleaser_version`, `substitute_version_placeholders`).
+**Detection Function Library:** Use the shared detection functions from `${CLAUDE_PLUGIN_ROOT}/commands/assets/detection-functions.md`. Read that file to get the bash detection functions (`detect_go_version`, `detect_golangci_lint_version`, `detect_goreleaser_version`, `strip_leading_v`, `substitute_version_placeholders`).
 
 **Detection Workflow:**
 
-1. **Detect version values:**
-   ```bash
-   GO_VERSION=$(detect_go_version)
-   DOCKER_DIND_VERSION=$(detect_docker_dind_version)
-   GORELEASER_VERSION=$(detect_goreleaser_version)
-   ```
+1. **The `.gitlab-ci.yml` template needs no version substitution.** Every job runs
+   in the `jdx/mise:latest` image and installs tools via `mise install`, so tool
+   versions come from `mise.toml`, not the pipeline YAML. The only thing to review
+   is the runner `tags:` (see customizations).
 
-2. **Handle missing values (fallback defaults):**
-   - If `GO_VERSION` is empty: Use `1.25.1`
-   - If `DOCKER_DIND_VERSION` is empty: Use `20.10.16-dind`
-   - If `GORELEASER_VERSION` is empty: Use `v2.12.0`
-
-3. **Substitute version placeholders in .gitlab-ci.yml template:**
+2. **Ensure `mise.toml` exists (create if missing):**
    ```bash
-   gitlab_ci_template=$(substitute_version_placeholders "$gitlab_ci_template" \
-       "GO_VERSION=${GO_VERSION:-1.25.1}" \
-       "DOCKER_DIND_VERSION=${DOCKER_DIND_VERSION:-20.10.16-dind}" \
-       "GORELEASER_VERSION=${GORELEASER_VERSION:-v2.12.0}")
+   if [[ "$existingMise" != "true" ]]; then
+       GO_VERSION=$(detect_go_version)
+       GOLANGCI_LINT_VERSION=$(detect_golangci_lint_version)
+       GORELEASER_VERSION=$(detect_goreleaser_version)
+       GOLANGCI_LINT_VERSION_BARE=$(strip_leading_v "${GOLANGCI_LINT_VERSION:-v2.2.2}")
+
+       mise_template=$(substitute_version_placeholders "$mise_template" \
+           "GO_VERSION=${GO_VERSION:-1.25}" \
+           "GOLANGCI_LINT_VERSION_BARE=${GOLANGCI_LINT_VERSION_BARE:-2.2.2}" \
+           "GORELEASER_VERSION=${GORELEASER_VERSION:-v2.12.0}")
+       # Written in Phase 5.
+   fi
    ```
+   - If `existingMise == true`: do NOT modify the existing `mise.toml`; note it in the report.
 
 ### Phase 4: User Confirmation
 
@@ -133,23 +150,29 @@ for each arg in arguments:
 ```
 File to be created:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✅ .gitlab-ci.yml (139 lines)
+✅ .gitlab-ci.yml
 
-Pipeline Structure:
-- 4 Stages: build, test, release, deploy
-- 4 Jobs:
-  • unit-tests: Run on every push
+Pipeline Structure (mise-based):
+- 2 Stages: test, release
+- Jobs (each runs in jdx/mise:latest, `mise install`, then `task ...`):
+  • unit-tests: `task test` on every push
+  • linter: `task lint` on every push
+  • build-snapshot: `task snapshot` (test release, no publish)
+  • build-release: `task release` on Git tags
   • coverage: Optional (currently commented out)
-  • build-snapshot: Test releases without publishing
-  • build-release: Production releases on Git tags
+
+[If existingMise == false:]
+✅ mise.toml (created — pins go/task/golangci-lint/goreleaser for dev + CI)
+[If existingMise == true:]
+ℹ️  mise.toml already exists — preserved (pipeline will use it as-is)
 
 [If existingGitlabCi == true:]
 ⚠️  WARNING: .gitlab-ci.yml already exists and will be overwritten
 
 [If goreleaserMissing == true:]
 ⚠️  NOTE: .goreleaser.yml not found
-    Pipeline jobs will require this file to function.
-    Generate with: /goreleaser
+    The snapshot/release jobs require this file to function.
+    Generate with: /gen-goreleaser
 ```
 
 **Dry run mode:**
@@ -191,13 +214,18 @@ If `dryRunMode == true`:
 
 **File writing:**
 
-Write `.gitlab-ci.yml` to current working directory (project root):
-- Use Write tool with file path: `.gitlab-ci.yml`
-- Write content from Phase 3.5 (with version substitutions applied)
-- Track success/failure status
+1. `mise.toml` [Only if `existingMise == false`]
+   - Use Write tool with file path: `mise.toml`
+   - Write the version-substituted template from Phase 3.5
+   - If `existingMise == true`: skip (preserve the project's existing tool pins)
+
+2. `.gitlab-ci.yml`
+   - Use Write tool with file path: `.gitlab-ci.yml`
+   - Write content from Phase 3 (static apart from runner tags)
+   - Track success/failure status
 
 **Error handling:**
-- If write fails: Exit with error message detailing failure
+- If a write fails: Report the error (continue if at least `.gitlab-ci.yml` succeeds)
 - If successful: Proceed to Phase 6 validation
 
 ### Phase 6: Validation & Success Report
@@ -215,56 +243,49 @@ Write `.gitlab-ci.yml` to current working directory (project root):
 ✅ GitLab CI Configuration Created Successfully
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Created File:
-✅ .gitlab-ci.yml (139 lines)
+Created Files:
+✅ .gitlab-ci.yml
+✅ mise.toml [if created] / ℹ️ mise.toml preserved [if it already existed]
 
-Pipeline Structure:
+Pipeline Structure (mise-based):
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📋 4 Stages: build, test, release, deploy
-🔧 4 Jobs:
-   - unit-tests: Run on every push
+📋 2 Stages: test, release
+🔧 Jobs (each: jdx/mise:latest → `mise install` → `task ...`):
+   - unit-tests: `task test` on every push
+   - linter: `task lint` on every push
+   - build-snapshot: `task snapshot` (no publish)
+   - build-release: `task release` on Git tags
    - coverage: Optional (currently commented out)
-   - build-snapshot: Test releases without publishing
-   - build-release: Production releases on Git tags
 
-Auto-detected Versions:
+[If mise.toml was created:]
+Tool versions pinned in mise.toml:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  ✓ Go version: <GO_VERSION> (from go.mod)
-  ✓ Docker DinD: <DOCKER_DIND_VERSION> (latest from Docker Hub)
-  ✓ GoReleaser: <GORELEASER_VERSION> (latest from GitHub)
+  ✓ Go: <GO_VERSION> (from go.mod)
+  ✓ golangci-lint: <GOLANGCI_LINT_VERSION_BARE>
+  ✓ goreleaser: <GORELEASER_VERSION>
 
 Required Customizations:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-⚠️  PRIORITY 1 - Must configure for pipeline to work:
+⚠️  PRIORITY 1 - Must configure for the pipeline to work:
 
-1. Configure GitLab Runner tags (4 locations) - MOST CRITICAL:
+1. Configure GitLab Runner tags (one per job) - MOST CRITICAL:
    - Find: tags: [gitlab-org-docker]
    - Replace: With your runner tags
    - How to find tags: GitLab Settings → CI/CD → Runners
    - Common tags: docker, linux, kubernetes
 
-2. Verify auto-detected Go version:
-   - Auto-configured from go.mod: golang:<GO_VERSION>
-   - Adjust if you need a different version
+2. Tool versions live in mise.toml (not the pipeline YAML):
+   - Edit mise.toml to change Go / golangci-lint / goreleaser versions
+   - Same versions are used locally (`mise install`) and in CI
 
-3. Verify auto-detected GoReleaser version:
-   - Auto-configured from latest release: goreleaser/goreleaser:<GORELEASER_VERSION>
-   - Adjust if you need a specific version
-
-4. Enable coverage job (optional):
-   - Uncomment lines 74-92 in .gitlab-ci.yml
+3. Enable coverage job (optional):
+   - Uncomment the `coverage:` job in .gitlab-ci.yml
    - Configure coverage exclusions if needed
 
-5. Configure external Docker registry (optional):
-   - GitLab Settings → CI/CD → Variables
-   - Add: EXTERNAL_CI_REGISTRY, EXTERNAL_CI_REGISTRY_USER, EXTERNAL_CI_REGISTRY_PASSWORD
-
-GitLab CI/CD Variables (Auto-configured):
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✅ CI_REGISTRY: GitLab Container Registry URL
-✅ CI_REGISTRY_IMAGE: Your project's registry path
-✅ CI_REGISTRY_USER: Auto-authenticated as gitlab-ci-token
-✅ CI_JOB_TOKEN: Auto-generated token for registry push
+4. Publishing Docker images (optional):
+   - Uncomment the docker tools in mise.toml (buildx, docker-cli)
+   - Uncomment the `.docker-dind` block in .gitlab-ci.yml and `extends:` it from
+     the release jobs (uses CI_REGISTRY / CI_JOB_TOKEN for auth)
 
 GoReleaser Configuration Status:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -282,24 +303,28 @@ GoReleaser Configuration Status:
 Common Issues & Troubleshooting:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ❌ "No such runner tags: gitlab-org-docker"
-   → Update runner tags in .gitlab-ci.yml (4 locations)
+   → Update runner tags in .gitlab-ci.yml (one per job)
    → Check available tags: Settings → CI/CD → Runners
 
 ❌ "goreleaser: config file not found"
-   → Generate .goreleaser.yml with /goreleaser skill
+   → Generate .goreleaser.yml with /gen-goreleaser
    → Or create manually at project root
 
-❌ "Docker login failed" in pipeline jobs
+❌ "task: command not found" / "mise: command not found"
+   → The jobs run in jdx/mise:latest and call `mise install` in before_script
+   → Ensure mise.toml exists at the repo root (this command creates it)
+
+❌ "Docker login failed" (only if you enabled the optional docker block)
    → Enable Container Registry: Settings → General → Visibility
-   → Verify Docker-in-Docker service configured in runner
+   → Verify the .docker-dind block is uncommented and extended by the release jobs
 
 Next Steps:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. Review and customize .gitlab-ci.yml
-2. Ensure .goreleaser.yml exists (use /goreleaser skill if needed)
+1. Review and customize .gitlab-ci.yml (runner tags) and mise.toml (versions)
+2. Ensure .goreleaser.yml exists (use /gen-goreleaser if needed)
 3. Commit changes:
-   git add .gitlab-ci.yml
-   git commit -m "ci: add GitLab CI/CD pipeline"
+   git add .gitlab-ci.yml mise.toml
+   git commit -m "ci: add mise-based GitLab CI/CD pipeline"
 
 4. Push to GitLab:
    git push origin main
@@ -408,9 +433,10 @@ Current permissions: [show with ls -ld .]
 
 ## File Mapping
 
-| Source Path | Target (Relative to CWD) | Lines |
-|-------------|--------------------------|-------|
-| `${CLAUDE_PLUGIN_ROOT}/commands/assets/gitlab-ci/.gitlab-ci.yml` | `.gitlab-ci.yml` | 139 |
+| Source Path | Target (Relative to CWD) | Mode |
+|-------------|--------------------------|------|
+| `${CLAUDE_PLUGIN_ROOT}/commands/assets/gitlab-ci/.gitlab-ci.yml` | `.gitlab-ci.yml` | Always |
+| `${CLAUDE_PLUGIN_ROOT}/commands/assets/mise/mise.toml` | `mise.toml` | Create-if-missing |
 
 ## Integration with Other Commands
 
@@ -421,19 +447,22 @@ Current permissions: [show with ls -ld .]
 
 **Typical Workflow:**
 ```bash
-# 1. Generate GitLab CI configuration
+# 1. Generate dev tooling first (Taskfile.yml + mise.toml)
+/gen-taskfiles
+
+# 2. Generate GitLab CI configuration (reuses mise.toml; creates it if missing)
 /gen-gitlab-ci
 
-# 2. Generate GoReleaser config (required)
-/goreleaser
+# 3. Generate GoReleaser config (required)
+/gen-goreleaser
 
-# 3. Customize files
-# Edit .gitlab-ci.yml: Update runner tags, Go version
-# Edit .goreleaser.yml: Configure builds and Docker images
+# 4. Customize files
+# Edit .gitlab-ci.yml: Update runner tags
+# Edit mise.toml: Adjust tool versions if needed
 
-# 4. Commit everything
-git add .gitlab-ci.yml .goreleaser.yml
-git commit -m "ci: add GitLab CI/CD pipeline"
+# 5. Commit everything
+git add .gitlab-ci.yml mise.toml Taskfile*.yml .goreleaser.yml
+git commit -m "ci: add mise-based GitLab CI/CD pipeline"
 
 # 5. Push and verify
 git push origin main
@@ -444,28 +473,30 @@ git push origin main
 
 **Required for pipeline to function:**
 
-1. **.goreleaser.yml** configuration:
-   - Generate with `/goreleaser` command
-   - Required for build-snapshot and build-release jobs
+1. **mise.toml** (auto-created by this command if missing):
+   - Pins the tool versions installed via `mise install` in every job
+   - Managed canonically by `/gen-taskfiles`
 
-2. **GitLab Runner** with Docker executor:
-   - Runner must have Docker-in-Docker capability
-   - Update runner tags in .gitlab-ci.yml (4 locations)
+2. **Taskfile.yml** with `test`, `lint`, `snapshot`, `release` tasks:
+   - Generate with `/gen-taskfiles` (also emits mise.toml)
+
+3. **.goreleaser.yml** configuration:
+   - Generate with `/gen-goreleaser` (required for build-snapshot and build-release)
+
+4. **GitLab Runner** that can run container images:
+   - Update runner tags in .gitlab-ci.yml (one per job)
    - Check available runners: Settings → CI/CD → Runners
-
-3. **GitLab Container Registry** enabled:
-   - Settings → General → Visibility, project features, permissions
-   - Enable "Container Registry"
+   - Docker-in-Docker is only needed if you enable the optional image-publishing block
 
 **Optional enhancements:**
 
 1. **Coverage reporting:**
-   - Uncomment coverage job in .gitlab-ci.yml (lines 74-92)
+   - Uncomment the `coverage:` job in .gitlab-ci.yml
    - Configure coverage badge in README.md
 
-2. **External Docker registry:**
-   - Add CI/CD variables: EXTERNAL_CI_REGISTRY, EXTERNAL_CI_REGISTRY_USER, EXTERNAL_CI_REGISTRY_PASSWORD
-   - Settings → CI/CD → Variables
+2. **Docker image publishing:**
+   - Uncomment the docker tools in mise.toml (buildx, docker-cli)
+   - Uncomment the `.docker-dind` block and `extends:` it from the release jobs
 
 3. **Custom tag patterns:**
    - Edit build-release job in .gitlab-ci.yml
@@ -475,13 +506,15 @@ git push origin main
 
 All template files include `# CUSTOMIZE:` comments marking required changes:
 
+**mise.toml:**
+- Tool versions (`go`, `golangci-lint`, `goreleaser`) → adjust as needed (used by dev + CI)
+- Docker tools (`buildx`, `docker-cli`) → uncomment if publishing images
+
 **.gitlab-ci.yml:**
-- `tags: [gitlab-org-docker]` (4 locations) → Replace with your runner tags
-- `image: golang:<GO_VERSION>` → Auto-detected from go.mod, verify if needed
-- `goreleaser/goreleaser:<GORELEASER_VERSION>` → Auto-detected latest, verify if needed
-- Coverage job (lines 74-92) → Uncomment to enable
-- Coverage exclusions → Configure sed patterns if needed
-- Tag filtering → Adjust in build-release job
+- `tags: [gitlab-org-docker]` (one per job) → Replace with your runner tags
+- `coverage:` job → Uncomment to enable (configure exclusions if needed)
+- `.docker-dind` block → Uncomment + `extends:` from release jobs to publish images
+- Tag filtering → Adjust the `rules:` in the build-release job
 
 ## Best Practices
 
@@ -508,23 +541,26 @@ All template files include `# CUSTOMIZE:` comments marking required changes:
 ## Limitations
 
 **This command does NOT:**
-- Generate .goreleaser.yml (use `/goreleaser` command)
+- Generate .goreleaser.yml (use `/gen-goreleaser` command)
+- Generate Taskfile.yml (use `/gen-taskfiles`, which also manages mise.toml)
+- Modify an existing mise.toml (it is preserved; only created when missing)
 - Modify existing .gitlab-ci.yml intelligently (use `--force` to overwrite)
 - Validate that pipeline will work (requires proper runner setup)
 - Configure GitLab repository settings (must be done via UI)
 - Create GitLab Runners (requires infrastructure setup)
 
 **Scope boundaries:**
-- Only handles `.gitlab-ci.yml` file
+- Handles `.gitlab-ci.yml` (and creates mise.toml when missing)
 - Template is opinionated (aligned with Go best practices)
 - Assumes standard Go project structure
-- Requires manual customization post-generation
-- Requires Docker-in-Docker capable runners
+- Requires manual customization post-generation (runner tags)
+- Docker-in-Docker only required if you enable the optional image-publishing block
 
 ## Success Criteria
 
 ✅ Prerequisites validated (git repo, Go project)
-✅ Template file read from skill assets
+✅ Template files read from skill assets (.gitlab-ci.yml + mise.toml)
+✅ mise.toml ensured (created with detected versions if missing, else preserved)
 ✅ User confirmation obtained (unless `--force`)
 ✅ .gitlab-ci.yml written successfully
 ✅ File validated (exists and non-zero size)
@@ -553,9 +589,8 @@ All template files include `# CUSTOMIZE:` comments marking required changes:
 ## Output Summary
 
 **Standard mode (default):**
-- 1 file created
-- 139 total lines
-- Comprehensive CI/CD pipeline with 4 stages and 4 jobs
+- .gitlab-ci.yml + mise.toml (if missing)
+- Comprehensive, mise-based CI/CD pipeline (test + release stages)
 
 **Dry run mode (`--dry-run`):**
 - 0 files created

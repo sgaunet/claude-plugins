@@ -1,7 +1,8 @@
 # Coverage Badge Workflow
-# Generates test coverage badge on main branch pushes
-# Badge is committed to repository and can be displayed in README
-# CUSTOMIZE: Adjust coverage threshold and repository references
+# Generates a test coverage badge on main branch pushes.
+# Go is installed by mise from mise.toml, so the coverage run uses the same Go
+# version as local development and the other workflows.
+# CUSTOMIZE: Adjust coverage threshold and repository references.
 
 name: Generate coverage badges
 
@@ -16,14 +17,13 @@ jobs:
   generate-badges:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
-      # Setup Go environment
-      # Uses Go version from go.mod for consistency
-      - name: Set up Go
-        uses: actions/setup-go@v6
+      # Install the Go toolchain pinned in mise.toml
+      - uses: jdx/mise-action@v3
         with:
-          go-version-file: 'go.mod'
+          install: true # [default: true] run `mise install`
+          cache: true # [default: true] cache mise using GitHub's cache
 
       # Run tests with coverage
       # CUSTOMIZE: Adjust coverage commands for your project structure
@@ -49,7 +49,7 @@ jobs:
 
       # Checkout badge generation action
       # CUSTOMIZE: Replace with your own badge action if preferred
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           repository: sgaunet/gh-action-badge
           path: gh-action-badge

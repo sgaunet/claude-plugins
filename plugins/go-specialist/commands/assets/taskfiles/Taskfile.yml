@@ -11,7 +11,7 @@ tasks:
     desc: "List tasks"
     preconditions:
       - sh: test -f .git/hooks/pre-commit
-        msg: "Pre-commit hook is not set up. Please run 'task pre-commit-setup' first."
+        msg: "Pre-commit hook is not set up. Please run 'task dev:install-pre-commit' first."
     cmds:
       - task -a
 
@@ -19,7 +19,7 @@ tasks:
     desc: "Run checks before committing"
     preconditions:
       - sh: test -f .git/hooks/pre-commit
-        msg: "Pre-commit hook is not set up. Please run 'task pre-commit-setup' first."
+        msg: "Pre-commit hook is not set up. Please run 'task dev:install-pre-commit' first."
     deps:
       - test
       - snapshot

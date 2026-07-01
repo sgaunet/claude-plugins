@@ -1,24 +1,26 @@
 ---
 name: gen-taskfiles
-description: Generate Taskfile.yml, Taskfile_dev.yml, and .pre-commit-config.yaml for Go projects with comprehensive task automation
+description: Generate mise.toml, Taskfile.yml, Taskfile_dev.yml, and .pre-commit-config.yaml for Go projects with comprehensive task automation
 argument-hint: "[--force] [--dry-run]"
 allowed-tools: Read, Write, Bash(git:*), Bash(test:*), AskUserQuestion
 ---
 
 # Generate Taskfiles Command
 
-Instantly create complete Task automation setup for Go projects including main Taskfile, development tasks, and pre-commit hooks configuration. This command provides a comprehensive task runner setup with linting, testing, building, and release automation.
+Instantly create a complete Task automation setup for Go projects including a `mise.toml` (development tool versions), the main Taskfile, development tasks, and pre-commit hooks configuration. This command provides a comprehensive task runner setup with linting, testing, building, and release automation — and pins the tool versions so local development and CI stay in sync.
 
 ## Why This Command Exists
 
-**Problem**: Setting up task automation for Go projects requires manually creating Taskfile configuration, understanding Task syntax, and configuring pre-commit hooks - a 20-30 minute process.
+**Problem**: Setting up task automation for Go projects requires manually creating Taskfile configuration, understanding Task syntax, pinning tool versions, and configuring pre-commit hooks - a 20-30 minute process.
 
 **Solution**: One-command generation that:
-- Creates complete Taskfile setup (3 files, 105 lines total)
+- Creates complete dev setup (4 files): `mise.toml`, `Taskfile.yml`, `Taskfile_dev.yml`, `.pre-commit-config.yaml`
+- Pins tool versions in `mise.toml` (go, task, golangci-lint, goreleaser) so local dev and CI use identical versions
 - Includes tasks: lint, test, build, snapshot, release, image, doc
 - Configures pre-commit hooks for automated quality checks
 - Integrates with golangci-lint and goreleaser
-- Provides development-specific tasks (pre-commit installation)
+
+**mise.toml** is the single source of truth for tool versions. It is consumed by the CI generators (`/gen-github-dir`, `/gen-forgejo-dir`, `/gen-gitlab-ci`), whose workflows install tools via mise and then run `task …`. See https://mise.jdx.dev.
 
 ## Content Generation Rules
 
@@ -49,16 +51,20 @@ Instantly create complete Task automation setup for Go projects including main T
 
 3. **Check existing taskfiles:**
    ```bash
+   test -f mise.toml
    test -f Taskfile.yml
    test -f Taskfile_dev.yml
    test -f .pre-commit-config.yaml
    ```
    - Store which files exist: `existingFiles = []`
    - If any exist: Store `hasExistingFiles = true`
+   - Note `mise.toml` separately as `existingMise = true|false` (a pre-existing
+     `mise.toml` already pins tool versions; default to preserving it unless `--force`).
 
 4. **Verify command assets directory:**
    - Use Read tool to verify `${CLAUDE_PLUGIN_ROOT}/commands/assets/taskfiles/Taskfile.yml` exists
-   - If fails: Exit with error "Command assets directory not found at ${CLAUDE_PLUGIN_ROOT}/commands/assets/taskfiles/. Plugin may be corrupted. Reinstall the go-specialist plugin."
+   - Use Read tool to verify `${CLAUDE_PLUGIN_ROOT}/commands/assets/mise/mise.toml` exists
+   - If either fails: Exit with error "Command assets directory not found at ${CLAUDE_PLUGIN_ROOT}/commands/assets/. Plugin may be corrupted. Reinstall the go-specialist plugin."
 
 5. **Check for supporting configs (non-blocking):**
    ```bash
@@ -90,15 +96,19 @@ for each arg in arguments:
 
 **Files to read:**
 
-1. **Taskfile.yml** (66 lines)
+1. **mise.toml**
+   - Path: `${CLAUDE_PLUGIN_ROOT}/commands/assets/mise/mise.toml`
+   - Target: `mise.toml` (project root)
+
+2. **Taskfile.yml** (66 lines)
    - Path: `${CLAUDE_PLUGIN_ROOT}/commands/assets/taskfiles/Taskfile.yml`
    - Target: `Taskfile.yml` (project root)
 
-2. **Taskfile_dev.yml** (14 lines)
+3. **Taskfile_dev.yml** (14 lines)
    - Path: `${CLAUDE_PLUGIN_ROOT}/commands/assets/taskfiles/Taskfile_dev.yml`
    - Target: `Taskfile_dev.yml` (project root)
 
-3. **.pre-commit-config.yaml** (25 lines)
+4. **.pre-commit-config.yaml** (25 lines)
    - Path: `${CLAUDE_PLUGIN_ROOT}/commands/assets/taskfiles/.pre-commit-config.yaml`
    - Target: `.pre-commit-config.yaml` (project root)
 
@@ -111,7 +121,7 @@ for each arg in arguments:
 
 ### Phase 3.5: Auto-Detection & Substitution
 
-**Detection Function Library:** Use the shared detection functions from `${CLAUDE_PLUGIN_ROOT}/commands/assets/detection-functions.md`. Read that file to get all bash detection functions (`detect_project_name`, `detect_git_owner`, `detect_main_dir`, `detect_registry`, `substitute_placeholders`).
+**Detection Function Library:** Use the shared detection functions from `${CLAUDE_PLUGIN_ROOT}/commands/assets/detection-functions.md`. Read that file to get all bash detection functions (`detect_project_name`, `detect_git_owner`, `detect_main_dir`, `detect_registry`, `detect_go_version`, `detect_golangci_lint_version`, `detect_goreleaser_version`, `strip_leading_v`, `substitute_placeholders`, `substitute_version_placeholders`).
 
 **Detection Workflow:**
 
@@ -122,6 +132,21 @@ for each arg in arguments:
    REGISTRY=$(detect_registry)
    MAIN_DIR=$(detect_main_dir)
    ```
+
+0. **Detect tool versions for mise.toml:**
+   ```bash
+   GO_VERSION=$(detect_go_version)
+   GOLANGCI_LINT_VERSION=$(detect_golangci_lint_version)
+   GORELEASER_VERSION=$(detect_goreleaser_version)
+   GOLANGCI_LINT_VERSION_BARE=$(strip_leading_v "${GOLANGCI_LINT_VERSION:-v2.2.2}")
+
+   mise_template=$(substitute_version_placeholders "$mise_template" \
+       "GO_VERSION=${GO_VERSION:-1.25}" \
+       "GOLANGCI_LINT_VERSION_BARE=${GOLANGCI_LINT_VERSION_BARE:-2.2.2}" \
+       "GORELEASER_VERSION=${GORELEASER_VERSION:-v2.12.0}")
+   ```
+   - `mise.toml` uses the bare golangci-lint version (no leading `v`), the
+     v-prefixed goreleaser tag, and `major.minor` Go from go.mod.
 
 2. **Handle missing critical values:**
    - If `PROJECT_NAME` is empty: Use "app" as default
@@ -155,11 +180,15 @@ for each arg in arguments:
 ```
 Files to be created:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ mise.toml - Pinned dev tool versions (go, task, golangci-lint, goreleaser)
 ✅ Taskfile.yml (66 lines) - Main task definitions
 ✅ Taskfile_dev.yml (14 lines) - Development tasks
 ✅ .pre-commit-config.yaml (25 lines) - Git pre-commit hooks
 
-Total: 3 files (105 lines)
+Total: 4 files
+
+[If existingMise == true and not --force:]
+ℹ️  mise.toml already exists — it will be PRESERVED (your tool pins are kept).
 
 ✅ Auto-detected Configuration
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -168,6 +197,12 @@ Project Settings:
   • Project name: <PROJECT_NAME> (from go.mod)
   • Binary name: <PROJECT_NAME>
   • Main directory: <MAIN_DIR>
+
+Tool Versions (mise.toml):
+  • Go: <GO_VERSION> (from go.mod)
+  • golangci-lint: <GOLANGCI_LINT_VERSION_BARE>
+  • goreleaser: <GORELEASER_VERSION>
+  • task: latest
 
 Repository Settings:
   • Owner: <OWNER> (from git remote)
@@ -247,14 +282,20 @@ If `dryRunMode == true`:
 
 Write files in order:
 
-1. `Taskfile.yml`
+1. `mise.toml`
+   - Write the version-substituted template to project root
+   - **Preserve-if-exists:** if `existingMise == true` and `--force` was NOT
+     given, skip writing (keep the project's existing tool pins) and note it in
+     the report. With `--force`, overwrite like the other files.
+
+2. `Taskfile.yml`
    - Replace `BINFILE: gitlab-backup` with detected binary name
    - Write to project root
 
-2. `Taskfile_dev.yml`
+3. `Taskfile_dev.yml`
    - Write as-is to project root
 
-3. `.pre-commit-config.yaml`
+4. `.pre-commit-config.yaml`
    - Write as-is to project root
 
 **For each file:**
@@ -296,11 +337,12 @@ For each file in `successfulFiles`:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Created Files:
+✅ mise.toml (dev tool versions)   [or: ℹ️ preserved existing mise.toml]
 ✅ Taskfile.yml (66 lines, ready to use)
 ✅ Taskfile_dev.yml (14 lines)
 ✅ .pre-commit-config.yaml (25 lines)
 
-Total: 3 files (105 lines)
+Total: 4 files
 
 Auto-configured with detected values:
   ✓ Project name: <PROJECT_NAME> (from go.mod)
@@ -308,6 +350,7 @@ Auto-configured with detected values:
   ✓ Main directory: <MAIN_DIR> (auto-detected)
   ✓ Owner: <OWNER> (from git remote)
   ✓ Registry: <REGISTRY>
+  ✓ Go: <GO_VERSION> · golangci-lint: <GOLANGCI_LINT_VERSION_BARE> · goreleaser: <GORELEASER_VERSION> (mise.toml)
   ✓ Pre-commit hooks version: <PRE_COMMIT_HOOKS_VERSION>
 
 Available Tasks:
@@ -327,29 +370,35 @@ Key Tasks:
 
 Required Dependencies:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-⚠️  Install these tools for full functionality:
+✅ Tool versions are pinned in mise.toml — install mise ONCE and it provides
+   go, task, golangci-lint, and goreleaser at the exact versions used in CI.
 
-1. Task (if not installed):
-   - macOS: brew install go-task
-   - Linux: sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
-   - Or: go install github.com/go-task/task/v3/cmd/task@latest
+1. Install mise (one-time, per machine):
+   - macOS:  brew install mise
+   - Linux:  curl https://mise.run | sh
+   - Docs:   https://mise.jdx.dev/getting-started.html
 
-2. pre-commit (for git hooks):
+2. Install the project's pinned tools:
+   - mise install            # reads mise.toml, installs every tool
+   - mise activate <shell>   # add to your shell rc to put tools on PATH
+   - (or run one-offs through mise: `mise exec -- task lint`)
+
+3. pre-commit (for git hooks):
    - macOS: brew install pre-commit
    - Linux: pip install pre-commit
    - After install: task dev:install-pre-commit
 
-3. golangci-lint (for linting):
+4. golangci-lint config:
    [If linterMissing == true:]
    ⚠️  .golangci.yml not found
-   - Generate with: /linter
-   - Or install: https://golangci-lint.run/usage/install/
+   - Generate with: /gen-linter
+   (golangci-lint itself is provided by mise via mise.toml)
 
-4. goreleaser (for releases):
+5. goreleaser config:
    [If goreleaserMissing == true:]
    ⚠️  .goreleaser.yml not found
-   - Generate with: /goreleaser
-   - Or install: https://goreleaser.com/install/
+   - Generate with: /gen-goreleaser
+   (goreleaser itself is provided by mise via mise.toml)
 
 Optional Customizations:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -399,12 +448,12 @@ Tasks integrate with your development workflow:
 
 Next Steps:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. Install Task runner (if not installed)
-2. Review and customize Taskfile.yml
+1. Install mise (if not installed), then: mise install
+2. Review and customize mise.toml and Taskfile.yml
 3. Install pre-commit: task dev:install-pre-commit
 4. Generate missing configs:
-   - .golangci.yml: /linter
-   - .goreleaser.yml: /goreleaser
+   - .golangci.yml: /gen-linter
+   - .goreleaser.yml: /gen-goreleaser
 
 5. Test tasks:
    task lint
@@ -412,8 +461,8 @@ Next Steps:
    task build
 
 6. Commit changes:
-   git add Taskfile*.yml .pre-commit-config.yaml
-   git commit -m "build: add task automation and pre-commit hooks"
+   git add mise.toml Taskfile*.yml .pre-commit-config.yaml
+   git commit -m "build: add mise, task automation and pre-commit hooks"
 
 7. Verify pre-commit hooks:
    - Make a test change
@@ -535,6 +584,7 @@ Current permissions: [show with ls -ld .]
 
 | Source Path | Target (Relative to CWD) | Lines | Purpose |
 |-------------|--------------------------|-------|---------|
+| `${CLAUDE_PLUGIN_ROOT}/commands/assets/mise/mise.toml` | `mise.toml` | ~35 | Pinned dev tool versions (preserve-if-exists) |
 | `${CLAUDE_PLUGIN_ROOT}/commands/assets/taskfiles/Taskfile.yml` | `Taskfile.yml` | 66 | Main task definitions |
 | `${CLAUDE_PLUGIN_ROOT}/commands/assets/taskfiles/Taskfile_dev.yml` | `Taskfile_dev.yml` | 14 | Development tasks |
 | `${CLAUDE_PLUGIN_ROOT}/commands/assets/taskfiles/.pre-commit-config.yaml` | `.pre-commit-config.yaml` | 25 | Git pre-commit hooks |
@@ -550,15 +600,16 @@ Current permissions: [show with ls -ld .]
 
 **Typical Workflow:**
 ```bash
-# 1. Generate task configuration
+# 1. Generate task configuration (also writes mise.toml)
 /gen-taskfiles
 
 # 2. Generate supporting configs
-/linter          # Creates .golangci.yml
-/goreleaser      # Creates .goreleaser.yml
+/gen-linter          # Creates .golangci.yml
+/gen-goreleaser      # Creates .goreleaser.yml
 
-# 3. Install tools and hooks
-brew install go-task pre-commit golangci-lint goreleaser
+# 3. Install tools (one mise install pins everything) and hooks
+brew install mise pre-commit   # or: curl https://mise.run | sh
+mise install                   # installs go, task, golangci-lint, goreleaser
 task dev:install-pre-commit
 
 # 4. Test tasks
@@ -567,8 +618,8 @@ task test
 task build
 
 # 5. Commit everything
-git add Taskfile*.yml .pre-commit-config.yaml .golangci.yml .goreleaser.yml
-git commit -m "build: add task automation and pre-commit hooks"
+git add mise.toml Taskfile*.yml .pre-commit-config.yaml .golangci.yml .goreleaser.yml
+git commit -m "build: add mise, task automation and pre-commit hooks"
 
 # 6. Verify hooks work
 # Make a test change, try to commit - hooks should run
@@ -686,7 +737,8 @@ All local hooks use `pass_filenames: false` to run full checks, not per-file.
 ## Success Criteria
 
 ✅ Prerequisites validated (git repo, Go project)
-✅ Template files read from skill assets (3 files)
+✅ Template files read from skill assets (mise.toml + 3 task files)
+✅ Tool versions detected and pinned in mise.toml (existing mise.toml preserved)
 ✅ Binary name detected from go.mod
 ✅ User confirmation obtained (unless `--force`)
 ✅ All files written successfully (or partial success reported)
@@ -716,9 +768,8 @@ All local hooks use `pass_filenames: false` to run full checks, not per-file.
 ## Output Summary
 
 **Standard mode (default):**
-- 3 files created
-- 105 total lines
-- Complete task automation setup with pre-commit hooks
+- 4 files created (mise.toml + 3 task files)
+- Complete task automation setup with pinned tool versions and pre-commit hooks
 
 **Dry run mode (`--dry-run`):**
 - 0 files created

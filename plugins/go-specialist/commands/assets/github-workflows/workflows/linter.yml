@@ -1,6 +1,8 @@
 # Linter Workflow
-# Runs golangci-lint on every push to validate code quality
-# Docs: https://golangci-lint.run
+# Runs golangci-lint on every push to validate code quality.
+# Tooling (Go, task, golangci-lint) is installed by mise from mise.toml, so the
+# exact same versions run locally and in CI.
+# Docs: https://golangci-lint.run | https://mise.jdx.dev
 
 name: linter
 
@@ -21,51 +23,22 @@ jobs:
   linter:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
-      # Setup Go environment
-      # Uses Go version from go.mod for consistency
-      - uses: actions/setup-go@v6
+      # Install the tools pinned in mise.toml (go, task, golangci-lint, ...)
+      - uses: jdx/mise-action@v3
         with:
-          go-version-file: 'go.mod'
-
-      # Install Task runner
-      # Task provides consistent build commands across local and CI
-      - name: Install task
-        uses: jaxxstorm/action-install-gh-release@v2.1.0
-        with:
-          repo: go-task/task
-          cache: enable  # Cache binary for faster subsequent runs
-          # tag: v3.39.0  # Optionally pin specific version
-
-      # Install golangci-lint
-      # CUSTOMIZE: Update version as needed
-      - name: Install golangci-lint
-        uses: jaxxstorm/action-install-gh-release@v2.1.0
-        with:
-          repo: golangci/golangci-lint
-          tag: [GOLANGCI_LINT_VERSION]  # CUSTOMIZE: Use latest or pin to specific version
-          cache: enable
-          binaries-location: [GOLANGCI_LINT_BINARIES_LOCATION]
+          install: true # [default: true] run `mise install`
+          cache: true # [default: true] cache mise using GitHub's cache
 
       # Run linter via Task
-      # Requires: Taskfile.yml with 'lint' task defined
-      # Example task: golangci-lint run --timeout=5m ./...
+      # Requires: Taskfile.yml with a 'lint' task (e.g. `golangci-lint run`)
       - name: Run linter
         shell: /usr/bin/bash {0}
         run: |
           task lint
 
-# Optional: Add linter annotations
-# This posts linter findings as PR comments
-# - name: golangci-lint
-#   uses: golangci/golangci-lint-action@v6
-#   with:
-#     version: [GOLANGCI_LINT_VERSION]
-#     args: --timeout=5m
-
-# Optional: Cancel outdated runs
-# Saves CI minutes by canceling previous runs on new pushes
+# Optional: Cancel outdated runs to save CI minutes
 # concurrency:
 #   group: ${{ github.workflow }}-${{ github.ref }}
 #   cancel-in-progress: true

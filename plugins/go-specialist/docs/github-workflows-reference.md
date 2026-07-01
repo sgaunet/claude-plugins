@@ -4,11 +4,17 @@ Detailed configuration and customization guide for GitHub Actions workflows in G
 
 ## Workflow Files Reference
 
-All workflow templates are available in the `assets/workflows/` directory:
+All workflow templates are available in the `assets/github-workflows/workflows/` directory:
 - `linter.yml` - Code quality checks with golangci-lint
 - `snapshot.yml` - Test release builds
 - `coverage.yml` - Coverage badge generation
 - `release.yml` - Production releases with GoReleaser
+
+The workflows are **mise-based**: tooling (go, task, golangci-lint, goreleaser)
+is installed by `jdx/mise-action@v3` from the project's `mise.toml`, so CI and
+local development use identical tool versions. There is no `actions/setup-go`
+step and no per-tool install action — versions are changed by editing `mise.toml`
+(owned canonically by `/gen-taskfiles`), never by editing the workflow YAML.
 
 ## Detailed Workflow Configurations
 
@@ -17,24 +23,20 @@ All workflow templates are available in the `assets/workflows/` directory:
 **Purpose**: Enforce code quality standards on every push.
 
 **What it does**:
-- Checks out code
-- Sets up Go environment
-- Installs Task and golangci-lint
+- Checks out code (`actions/checkout@v7`)
+- Installs the pinned tools (go, task, golangci-lint) via `jdx/mise-action@v3` from `mise.toml`
 - Runs linting via `task lint`
 
 **Customization**:
-```yaml
-# Use specific golangci-lint version
-- name: Install golangci-lint
-  with:
-    repo: golangci/golangci-lint
-    tag: v2.2.2  # Pin to specific version
-
-# Or use latest
-    tag: latest
+```toml
+# Pin the golangci-lint version in mise.toml — NOT in the workflow YAML.
+# The github: backend expects a BARE version (no leading "v").
+[tools]
+"github:golangci/golangci-lint" = "2.2.2"
 ```
 
 **Requirements**:
+- `mise.toml` in repository root pinning `go`, `task`, and `golangci-lint`
 - `.golangci.yml` or `.golangci.yaml` in repository root
 - Task defined: `lint`
 
@@ -50,13 +52,15 @@ All workflow templates are available in the `assets/workflows/` directory:
 
 **Customization**:
 ```yaml
-# Cache dependencies for faster builds
-- name: Install task
+# mise tool installs are cached by default (cache: true on jdx/mise-action).
+- uses: jdx/mise-action@v3
   with:
-    cache: true  # Enable caching
+    install: true
+    cache: true  # cache mise + installed tools between runs
+```
 
-# Skip Docker builds in snapshot
-# Edit Taskfile.yml:
+```yaml
+# Skip Docker builds in snapshot — edit Taskfile.yml:
 snapshot:
   cmds:
     - goreleaser release --snapshot --clean --skip=publish,docker
@@ -102,13 +106,12 @@ snapshot:
 
 **What it does**:
 - Triggers on any Git tag push
-- Sets up Go, Task, and GoReleaser
-- Configures multi-platform Docker builds (QEMU + Buildx)
-- Authenticates with GitHub Container Registry
+- Installs go, task, and goreleaser via `jdx/mise-action@v3` from `mise.toml`
+- (Optional) Multi-platform Docker builds (QEMU + Buildx) and GHCR auth — commented out by default; uncomment the docker tools in `mise.toml` and the QEMU/login block in `release.yml` to enable
 - Runs `task release` (which calls GoReleaser)
 - Publishes:
   - GitHub Release with binaries
-  - Docker images to GHCR
+  - Docker images to GHCR (if the optional docker block is enabled)
   - Homebrew formula (if configured)
 
 **Customization**:
@@ -123,11 +126,14 @@ on:
 - name: Create release
   env:
     GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
+```
 
-# Use specific Go version
-- name: Install Go
-  with:
-    go-version: '1.24.1'  # Pin exact version
+```toml
+# Pin the Go (and goreleaser) version in mise.toml — NOT with go-version in the YAML.
+# Keep `go` in sync with the `go` directive in go.mod.
+[tools]
+go = "1.25.1"
+goreleaser = "v2.12.0"
 ```
 
 **Permissions**:
@@ -206,8 +212,8 @@ tasks:
     cmds:
       - go run ./cmd
 
-  # CI tasks (used by workflows)
-  linter:
+  # CI tasks (used by workflows) — the linter workflow runs `task lint`
+  lint:
     desc: Run golangci-lint
     cmds:
       - golangci-lint run --timeout=5m ./...
@@ -260,11 +266,11 @@ Require CI checks before merging:
 
 **Caching**: Speed up workflows
 ```yaml
-- name: Install task
-  uses: jaxxstorm/action-install-gh-release@v2.1.0
+# mise caches its tool installs via GitHub's cache (keyed on mise.toml).
+- uses: jdx/mise-action@v3
   with:
-    repo: go-task/task
-    cache: enable  # Cache downloaded binaries
+    install: true
+    cache: true  # cache mise + installed tools
 ```
 
 **Conditional execution**: Skip unnecessary runs
@@ -321,8 +327,8 @@ Document workflows in README.md:
 ## Development
 
 ### Prerequisites
-- Go 1.24+
-- Task: `brew install go-task/tap/go-task`
+- [mise](https://mise.jdx.dev): `brew install mise` (or `curl https://mise.run | sh`)
+- `mise install` — installs go, task, golangci-lint, goreleaser from `mise.toml`
 
 ### Running Tests
 ```bash
@@ -385,7 +391,7 @@ jobs:
   scan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: securego/gosec@master
         with:
           args: './...'
@@ -408,6 +414,7 @@ updates:
 ## Additional Resources
 
 - **GitHub Actions**: https://docs.github.com/en/actions
+- **mise (tool versions)**: https://mise.jdx.dev
 - **Task Runner**: https://taskfile.dev
 - **golangci-lint**: https://golangci-lint.run
 - **GoReleaser**: https://goreleaser.com

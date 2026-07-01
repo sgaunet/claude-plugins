@@ -1,0 +1,38 @@
+# Development tool versions for this project.
+#
+# mise (https://mise.jdx.dev) is the single source of truth for tool versions:
+# the SAME versions are used for local development and in CI, so "works on my
+# machine" matches "works in the pipeline".
+#
+# Local usage:
+#   mise install            # install every tool pinned below
+#   mise activate <shell>   # put the tools on PATH (add to your shell rc)
+#   mise exec -- task lint  # or run a one-off command through mise
+#
+# CI usage:
+#   GitHub / Forgejo Actions -> jdx/mise-action@v3 (install: true, cache: true)
+#   GitLab CI                -> image: jdx/mise:latest + `mise install`
+#
+# Tool reference / backends: https://mise.jdx.dev/registry.html
+
+[tools]
+# Go toolchain. Keep in sync with the `go` directive in go.mod.
+go = "[GO_VERSION]"
+
+# Task runner (https://taskfile.dev) — CI and pre-commit hooks call `task ...`.
+# Pinned (not "latest") so local dev and CI stay reproducible and the GitLab
+# cache (keyed on mise.toml) invalidates on upgrade. The github: backend expects
+# a BARE version (no leading "v").
+"github:go-task/task" = "3.51.1"
+
+# Linter. The github: backend expects a BARE version (no leading "v").
+"golangci-lint" = "[GOLANGCI_LINT_VERSION_BARE]"
+
+# Release tooling (https://goreleaser.com). Uses the v-prefixed release tag.
+goreleaser = "[GORELEASER_VERSION]"
+
+# Docker tooling — uncomment if your .goreleaser.yml builds/publishes images.
+# Also uncomment the matching QEMU + registry-login steps in the CI workflows
+# (see the commented blocks in release.yml / snapshot.yml / .gitlab-ci.yml).
+# "aqua:docker/buildx" = "latest"
+# docker-cli = "latest"
