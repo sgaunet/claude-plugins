@@ -56,7 +56,7 @@ Perform comprehensive analysis of a pull request including code review, security
    - 75: Highly confident, real issue impacting functionality
    - 100: Absolutely certain, critical issue
 
-   Filter out issues with confidence score < 80 before including in report.
+   Filter out issues with confidence score < 75 before including in report (confidence-75 "highly confident" issues are kept, matching the rubric anchors above).
 
 ## Parallel Agent Invocation
 

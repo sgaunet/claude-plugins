@@ -2,7 +2,7 @@
 name: feature-flow
 description: Complete git workflow orchestration (GitHub/GitLab/Forgejo) - branch, issue, commit
 argument-hint: "[context | #issue-number] [--skip-branch] [--skip-issue] [--skip-mr] [--squash] [--msg \"text\"] [--dry-run] [--force]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(git:*), Bash(make:*), Bash(npm:*), Bash(npx:*), Bash(go:*), Bash(python:*), Bash(cargo:*), Bash(task:*), Bash(golangci-lint:*), Bash(eslint:*), Bash(ruff:*), Bash(mypy:*), Bash(auto-mr:*), Bash(gh:*), Bash(glab:*), Bash(fgj:*), AskUserQuestion
+allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(git:*), Bash(make:*), Bash(npm:*), Bash(npx:*), Bash(go:*), Bash(python:*), Bash(cargo:*), Bash(task:*), Bash(golangci-lint:*), Bash(eslint:*), Bash(ruff:*), Bash(mypy:*), Bash(auto-mr:*), Bash(gh:*), Bash(glab:*), Bash(fgj:*), Bash(jq:*), AskUserQuestion
 ---
 
 # Feature Flow Command
@@ -209,8 +209,8 @@ This check is read-only and always runs, including under `--dry-run` and `--forc
 
 **Parse flags:** `--skip-mr` → skip this phase.
 
-**Build command:** `auto-mr [--squash] [--msg "<message>"]`
-- `--squash`: if `-s` flag was passed
+**Build command:** `auto-mr [--msg "<message>"]`
+- `auto-mr` squashes by default; there is no `--squash` flag to forward. `--squash`/`-s` is a no-op kept for backward compatibility.
 - `--msg`: default `<type>(<scope>): <issue-title> (Closes #<N>)`, override with user's `--msg`
 
 **Execute:** Run `auto-mr` → on success display MR/PR URL → on failure warn and show manual push instructions.
@@ -237,7 +237,7 @@ This check is read-only and always runs, including under `--dry-run` and `--forc
 
 | Flag | Short | Effect |
 |------|-------|--------|
-| `--squash` | `-s` | Pass `--squash` to auto-mr |
+| `--squash` | `-s` | No-op — `auto-mr` squashes by default already |
 | `--msg "text"` | `-m "text"` | Custom MR message for auto-mr |
 | `--skip-mr` | none | Skip auto-mr phase (I-8) |
 

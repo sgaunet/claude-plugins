@@ -1,8 +1,9 @@
 ---
 name: auto-mr
 description: Push current branch, create MR/PR on GitHub, GitLab, or Forgejo, wait for CI pipeline, merge, and clean up branch using auto-mr CLI
-argument-hint: '[--squash] [--no-squash] [--msg "text"] [--labels "label1,label2"] [--list-labels] [--pipeline-timeout "30m"] [--log-level debug|info|warn|error]'
+argument-hint: '[--no-squash] [--msg "text"] [--labels "label1,label2"] [--list-labels] [--pipeline-timeout "30m"] [--log-level debug|info|warn|error]'
 user-invocable: true
+allowed-tools: Bash(auto-mr:*), Bash(git:*), AskUserQuestion
 ---
 
 # auto-mr Skill
@@ -61,7 +62,7 @@ Display the output and return. Do not proceed further.
 
 Base command: `auto-mr`
 
-Append all provided flags verbatim (e.g., `--squash`, `--msg "fix: ..."`, `--labels "bug,help wanted"`).
+Append all provided flags verbatim (e.g., `--no-squash`, `--msg "fix: ..."`, `--labels "bug,help wanted"`).
 
 If a `working_directory` context is provided, prefix with `cd <working_directory> &&`.
 

@@ -2,7 +2,7 @@
 name: feature-flow-w
 description: Complete git worktree workflow orchestration (GitHub/GitLab/Forgejo) - worktree, branch, issue, commit
 argument-hint: "[context | #issue-number] [--skip-branch] [--skip-issue] [--skip-mr] [--squash] [--msg \"text\"] [--dry-run] [--force] [--worktree-path <path>]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(git:*), Bash(make:*), Bash(npm:*), Bash(npx:*), Bash(go:*), Bash(python:*), Bash(cargo:*), Bash(task:*), Bash(golangci-lint:*), Bash(eslint:*), Bash(ruff:*), Bash(mypy:*), Bash(auto-mr:*), Bash(gh:*), Bash(glab:*), Bash(fgj:*), AskUserQuestion
+allowed-tools: Read, Write, Edit, Grep, Glob, Skill, Bash(git:*), Bash(make:*), Bash(npm:*), Bash(npx:*), Bash(go:*), Bash(python:*), Bash(cargo:*), Bash(task:*), Bash(golangci-lint:*), Bash(eslint:*), Bash(ruff:*), Bash(mypy:*), Bash(auto-mr:*), Bash(gh:*), Bash(glab:*), Bash(fgj:*), Bash(jq:*), AskUserQuestion
 ---
 
 # Feature Flow Worktree Command
@@ -76,8 +76,9 @@ Store `<worktree-path>` and `<original-path>` (result of `pwd`) for use througho
 2. Unstage from original: `git reset HEAD`
 3. Create worktree: `git worktree add <path> -b <branch-name>`
 4. Apply in worktree: `cd <path> && git apply <patch-file> && git add .`
-5. Clean up patch file: `rm <patch-file>`
-6. Verify: `git worktree list`
+5. **Confirm the apply succeeded** (the `git apply` in step 4 exited 0 and `cd <path> && git status --porcelain` shows the expected staged files). **Only after this confirmation**, discard the transferred changes from the **source** working tree by reverse-applying the same patch: `cd <original-path> && git apply -R <patch-file>`. Reverse-applying (instead of `git checkout -- .`) removes *only* the moved changes and leaves any unrelated uncommitted work in the source untouched, so the changes never live in two places. If the apply did not verify, do NOT touch the source — fall through to the patch-apply error path below (which restores the original).
+6. Clean up patch file: `rm <patch-file>`
+7. Verify: `git worktree list`
 
 **Error handling:**
 - Worktree directory already exists → Suggest `<path>-v2` or ask for alternative
@@ -260,8 +261,8 @@ This check is read-only and always runs, including under `--dry-run` and `--forc
 
 **Parse flags:** `--skip-mr` → skip this phase.
 
-**Build command:** `cd <worktree-path> && auto-mr [--squash] [--msg "<message>"]`
-- `--squash`: if `-s` flag was passed
+**Build command:** `cd <worktree-path> && auto-mr [--msg "<message>"]`
+- `auto-mr` squashes by default; there is no `--squash` flag to forward. `--squash`/`-s` is a no-op kept for backward compatibility.
 - `--msg`: default `<type>(<scope>): <issue-title> (Closes #<N>)`, override with user's `--msg`
 
 **Execute:** Run `auto-mr` from worktree → on success display MR/PR URL → on failure warn and show manual push instructions.
@@ -294,7 +295,7 @@ This check is read-only and always runs, including under `--dry-run` and `--forc
 
 | Flag | Short | Effect |
 |------|-------|--------|
-| `--squash` | `-s` | Pass `--squash` to auto-mr |
+| `--squash` | `-s` | No-op — `auto-mr` squashes by default already |
 | `--msg "text"` | `-m "text"` | Custom MR message for auto-mr |
 | `--skip-mr` | none | Skip auto-mr phase (I-8) |
 

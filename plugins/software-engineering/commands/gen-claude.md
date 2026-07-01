@@ -424,7 +424,7 @@ Options:
 If approved (or auto-approved if < 2000 tokens and no modifications):
 1. Write `./CLAUDE.md`
 2. Create `docs/` folder if needed
-3. Write `docs/architecture.md`, `docs/workflows.md`, `docs/patterns.md` (if not existing)
+3. Write `docs/architecture.md`, `docs/workflows.md`, `docs/patterns.md`, `docs/operating-guidelines.md` (if not existing)
 4. Report success with file paths
 
 ## Command Arguments
