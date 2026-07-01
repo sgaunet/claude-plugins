@@ -1,7 +1,7 @@
 {
   "name": "sylvain-marketplace",
   "metadata": {
-    "version": "0.16.0",
+    "version": "0.16.1",
     "description": "Specialized Claude Code agents for DevOps infrastructure, software engineering workflows, and Go development. Includes proactive agents for IaC, CI/CD, database optimization, code review, debugging, documentation, and more."
   },
   "owner": {
@@ -13,7 +13,7 @@
       "name": "devops-infrastructure",
       "source": "./plugins/devops-infrastructure",
       "description": "Infrastructure as Code (Terraform, Ansible, CloudFormation), CI/CD pipelines (GitHub Actions, GitLab CI, Forgejo Actions via fgj), and database specialists (PostgreSQL, MySQL) for DevOps workflows.",
-      "version": "0.6.0",
+      "version": "0.6.1",
       "author": {
         "name": "Sylvain"
       }

@@ -2,7 +2,7 @@
 name: analyze-db-performance
 description: Analyze PostgreSQL performance with query and index insights
 argument-hint: "<db-connection-string-or-log-file>"
-allowed-tools: Read, Grep, Glob, Bash(psql:*), Bash(pg_dump:*), Task
+allowed-tools: Read, Grep, Glob, Bash(psql:*), Task
 ---
 
 # Analyze Database Performance Command
@@ -72,13 +72,16 @@ Analyze PostgreSQL database performance using pg_stat_statements, slow query log
 # Step 1: Validate input (sequential)
 connection_string = validate_input($argument)
 
-# Step 2: Launch 3 parallel Haiku agents for data collection
+# Step 2: Launch 3 parallel Haiku agents for data collection.
+# The Task tool only accepts `subagent_type`, `prompt`, and `description`.
+# Each agent runs the read-only psql SELECT itself by following the prompt;
+# the SQL is embedded in the prompt rather than passed as Task parameters.
 if connection_string:
-    Task(subagent_type: "general-purpose", model: "haiku", tool: "Bash", command: "psql ${connection_string} -c 'SELECT query, calls, total_exec_time, mean_exec_time, max_exec_time FROM pg_stat_statements ORDER BY mean_exec_time DESC LIMIT 20;'")
+    Task(subagent_type: "general-purpose", description: "Collect slow queries", prompt: "Run this read-only command and return the raw output:\npsql ${connection_string} -c \"SELECT query, calls, total_exec_time, mean_exec_time, max_exec_time FROM pg_stat_statements ORDER BY mean_exec_time DESC LIMIT 20;\"")
 
-    Task(subagent_type: "general-purpose", model: "haiku", tool: "Bash", command: "psql ${connection_string} -c 'SELECT schemaname, tablename, pg_size_pretty(pg_total_relation_size(...)) FROM pg_tables ORDER BY ... DESC;'")
+    Task(subagent_type: "general-purpose", description: "Collect table sizes", prompt: "Run this read-only command and return the raw output:\npsql ${connection_string} -c \"SELECT schemaname, tablename, pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) FROM pg_tables ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;\"")
 
-    Task(subagent_type: "general-purpose", model: "haiku", tool: "Bash", command: "psql ${connection_string} -c 'SELECT schemaname, tablename, indexname, idx_scan FROM pg_stat_user_indexes WHERE idx_scan = 0 ORDER BY ... DESC;'")
+    Task(subagent_type: "general-purpose", description: "Collect index usage", prompt: "Run this read-only command and return the raw output:\npsql ${connection_string} -c \"SELECT schemaname, tablename, indexname, idx_scan FROM pg_stat_user_indexes WHERE idx_scan = 0 ORDER BY pg_relation_size(indexrelid) DESC;\"")
 
 # Wait for all 3 data collection agents to complete
 slow_queries = get_task_result(agent1)
@@ -86,7 +89,7 @@ table_sizes = get_task_result(agent2)
 index_usage = get_task_result(agent3)
 
 # Step 3: Launch 2 parallel Sonnet agents for analysis
-Task(subagent_type: "database-specialist", model: "sonnet", prompt: "Analyze PostgreSQL performance data: Slow queries: ${slow_queries}, Table sizes: ${table_sizes}, Index usage: ${index_usage}. Generate optimization recommendations.")
+Task(subagent_type: "postgresql-specialist", model: "sonnet", prompt: "Analyze PostgreSQL performance data: Slow queries: ${slow_queries}, Table sizes: ${table_sizes}, Index usage: ${index_usage}. Generate optimization recommendations.")
 
 Task(subagent_type: "database-specialist", model: "sonnet", prompt: "Analyze database performance patterns: Slow queries: ${slow_queries}, Table sizes: ${table_sizes}, Index usage: ${index_usage}. Identify anti-patterns and suggest improvements.")
 

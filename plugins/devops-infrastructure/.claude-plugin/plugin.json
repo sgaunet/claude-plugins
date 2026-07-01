@@ -1,6 +1,6 @@
 {
   "name": "devops-infrastructure",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Infrastructure as Code (Terraform, Ansible, CloudFormation), CI/CD pipelines (GitHub Actions, GitLab CI, Forgejo Actions via fgj), and database specialists (PostgreSQL, MySQL) for DevOps workflows.",
   "keywords": [
     "terraform",
