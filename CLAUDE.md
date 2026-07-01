@@ -18,22 +18,31 @@ plugins/
 │   ├── .claude-plugin/
 │   │   └── plugin.json
 │   ├── agents/               # Agent definitions (5 agents)
-│   ├── commands/             # Custom slash commands (1 command)
-│   └── .mcp.json             # MCP server integration
+│   └── commands/             # Custom slash commands (1 command)
+│                             # (no .mcp.json — declares no MCP servers)
 │
 ├── software-engineering/     # General engineering workflows
 │   ├── .claude-plugin/
 │   │   └── plugin.json
 │   ├── agents/               # Agent definitions (8 agents)
-│   ├── commands/             # Custom slash commands (10 commands)
-│   └── .mcp.json             # MCP server integration
+│   ├── commands/             # Custom slash commands (11 commands)
+│   ├── skills/               # Reusable skills (4 skills)
+│   └── .mcp.json             # MCP server integration (context7)
 │
-└── go-specialist/            # Go language expertise
+├── go-specialist/            # Go language expertise
+│   ├── .claude-plugin/
+│   │   └── plugin.json
+│   ├── agents/               # Agent definitions (1 agent)
+│   ├── commands/             # Custom slash commands (7 commands)
+│   ├── skills/               # Reusable skills (4 skills)
+│   └── .mcp.json             # MCP server integration (context7)
+│
+└── bash-specialist/          # Bash scripting expertise
     ├── .claude-plugin/
     │   └── plugin.json
     ├── agents/               # Agent definitions (1 agent)
-    ├── commands/             # Custom slash commands (11 commands)
-    └── .mcp.json             # MCP server integration
+    ├── skills/               # Reusable skills (1 skill)
+    └── .mcp.json             # MCP server integration (context7)
 ```
 
 ### Agent Architecture
@@ -91,6 +100,13 @@ Go language expertise and optimization.
 |-------|---------|---------------------|
 | `golang-pro` | Go 1.25+ development, concurrency, performance | .go files, go.mod |
 
+#### bash-specialist
+Production-quality bash scripting and terminal UX.
+
+| Agent | Purpose | Proactive Activation |
+|-------|---------|---------------------|
+| `bash-pro` | Bash scripts, shellcheck compliance, error handling, gum-based terminal UX | .sh files, "bash script", shell automation |
+
 ## Development Commands
 
 ### Task Runner (Task)
@@ -134,6 +150,7 @@ Or link locally for development:
    - `devops-infrastructure` for infrastructure/operations agents
    - `software-engineering` for general development workflows
    - `go-specialist` for Go-specific expertise
+   - `bash-specialist` for bash scripting expertise
 2. Create `plugins/<plugin-name>/agents/<name>.md`
 3. Add YAML frontmatter with required fields
 4. Structure content with clear sections:
@@ -187,9 +204,10 @@ See existing agents in `plugins/*/agents/*.md` for advanced patterns (multi-agen
 
 - **Marketplace metadata**: `.claude-plugin/marketplace.json`
 - **Plugin metadata**: `plugins/*/\.claude-plugin/plugin.json`
-- **Agent definitions**: `plugins/*/agents/*.md` (14 total agents)
-- **Commands**: `plugins/*/commands/*.md` (22 custom commands)
-- **MCP config**: `plugins/*/.mcp.json`
+- **Agent definitions**: `plugins/*/agents/*.md` (15 total agents)
+- **Commands**: `plugins/*/commands/*.md` (19 custom commands)
+- **Skills**: `plugins/*/skills/*/` (9 total skills)
+- **MCP config**: `plugins/*/.mcp.json` (only `bash-specialist`, `go-specialist`, `software-engineering`; `devops-infrastructure` has none)
 
 ## Design Patterns
 
@@ -219,7 +237,7 @@ Agents document collaboration patterns in a `## Multi-Agent Coordination` body s
 Plugin descriptions include inline keywords and MCP server lists for better search and documentation:
 ```json
 {
-  "description": "Infrastructure as Code (Terraform, Ansible), CI/CD pipelines. MCP: perplexity-ai",
+  "description": "Infrastructure as Code (Terraform, Ansible), CI/CD pipelines. MCP: context7",
   "repository": "https://github.com/..."
 }
 ```
@@ -230,9 +248,9 @@ Agents and commands use **different** field names per the official spec:
 - **Commands/Skills** use `allowed-tools` (per [skills spec](https://code.claude.com/docs/en/skills))
 
 ### MCP Integration
-Plugins declare MCP server dependencies:
-- **perplexity-ai**: Research and documentation
-- **context7**: Library documentation lookup
+`context7` (library documentation lookup) is the only MCP server actually declared, in the
+`.mcp.json` of `bash-specialist`, `go-specialist`, and `software-engineering`. The
+`devops-infrastructure` plugin declares no MCP server (it has no `.mcp.json`).
 
 GitHub, GitLab, and Forgejo operations use the `gh`, `glab`, and `fgj` CLIs instead of MCP servers. Platform-aware commands route via the `detect-repo-host` skill, which maps `git.sylvlab.fr` remotes to Forgejo (`fgj`).
 
@@ -247,14 +265,30 @@ User-invoked workflows in `plugins/*/commands/`:
 - `/gen-diagram`: Generate d2 architecture diagram with icons.terrastruct.com
 - `/gen-forgejo-dir`: Generate `.forgejo/workflows/` for Forgejo Actions
 
+The go-specialist CI generators (`/gen-github-dir`, `/gen-forgejo-dir`, `/gen-gitlab-ci`) are **mise-based**: workflows install tools via mise (`jdx/mise-action` on GitHub/Forgejo, the `jdx/mise` image on GitLab) and run `task …`. Tool versions live in a shared `mise.toml` (asset: `plugins/go-specialist/commands/assets/mise/mise.toml`) so local dev and CI stay in sync. `mise.toml` is owned canonically by `/gen-taskfiles` and auto-created (when missing) by the CI generators.
+
 Platform-aware commands (`/create-issue`, `/analyze-and-create-issue`, `/feature-flow`, `/feature-flow-w`, `/analyze-pr`, `/upd-project-description`) detect the host via `detect-repo-host` and route to `gh` (GitHub), `glab` (GitLab), or `fgj` (Forgejo, `git.sylvlab.fr`).
 
 ### Skills
-Reusable sub-workflows invoked by agents or commands:
-- `linter`: Initialize golangci-lint configuration
-- `github-workflows`: Setup GitHub Actions CI/CD
-- `gitlab-ci`: Configure GitLab pipelines
-- `goreleaser`: Setup automated releases
+Reusable sub-workflows invoked by agents or commands (9 total, under `plugins/*/skills/*/`):
+
+**go-specialist:**
+- `go-blackbox`: Detect white box Go tests and convert to black box (`package foo_test`)
+- `go-bulma`: Scaffold the Bulma CSS framework into a Go web app with embedded assets
+- `go-structure`: Recommend and scaffold Go project layouts by project type
+- `go-tool`: Manage Go tool dependencies via the `tool` directive (Go 1.24+)
+
+**software-engineering:**
+- `auto-mr`: Push, open MR/PR, wait for CI, merge, and clean up the branch
+- `detect-repo-host`: Detect host (GitHub/GitLab/Forgejo) from the git remote
+- `run-lint`: Auto-detect and run the project linter
+- `run-tests`: Auto-detect and run the project test runner
+
+**bash-specialist:**
+- `gum-beautify`: Integrate Charmbracelet gum for TTY-safe terminal output
+
+(The former `linter`, `github-workflows`, `gitlab-ci`, and `goreleaser` skills are now
+commands: `/gen-linter`, `/gen-github-dir`, `/gen-gitlab-ci`, `/gen-goreleaser`.)
 
 ### Agents
 Proactive specialists in `plugins/*/agents/` that auto-activate based on context:
