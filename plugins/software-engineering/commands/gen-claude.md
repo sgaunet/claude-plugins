@@ -170,14 +170,22 @@ Parse command arguments (from argument string):
 - `--template=minimal|standard|comprehensive` (default: standard)
 - Other flags parsed in Phase 5
 
+**Validate required asset:**
+- Use Read tool to load `${CLAUDE_PLUGIN_ROOT}/commands/assets/gen-claude/behavioral-guidelines-section.md`
+- If it fails: Exit with error "Command asset not found at ${CLAUDE_PLUGIN_ROOT}/commands/assets/gen-claude/behavioral-guidelines-section.md. Plugin may be corrupted. Reinstall the software-engineering plugin."
+- This asset is validated here (Phase 3), not in Phase 4 — Phase 4 is skipped wholesale when `--no-docs` is set, but this section is emitted regardless of that flag
+- Keep the loaded content for the verbatim splice below and for the Phase 5 integrity check
+
 **Template Selection:**
-- **minimal**: 30-50 lines (overview + commands + linter refs)
-- **standard**: 50-80 lines (includes architecture) [DEFAULT]
-- **comprehensive**: 80-100 lines (includes patterns + examples)
+- **minimal**: 90-110 lines (overview + commands + linter refs)
+- **standard**: 110-140 lines (includes architecture) [DEFAULT]
+- **comprehensive**: 140-160 lines (includes patterns + examples)
+
+Each range includes the ~61-line `## Behavioral Guidelines` block, present in all three templates.
 
 **Content Structure:**
 
-```markdown
+````markdown
 # CLAUDE.md
 
 This file provides guidance to Claude Code when working with this repository.
@@ -189,6 +197,9 @@ This file provides guidance to Claude Code when working with this repository.
 defines how to plan, verify, and iterate in this repository: plan mode,
 subagent strategy, verification gates, self-improvement loop, and the
 communication contract. Treat it as load-bearing context.
+
+[Always, every template, regardless of --no-docs:]
+[Insert the `## Behavioral Guidelines` section verbatim from ${CLAUDE_PLUGIN_ROOT}/commands/assets/gen-claude/behavioral-guidelines-section.md — the asset carries its own H2 heading. Do NOT paraphrase, reorder, renumber, or compress.]
 
 ## Repository Overview
 [2-3 sentences from Agent #4 README analysis + detected tech stack from Agent #1]
@@ -246,21 +257,28 @@ Example:
 
 [If existingClaudeMd and custom sections found:]
 [Insert preserved custom sections here]
-```
+````
 
 **Merge Algorithm (if `!isNew`):**
 1. Parse existing CLAUDE.md sections (split by `^## `)
-2. Identify standard sections: "Operating Guidelines", "Repository Overview", "Architecture", "Development Commands", "Code Quality Standards", "File Locations", "Documentation"
+2. Identify standard sections: "Operating Guidelines", "Behavioral Guidelines", "Repository Overview", "Architecture", "Development Commands", "Code Quality Standards", "File Locations", "Documentation"
 3. Identify custom sections: everything else
 4. Update standard sections with fresh analysis from agents
 5. Preserve all custom sections verbatim at end of file
 6. Keep user-added bullet points within standard sections
-7. Calculate token count: if > 2000, apply compression (see Phase 5)
+7. Calculate token count: if > 2000, apply compression (see Phase 5) — the protected Behavioral Guidelines block is excluded from compression; compress project-specific content only
 
 **Operating Guidelines section — merge rules:**
 - If `--no-docs` is set: do NOT insert the section. If it already exists in the current file, leave it untouched (user may have curated it).
 - If the section exists: replace its body with the canonical wording from the content template above.
-- If the section is missing: insert it as the first section, immediately after the file title and before `## Repository Overview`.
+- If the section is missing: insert it as the first section, immediately after the file title and before `## Behavioral Guidelines`.
+
+**Behavioral Guidelines section — merge rules:**
+- **Always inserted.** Not gated on `--no-docs`, not gated on `--template`.
+- Anchor: immediately after `## Operating Guidelines`; if that section is absent (because `--no-docs` suppressed it), immediately after the file title. Always before `## Repository Overview`.
+- If the section exists: replace its body **wholesale** from the asset. Step 6 above ("keep user-added bullet points within standard sections") explicitly does NOT apply here — there is no bullet-level merge for this section.
+- **Migration rule**: if the file contains standalone H2s `## 1. Think Before Coding`, `## 2. Simplicity First`, `## 3. Surgical Changes`, or `## 4. Goal-Driven Execution` (hand-rolled or from an older layout), delete them and emit the single wrapped section instead. Do NOT classify them as custom sections.
+- Never relocated to end of file; never moved to `docs/`; never compressed or reworded.
 
 **New File (`isNew == true`):**
 Generate from template using agent results.
@@ -330,7 +348,11 @@ cp CLAUDE.md CLAUDE.md.backup
    - Target: < 2000 tokens (leaves buffer)
    - If > 2000: Show warning
    - If > 2500: Apply compression (see below)
-   - Note: the `## Operating Guidelines` section costs ~40 tokens and is already accounted for in the 2000-token target
+   - **Fixed overhead** (already accounted for in the 2000-token target):
+     - `## Operating Guidelines`: ~40 tokens
+     - `## Behavioral Guidelines`: ~545 tokens, verbatim, non-negotiable
+     - Total: ~585 tokens
+   - **Project-specific content budget**: ~1415 tokens (target) / ~1915 tokens (hard max)
 
 2. **Linter references:**
    - For each linter config mentioned in CLAUDE.md
@@ -339,21 +361,30 @@ cp CLAUDE.md CLAUDE.md.backup
 
 3. **Markdown validity:**
    - Check header hierarchy (no skipped levels: ## → ### not ## → ####)
-   - Verify code blocks closed (count ``` pairs)
+   - Verify code blocks closed (count ``` pairs — the Behavioral Guidelines block contributes exactly one pair, its plan-skeleton fence)
    - Check list formatting consistency
+   - `## Behavioral Guidelines` hierarchy intact: H2 wrapper with exactly four `### N. <Name>` children, numbered 1-4
+   - **Verbatim integrity**: the emitted `## Behavioral Guidelines` block matches `${CLAUDE_PLUGIN_ROOT}/commands/assets/gen-claude/behavioral-guidelines-section.md` byte-for-byte. If it does not, re-splice from the asset — do not hand-repair
 
 4. **Link integrity:**
    - For each docs/ reference in CLAUDE.md
    - Verify file exists or will be created
    - Check internal section links valid
    - Specifically verify that `docs/operating-guidelines.md` exists (or will be created in Phase 4) whenever CLAUDE.md contains the `## Operating Guidelines` section — the section must never reference a missing file
+   - The `## Behavioral Guidelines` block must be self-contained — no docs/ or external links — so it remains valid under `--no-docs`
 
 **Token Overflow Handling:**
+
+**Protected regions — never compress, abbreviate, reorder, renumber, or relocate:**
+- `## Behavioral Guidelines` — a byte-identical copy of the plugin asset. Compressing it defeats its purpose and breaks the verbatim-integrity check.
+- `## Operating Guidelines` — already only ~40 tokens.
+
+All three compression passes below operate on project-specific content only.
 
 If token count > 2500 after generation:
 1. **First pass compression:**
    - Remove examples from CLAUDE.md (keep in docs/patterns.md)
-   - Abbreviate bullet points
+   - Abbreviate bullet points (excluding protected regions)
    - Use tables for structured data
    - Compress whitespace
 
@@ -361,11 +392,13 @@ If token count > 2500 after generation:
    - Move "Architecture" section content to docs/architecture.md
    - Leave only: "See docs/architecture.md for system design"
    - Move patterns to docs/patterns.md
+   - Never move a protected region to docs/
 
 3. **Last resort:**
    - Split into `CLAUDE.md` + `CLAUDE-EXTENDED.md`
    - Keep essential info in CLAUDE.md (< 2500 tokens)
    - Move detailed info to CLAUDE-EXTENDED.md
+   - `## Behavioral Guidelines` stays in `CLAUDE.md` — it never migrates to `CLAUDE-EXTENDED.md`
    - Add reference: "See CLAUDE-EXTENDED.md for additional context"
 
 **User Presentation:**
@@ -383,6 +416,9 @@ Analysis Results:
 Generated CLAUDE.md:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 - Length: [X] tokens ([status: ✅ under 2000 / ⚠️ 2000-2500 / ❌ over 2500])
+  - Fixed overhead: ~585 tokens (Operating Guidelines ~40 + Behavioral Guidelines ~545)
+  - Project content: [X] tokens
+- Behavioral Guidelines: ✅ included (~545 tokens, verbatim from plugin asset)
 - Sections: [X] ([X] standard + [X] custom preserved)
 - Commands: [X] development commands
 
@@ -432,9 +468,11 @@ If approved (or auto-approved if < 2000 tokens and no modifications):
 Arguments are parsed from the `argument` string parameter:
 
 - `--force`: Backup existing CLAUDE.md to `CLAUDE.md.backup` and regenerate from scratch
-- `--template=minimal`: Generate 30-50 line CLAUDE.md (overview + commands + linter refs only)
-- `--template=standard`: Generate 50-80 line CLAUDE.md (includes architecture) [DEFAULT]
-- `--template=comprehensive`: Generate 80-100 line CLAUDE.md (includes patterns + examples)
+- `--template=minimal`: Generate 90-110 line CLAUDE.md (overview + commands + linter refs only)
+- `--template=standard`: Generate 110-140 line CLAUDE.md (includes architecture) [DEFAULT]
+- `--template=comprehensive`: Generate 140-160 line CLAUDE.md (includes patterns + examples)
+
+Each range includes the ~61-line `## Behavioral Guidelines` block, which is present in all three templates.
 - `--no-docs`: Skip docs/ folder creation (only generate CLAUDE.md)
 - `--dry-run`: Show preview without writing any files
 
@@ -483,7 +521,7 @@ Split by space, check for each flag presence
 **Still over 2500 after compression:**
 - Create `CLAUDE-EXTENDED.md` with overflow content
 - Add reference in `CLAUDE.md`: "See CLAUDE-EXTENDED.md for additional context"
-- Prioritize keeping: Overview, Commands, Linter references in main file
+- Prioritize keeping: Behavioral Guidelines (verbatim), Operating Guidelines, Overview, Commands, Linter references in main file
 
 **Phase 1 agents timeout:**
 - Extend timeout to 120s
@@ -539,7 +577,10 @@ Split by space, check for each flag presence
 ## Output Files
 
 **Primary:**
-- `./CLAUDE.md`: Project-specific guidance (30-100 lines, < 2500 tokens)
+- `./CLAUDE.md`: Project-specific guidance (90-160 lines, < 2500 tokens)
+
+**Plugin assets consumed (read-only, never written to docs/):**
+- `assets/gen-claude/behavioral-guidelines-section.md`: spliced verbatim into `./CLAUDE.md` as the `## Behavioral Guidelines` section (~61 lines, ~545 tokens)
 
 **Supporting (if not existing):**
 - `docs/architecture.md`: System design (30-50 lines)
@@ -574,7 +615,7 @@ Split by space, check for each flag presence
 
 ## Success Criteria
 
-✅ CLAUDE.md generated or enhanced (30-100 lines)
+✅ CLAUDE.md generated or enhanced (90-160 lines)
 ✅ Token count < 2500 (ideally < 2000)
 ✅ Contains project overview (2-3 sentences)
 ✅ Lists development commands (4-8 commands)
@@ -584,5 +625,6 @@ Split by space, check for each flag presence
 ✅ Preserves user customizations (if merging)
 ✅ docs/ created with 4 files — architecture, workflows, patterns, operating-guidelines (unless --no-docs)
 ✅ CLAUDE.md includes `## Operating Guidelines` section pointing at docs/operating-guidelines.md (unless --no-docs)
+✅ CLAUDE.md includes `## Behavioral Guidelines` with 4 numbered subsections, byte-identical to the plugin asset (always — including --no-docs and --template=minimal)
 ✅ All validation checks pass
 ✅ Total runtime < 60 seconds (with parallel agents)

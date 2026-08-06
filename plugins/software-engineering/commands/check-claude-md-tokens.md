@@ -68,6 +68,15 @@ When CLAUDE.md exceeds the token limit, apply these optimization techniques:
 - Reduce whitespace and empty lines
 - Compress nested lists
 
+## Protected Sections
+
+These sections are canonical output of `/gen-claude` and must survive verbatim. **Never** propose removing, abbreviating, externalizing, reordering, or renumbering them — no reduction strategy above applies to them:
+
+- `## Behavioral Guidelines` — a byte-identical copy of a plugin asset (~545 tokens). It reads as generic prose, which makes it a tempting cut, but it is deliberate always-in-context guidance and `/gen-claude` will reinstate it on the next run.
+- `## Operating Guidelines` — only ~40 tokens; pointer to `docs/operating-guidelines.md`.
+
+Together these are ~585 tokens of intentional fixed overhead. When a file is over limit, reduce project-specific sections only. If it is *still* over limit after that, report the overage and stop — do not touch protected sections.
+
 ## Output Format
 
 ```
@@ -89,7 +98,7 @@ Status: ❌ OVER LIMIT (+612 tokens)
 
 When offering to reduce CLAUDE.md, analyze the content and propose specific edits:
 
-1. **Identify Verbose Sections**: Find areas with high word count but low information density
+1. **Identify Verbose Sections**: Find areas with high word count but low information density — excluding the protected sections listed above
 2. **Propose Specific Cuts**: Show exact lines or sections to remove
 3. **Maintain Functionality**: Ensure core instructions remain intact
 4. **Preview Changes**: Show before/after comparison
@@ -99,6 +108,7 @@ When offering to reduce CLAUDE.md, analyze the content and propose specific edit
 
 - **Run Regularly**: Check token count when updating CLAUDE.md
 - **Preemptive Optimization**: Stay well under 2500 to allow for growth
+- **Account for Fixed Overhead**: `/gen-claude` output carries ~585 protected tokens (Behavioral + Operating Guidelines), leaving ~1915 for project-specific content
 - **Quality Over Quantity**: Focus on high-impact instructions
 - **Version Control**: Commit before making large reductions
 - **Track History**: Document what was removed and why
