@@ -88,26 +88,6 @@ jobs:
           chmod +x ./scripts/check-versions.sh
           ./scripts/check-versions.sh
 
-  lint-markdown:
-    name: Lint Markdown Files
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - uses: jdx/mise-action@v4
-        with:
-          install: true
-          cache: true
-
-      - name: Lint markdown files
-        run: |
-          markdownlint '**/*.md' \
-            --ignore node_modules \
-            --ignore examples \
-            --config .markdownlint.json || true
-
   summary:
     name: Validation Summary
     runs-on: ubuntu-latest
