@@ -96,13 +96,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
+      - uses: jdx/mise-action@v4
         with:
-          node-version: '20'
-
-      - name: Install markdownlint-cli
-        run: npm install -g markdownlint-cli
+          install: true
+          cache: true
 
       - name: Lint markdown files
         run: |
