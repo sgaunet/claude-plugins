@@ -314,114 +314,42 @@ for each file:
 
 ### Phase 6: Validation & Success Report
 
-**Post-creation validation:**
+**Post-creation validation:** for each file in `successfulFiles`, confirm it exists
+(e.g. `test -f .github/workflows/linter.yml`) and is non-zero; move any failure to
+`failedFiles`.
 
-For each file in `successfulFiles`:
-1. Verify file exists: `test -f .github/workflows/linter.yml`
-2. Verify non-zero size: File should be > 0 bytes
-3. If validation fails: Move to `failedFiles`
+**Report to the user** — cover these facts; no fixed layout required:
 
-**Generate success report:**
+- **Files written:** each path with a total count — `.github/dependabot.yml`,
+  `.github/workflows/linter.yml`, `.github/workflows/release.yml`, plus
+  `.github/FUNDING.yml`, `.github/workflows/coverage.yml` and
+  `.github/workflows/snapshot.yml` in standard mode. Mark `mise.toml` as created vs.
+  preserved.
+- **Detected values:** if `GITHUB_USERNAME` was found from the git remote, report it and
+  that `FUNDING.yml` needs no editing. If `mise.toml` was created, report the pinned Go,
+  golangci-lint and goreleaser versions.
+- **Required customizations:** tool versions live in `mise.toml`, not the workflow files —
+  editing it changes both local (`mise install`) and CI versions. If `GITHUB_USERNAME` was
+  *not* detected, `.github/FUNDING.yml` still contains `[GITHUB_USERNAME]` and must be
+  replaced by hand. GitHub Actions permissions must be set under Settings → Actions →
+  General: "Workflow permissions" to "Read and write permissions", and
+  "Allow GitHub Actions to create and approve pull requests" checked.
+- **Optional customizations:** to publish Docker images, uncomment the docker tools
+  (buildx, docker-cli) in `mise.toml` and the QEMU + registry-login steps in `snapshot.yml`
+  and `release.yml`. The coverage threshold is `limit-coverage: 70` in
+  `.github/workflows/coverage.yml`. Dependabot update intervals
+  (daily/weekly/monthly) are in `.github/dependabot.yml`.
+- **Next steps:** review the workflow files, then `git add .github/ mise.toml` and
+  `git commit -m "ci: add mise-based GitHub Actions workflows"`, `git push origin main`,
+  and confirm the workflows appear and run under the repository's Actions tab.
+- **Docs:** `${CLAUDE_PLUGIN_ROOT}/docs/github-workflows-reference.md` ·
+  `${CLAUDE_PLUGIN_ROOT}/docs/github-workflows-troubleshooting.md` · `/gen-goreleaser` for
+  `.goreleaser.yml` · `/gen-taskfiles` for `Taskfile.yml` (the lint/snapshot/release tasks
+  these workflows call) and `mise.toml` · https://mise.jdx.dev
 
-```
-[If all files succeeded:]
-✅ .github Directory Created Successfully
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Created Files:
-✅ mise.toml [if created] / ℹ️ mise.toml preserved [if it already existed]
-✅ .github/FUNDING.yml [if standard mode] (ready to use)
-✅ .github/dependabot.yml
-✅ .github/workflows/linter.yml
-✅ .github/workflows/coverage.yml [if standard mode]
-✅ .github/workflows/snapshot.yml [if standard mode]
-✅ .github/workflows/release.yml
-
-Total: [N] files
-
-[If GITHUB_USERNAME was detected:]
-Auto-configured with detected values:
-  ✓ GitHub username: <GITHUB_USERNAME> (from git remote)
-  ✓ FUNDING.yml is ready to use!
-[If mise.toml was created:]
-  ✓ mise.toml: Go <GO_VERSION>, golangci-lint <GOLANGCI_LINT_VERSION_BARE>, goreleaser <GORELEASER_VERSION>
-
-Required Customizations:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. Tool versions live in mise.toml (not the workflow files):
-   - Edit mise.toml to change Go / golangci-lint / goreleaser versions
-   - The same versions are used locally (`mise install`) and in CI
-
-2. [If GITHUB_USERNAME was NOT detected:]
-   Configure GitHub username:
-   - Edit .github/FUNDING.yml
-   - Replace "[GITHUB_USERNAME]" with your username
-
-3. Enable GitHub Actions permissions:
-   - Go to: Settings → Actions → General
-   - Set "Workflow permissions" to "Read and write permissions"
-   - Check "Allow GitHub Actions to create and approve pull requests"
-
-4. (Optional) Publishing Docker images:
-   - Uncomment the docker tools in mise.toml (buildx, docker-cli)
-   - Uncomment the QEMU + registry-login steps in snapshot.yml / release.yml
-
-5. (Optional) Customize coverage threshold:
-   - Edit .github/workflows/coverage.yml
-   - Adjust "limit-coverage: 70" to your desired threshold
-
-6. (Optional) Customize Dependabot settings:
-   - Edit .github/dependabot.yml
-   - Adjust update intervals (daily/weekly/monthly)
-
-Next Steps:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. Review and customize workflow files
-2. Commit changes:
-   git add .github/ mise.toml
-   git commit -m "ci: add mise-based GitHub Actions workflows"
-
-3. Push to GitHub:
-   git push origin main
-
-4. Verify workflows:
-   - GitHub → Actions tab
-   - Workflows should appear and run on next push
-
-Documentation:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- Workflow details: ${CLAUDE_PLUGIN_ROOT}/docs/github-workflows-reference.md
-- Troubleshooting: ${CLAUDE_PLUGIN_ROOT}/docs/github-workflows-troubleshooting.md
-- GoReleaser setup: Use /gen-goreleaser command for .goreleaser.yml
-- Task + mise setup: Use /gen-taskfiles for Taskfile.yml (lint/snapshot/release tasks) and mise.toml
-- mise docs: https://mise.jdx.dev
-
-[If partial success:]
-⚠️  .github Directory Partially Created
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Successfully Created:
-[List successful files]
-
-Failed to Create:
-[List failed files with error messages]
-
-Recommendation: Review errors and retry with --force flag
-
-[If all files failed:]
-❌ .github Directory Creation Failed
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Errors:
-[List all failures with details]
-
-Possible causes:
-- Insufficient permissions
-- Disk space issues
-- File system restrictions
-
-Action: Check errors above and ensure write permissions in current directory
-```
+**On failure:** report which files were written, which failed and why, and that `--force`
+retries. Partial success is a warning, total failure an error — for a total failure also
+name the likely causes (permissions, disk space, filesystem restrictions).
 
 ## Command Arguments
 
@@ -683,22 +611,6 @@ All template files include `# CUSTOMIZE:` comments marking required changes:
 - Templates are opinionated (aligned with gitlab-backup project patterns)
 - Assumes standard Go project structure
 - Requires manual customization post-generation
-
-## Success Criteria
-
-✅ Prerequisites validated (git repo, Go project)
-✅ Template files read from skill assets (6 .github files + mise.toml)
-✅ mise.toml ensured (created with detected versions if missing, else preserved)
-✅ User confirmation obtained (unless `--force`)
-✅ .github directory created
-✅ .github/workflows/ subdirectory created
-✅ All selected files written successfully (or partial success reported)
-✅ Files validated (exist and non-zero size)
-✅ Comprehensive success report displayed
-✅ Customization instructions provided
-✅ Next steps guide shown
-✅ No Claude Code attribution in any generated content
-✅ Total runtime < 10 seconds
 
 ## Examples
 
