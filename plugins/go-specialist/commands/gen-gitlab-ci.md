@@ -230,128 +230,47 @@ If `dryRunMode == true`:
 
 ### Phase 6: Validation & Success Report
 
-**Post-creation validation:**
+**Post-creation validation:** confirm `.gitlab-ci.yml` exists and is non-zero; on failure
+report the error and exit.
 
-1. Verify file exists: `test -f .gitlab-ci.yml`
-2. Verify non-zero size: File should be > 0 bytes
-3. If validation fails: Report error and exit
+**Report to the user** — cover these facts; no fixed layout required:
 
-**Generate success report:**
+- **Files written:** `.gitlab-ci.yml`, and `mise.toml` marked as created vs. preserved.
+- **Pipeline structure:** 2 stages (test, release). Every job runs `jdx/mise:latest` →
+  `mise install` → `task ...`: `unit-tests` (`task test`) and `linter` (`task lint`) on every
+  push, `build-snapshot` (`task snapshot`, no publish), `build-release` (`task release`) on
+  git tags, and `coverage` (commented out by default).
+- **Detected values:** if `mise.toml` was created, the pinned Go version (from go.mod),
+  golangci-lint version and goreleaser version.
+- **Required customization — PRIORITY 1, the pipeline will not run without it:** replace
+  `tags: [gitlab-org-docker]` on every job with the project's own runner tags, found under
+  GitLab Settings → CI/CD → Runners (commonly `docker`, `linux`, `kubernetes`).
+- **Other customizations:** tool versions live in `mise.toml`, not the pipeline YAML —
+  editing it changes both local (`mise install`) and CI versions. The `coverage:` job can be
+  uncommented (with coverage exclusions configured if needed). To publish Docker images,
+  uncomment the docker tools (buildx, docker-cli) in `mise.toml` and the `.docker-dind` block
+  in `.gitlab-ci.yml`, then `extends:` it from the release jobs — it authenticates with
+  `CI_REGISTRY` / `CI_JOB_TOKEN`.
+- **GoReleaser status:** if `.goreleaser.yml` exists, say the release jobs are ready. If it
+  is missing, warn that `build-snapshot` and `build-release` will both fail, and point at
+  `/gen-goreleaser` or https://goreleaser.com/quick-start/.
+- **Troubleshooting:** "No such runner tags: gitlab-org-docker" → update the runner tags
+  (check Settings → CI/CD → Runners). "goreleaser: config file not found" → generate
+  `.goreleaser.yml` with `/gen-goreleaser`. "task/mise: command not found" → jobs run in
+  `jdx/mise:latest` and call `mise install` in `before_script`, so `mise.toml` must exist at
+  the repo root (this command creates it). "Docker login failed" (only with the optional
+  docker block) → enable the Container Registry under Settings → General → Visibility and
+  confirm `.docker-dind` is uncommented and extended by the release jobs.
+- **Next steps:** review `.gitlab-ci.yml` (runner tags) and `mise.toml` (versions), ensure
+  `.goreleaser.yml` exists, then `git add .gitlab-ci.yml mise.toml` and
+  `git commit -m "ci: add mise-based GitLab CI/CD pipeline"`, `git push origin main`, and
+  confirm the pipeline runs under CI/CD → Pipelines.
+- **Docs:** inline comments in `.gitlab-ci.yml` · `/gen-goreleaser` for `.goreleaser.yml` ·
+  runner configuration under GitLab Settings → CI/CD → Runners.
 
-```
-[If file created successfully:]
-✅ GitLab CI Configuration Created Successfully
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Created Files:
-✅ .gitlab-ci.yml
-✅ mise.toml [if created] / ℹ️ mise.toml preserved [if it already existed]
-
-Pipeline Structure (mise-based):
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📋 2 Stages: test, release
-🔧 Jobs (each: jdx/mise:latest → `mise install` → `task ...`):
-   - unit-tests: `task test` on every push
-   - linter: `task lint` on every push
-   - build-snapshot: `task snapshot` (no publish)
-   - build-release: `task release` on Git tags
-   - coverage: Optional (currently commented out)
-
-[If mise.toml was created:]
-Tool versions pinned in mise.toml:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  ✓ Go: <GO_VERSION> (from go.mod)
-  ✓ golangci-lint: <GOLANGCI_LINT_VERSION_BARE>
-  ✓ goreleaser: <GORELEASER_VERSION>
-
-Required Customizations:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-⚠️  PRIORITY 1 - Must configure for the pipeline to work:
-
-1. Configure GitLab Runner tags (one per job) - MOST CRITICAL:
-   - Find: tags: [gitlab-org-docker]
-   - Replace: With your runner tags
-   - How to find tags: GitLab Settings → CI/CD → Runners
-   - Common tags: docker, linux, kubernetes
-
-2. Tool versions live in mise.toml (not the pipeline YAML):
-   - Edit mise.toml to change Go / golangci-lint / goreleaser versions
-   - Same versions are used locally (`mise install`) and in CI
-
-3. Enable coverage job (optional):
-   - Uncomment the `coverage:` job in .gitlab-ci.yml
-   - Configure coverage exclusions if needed
-
-4. Publishing Docker images (optional):
-   - Uncomment the docker tools in mise.toml (buildx, docker-cli)
-   - Uncomment the `.docker-dind` block in .gitlab-ci.yml and `extends:` it from
-     the release jobs (uses CI_REGISTRY / CI_JOB_TOKEN for auth)
-
-GoReleaser Configuration Status:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-[If goreleaserMissing == false:]
-✅ .goreleaser.yml found - Release jobs ready to use
-
-[If goreleaserMissing == true:]
-⚠️  .goreleaser.yml not found
-    - build-snapshot job will fail without this file
-    - build-release job will fail without this file
-
-    Generate now: /goreleaser
-    Or create manually: https://goreleaser.com/quick-start/
-
-Common Issues & Troubleshooting:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-❌ "No such runner tags: gitlab-org-docker"
-   → Update runner tags in .gitlab-ci.yml (one per job)
-   → Check available tags: Settings → CI/CD → Runners
-
-❌ "goreleaser: config file not found"
-   → Generate .goreleaser.yml with /gen-goreleaser
-   → Or create manually at project root
-
-❌ "task: command not found" / "mise: command not found"
-   → The jobs run in jdx/mise:latest and call `mise install` in before_script
-   → Ensure mise.toml exists at the repo root (this command creates it)
-
-❌ "Docker login failed" (only if you enabled the optional docker block)
-   → Enable Container Registry: Settings → General → Visibility
-   → Verify the .docker-dind block is uncommented and extended by the release jobs
-
-Next Steps:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. Review and customize .gitlab-ci.yml (runner tags) and mise.toml (versions)
-2. Ensure .goreleaser.yml exists (use /gen-goreleaser if needed)
-3. Commit changes:
-   git add .gitlab-ci.yml mise.toml
-   git commit -m "ci: add mise-based GitLab CI/CD pipeline"
-
-4. Push to GitLab:
-   git push origin main
-
-5. Verify pipeline:
-   - GitLab → CI/CD → Pipelines
-   - Pipeline should run automatically on push
-
-Documentation:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- Pipeline configuration reference: .gitlab-ci.yml inline comments
-- GoReleaser setup: Use /gen-goreleaser command for .goreleaser.yml
-- Runner configuration: GitLab Settings → CI/CD → Runners
-
-[If file creation failed:]
-❌ GitLab CI Configuration Creation Failed
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Error: [Error message details]
-
-Possible causes:
-- Insufficient permissions
-- Disk space issues
-- File system restrictions
-
-Action: Check errors above and ensure write permissions in current directory
-```
+**On failure:** report which files were written, which failed and why, and that `--force`
+retries. Partial success is a warning, total failure an error — for a total failure also
+name the likely causes (permissions, disk space, filesystem restrictions).
 
 ## Command Arguments
 
@@ -555,20 +474,6 @@ All template files include `# CUSTOMIZE:` comments marking required changes:
 - Assumes standard Go project structure
 - Requires manual customization post-generation (runner tags)
 - Docker-in-Docker only required if you enable the optional image-publishing block
-
-## Success Criteria
-
-✅ Prerequisites validated (git repo, Go project)
-✅ Template files read from skill assets (.gitlab-ci.yml + mise.toml)
-✅ mise.toml ensured (created with detected versions if missing, else preserved)
-✅ User confirmation obtained (unless `--force`)
-✅ .gitlab-ci.yml written successfully
-✅ File validated (exists and non-zero size)
-✅ Comprehensive success report displayed
-✅ Customization instructions provided
-✅ Next steps guide shown
-✅ No Claude Code attribution in generated content
-✅ Total runtime < 5 seconds
 
 ## Examples
 

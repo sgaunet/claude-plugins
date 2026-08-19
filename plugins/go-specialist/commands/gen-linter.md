@@ -213,76 +213,36 @@ Use Write tool:
 
 ### Phase 6: Validation & Success Report
 
-**Verify file creation:**
-```bash
-test -f .golangci.yml && wc -l .golangci.yml
-```
+**Post-creation validation:** confirm `.golangci.yml` exists and is non-zero, and report its
+line count.
 
-**Success report:**
+**If `dryRunMode == true`:** report that nothing was written, name the file that *would* be
+created with its line count, and note that dropping `--dry-run` performs the creation.
 
-If `dryRunMode = true`:
-```
-✅ [DRY RUN] Preview completed successfully
+**Otherwise report to the user** — cover these facts; no fixed layout required:
 
-Would create:
-  • .golangci.yml (224 lines)
+- **Files written:** `.golangci.yml` with its line count.
+- **Next steps:** run `golangci-lint run ./...`; auto-fix what can be fixed with
+  `golangci-lint run --fix ./...`; see which linters are active via
+  `golangci-lint run -v ./...`; isolate one linter with
+  `golangci-lint run --disable-all --enable=govet ./...`; edit `.golangci.yml` to adjust
+  enabled linters, timeouts or exclusions.
+- **CI integration:** `/gen-github-dir` for GitHub Actions (includes a linter workflow),
+  `/gen-gitlab-ci` for GitLab CI (includes a lint job), `/gen-taskfiles` for the lint tasks.
+- **Editor integration:** VS Code — install the Go extension and set
+  `"go.lintTool": "golangci-lint"`; GoLand — Settings → Tools → File Watchers → add
+  golangci-lint; Vim/Neovim — configure the ale plugin with golangci-lint.
+- **Enabled features:** 90+ linters on by default, balanced for quality vs. pragmatism, fast
+  execution with caching, parallel processing, CI/CD ready.
+- **Missing tools:** if `linterNotInstalled`, remind to install it —
+  `brew install golangci-lint` on macOS, otherwise
+  `go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest` — and verify with
+  `golangci-lint --version`.
+- **Docs:** https://golangci-lint.run/usage/configuration/
 
-To create files, run without --dry-run flag.
-```
-
-If normal execution:
-```
-✅ golangci-lint configuration created successfully!
-
-Created files:
-  ✓ .golangci.yml (224 lines)
-
-Next steps:
-
-1. Run initial lint check:
-   golangci-lint run ./...
-
-2. Auto-fix issues where possible:
-   golangci-lint run --fix ./...
-
-3. See verbose output with active linters:
-   golangci-lint run -v ./...
-
-4. Test specific linter:
-   golangci-lint run --disable-all --enable=govet ./...
-
-5. Customize configuration:
-   Edit .golangci.yml to adjust enabled linters, timeouts, or exclusions
-
-6. Integrate with CI/CD:
-   • GitHub Actions: Run /gen-github-dir (includes linter workflow)
-   • GitLab CI: Run /gen-gitlab-ci (includes lint job)
-   • Task runner: Run /gen-taskfiles (includes lint tasks)
-
-7. Configure editor integration:
-   • VS Code: Install Go extension, set "go.lintTool": "golangci-lint"
-   • GoLand: Settings → Tools → File Watchers → Add golangci-lint
-   • Vim/Neovim: Configure ale plugin with golangci-lint
-
-Configuration features:
-  ✓ 90+ linters enabled by default
-  ✓ Balanced quality vs. pragmatism
-  ✓ Fast execution with caching
-  ✓ Parallel processing
-  ✓ CI/CD ready
-
-📚 Need help with advanced customization?
-   Visit: https://golangci-lint.run/usage/configuration/
-```
-
-If `linterNotInstalled = true`, append:
-```
-
-⚠️  Remember to install golangci-lint:
-   • macOS: brew install golangci-lint
-   • Other: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-   Verify: golangci-lint --version
-```
+**On failure:** report which files were written, which failed and why, and that `--force`
+retries. Partial success is a warning, total failure an error — for a total failure also
+name the likely causes (permissions, disk space, filesystem restrictions).
 
 ## Integration with Other Commands
 

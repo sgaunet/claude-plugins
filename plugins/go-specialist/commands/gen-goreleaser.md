@@ -386,119 +386,48 @@ For each file:
 
 ### Phase 7: Validation & Success Report
 
-**Verify file creation:**
-```bash
-test -f .goreleaser.yml && wc -l .goreleaser.yml
-test -f Dockerfile && wc -l Dockerfile  # if standard mode
-test -f resources/etc/passwd && wc -l resources/etc/passwd  # if standard mode
-```
+**Post-creation validation:** confirm each written file exists and is non-zero
+(`.goreleaser.yml`, plus `Dockerfile` and `resources/etc/passwd` in standard mode) and
+report its line count.
 
-**Success report:**
+**If `dryRunMode == true`:** report that nothing was written, list the files that *would* be
+created with their line counts, show the detected binary name and main package, and note
+that dropping `--dry-run` performs the creation.
 
-If `dryRunMode = true`:
-```
-✅ [DRY RUN] Preview completed successfully
+**Otherwise report to the user** — cover these facts; no fixed layout required:
 
-Would create:
-  • .goreleaser.yml (316 lines)
-<IF STANDARD MODE>
-  • Dockerfile (64 lines)
-  • resources/etc/passwd (3 lines)
+- **Files written:** each path with its line count (`.goreleaser.yml`; in standard mode also
+  `Dockerfile` and `resources/etc/passwd`).
+- **Detected values:** project name and binary name (from go.mod), main directory, owner
+  (from git remote), registry with its display name, and author name/email (from git config).
+- **Leftover placeholders:** if any remain, warn that the config is partial and give
+  `grep -r '\[.*\]' .goreleaser.yml` to find them. If none remain, say so — the config is
+  usable as-is with no manual editing.
+- **Enabled features:** multi-OS/arch builds (9 targets), multi-arch Docker (3 platforms),
+  changelog generated from git log, archives (tar.gz, zip), checksums, SBOM, build
+  attestation, and a Homebrew formula template.
+- **Next steps:** validate with `goreleaser check`; build without releasing via
+  `goreleaser build --snapshot --clean`; rehearse the full run with
+  `goreleaser release --snapshot --clean --skip=publish`; inspect `ls -la dist/`; set the CI
+  tokens (`GITHUB_TOKEN` and `GITLAB_TOKEN` are automatic on their platforms,
+  `HOMEBREW_TAP_TOKEN` only if publishing to a tap); then cut the first release with
+  `git tag -a v0.1.0 -m "Initial release"`, `git push origin v0.1.0` and
+  `goreleaser release --clean`.
+- **CI integration:** `/gen-github-dir` for GitHub Actions (includes a release workflow),
+  `/gen-gitlab-ci` for GitLab CI (includes a release job).
+- **Missing tools:** if `goreleaserNotInstalled`, remind to install it
+  (`brew install goreleaser` on macOS, otherwise https://goreleaser.com/install/) and verify
+  with `goreleaser --version` — v2.0.0+ is required. If `dockerNotInstalled` and not
+  `minimalMode`, remind to install Docker (https://docs.docker.com/get-docker/) with buildx
+  enabled (https://docs.docker.com/buildx/working-with-buildx/), verified via
+  `docker buildx version`.
+- **Docs:** `${CLAUDE_PLUGIN_ROOT}/docs/goreleaser-reference.md` for configuration
+  patterns · `${CLAUDE_PLUGIN_ROOT}/docs/goreleaser-troubleshooting.md` ·
+  https://goreleaser.com
 
-Detected settings:
-  • Binary name: <binaryName>
-  • Main package: <mainDir>
-
-To create files, run without --dry-run flag.
-```
-
-If normal execution:
-```
-✅ GoReleaser configuration created successfully!
-
-Created files:
-  ✓ .goreleaser.yml (316 lines, ready to use)
-<IF STANDARD MODE>
-  ✓ Dockerfile (64 lines, ready to use)
-  ✓ resources/etc/passwd (3 lines, ready to use)
-
-Auto-configured with detected values:
-  ✓ Project name: <PROJECT_NAME> (from go.mod)
-  ✓ Binary name: <PROJECT_NAME>
-  ✓ Main directory: <MAIN_DIR> (auto-detected)
-  ✓ Owner: <OWNER> (from git remote)
-  ✓ Registry: <REGISTRY> (<Registry Name>)
-  ✓ Author: <AUTHOR_NAME> <<AUTHOR_EMAIL>> (from git config)
-
-<IF ANY PLACEHOLDERS REMAIN>
-⚠️  Partial configuration detected:
-  Some placeholders could not be auto-detected and require manual review.
-  Search for remaining placeholders: grep -r '\[.*\]' .goreleaser.yml
-
-Next steps:
-
-1. Validate configuration:
-   goreleaser check
-
-2. Test build without releasing:
-   goreleaser build --snapshot --clean
-
-3. Test full release process:
-   goreleaser release --snapshot --clean --skip=publish
-
-4. Review generated artifacts:
-   ls -la dist/
-
-5. Set up CI/CD environment variables:
-   • GITHUB_TOKEN (automatic in GitHub Actions)
-   • GITLAB_TOKEN (automatic in GitLab CI)
-   • HOMEBREW_TAP_TOKEN (if using Homebrew publishing)
-
-6. Create first release:
-   git tag -a v0.1.0 -m "Initial release"
-   git push origin v0.1.0
-   goreleaser release --clean
-
-7. Integrate with CI/CD:
-   • GitHub Actions: Run /gen-github-dir (includes release workflow)
-   • GitLab CI: Run /gen-gitlab-ci (includes release job)
-
-Configuration features enabled:
-  ✓ Multi-OS/arch builds (9 targets)
-  ✓ Docker multi-arch support (3 platforms)
-  ✓ Automated changelog from git log
-  ✓ Archive creation (tar.gz, zip)
-  ✓ Checksum generation
-  ✓ SBOM generation
-  ✓ Build attestation
-  ✓ Homebrew formula (template included)
-
-<IF NO PLACEHOLDERS REMAIN>
-Configuration is ready to use immediately - no manual editing required! 🎉
-
-📚 Need help with advanced customization?
-   • Configuration patterns: ${CLAUDE_PLUGIN_ROOT}/docs/goreleaser-reference.md
-   • Troubleshooting: ${CLAUDE_PLUGIN_ROOT}/docs/goreleaser-troubleshooting.md
-   • Official docs: https://goreleaser.com
-```
-
-If `goreleaserNotInstalled = true`, append:
-```
-
-⚠️  Remember to install GoReleaser:
-   • macOS: brew install goreleaser
-   • Linux: See https://goreleaser.com/install/
-   Verify: goreleaser --version (requires v2.0.0+)
-```
-
-If `dockerNotInstalled = true` and `minimalMode = false`, append:
-```
-
-⚠️  Remember to install Docker with buildx:
-   • Install Docker: https://docs.docker.com/get-docker/
-   • Enable buildx: https://docs.docker.com/buildx/working-with-buildx/
-   Verify: docker buildx version
-```
+**On failure:** report which files were written, which failed and why, and that `--force`
+retries. Partial success is a warning, total failure an error — for a total failure also
+name the likely causes (permissions, disk space, filesystem restrictions).
 
 ## Integration with Other Commands
 

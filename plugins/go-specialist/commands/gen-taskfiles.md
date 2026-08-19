@@ -322,185 +322,46 @@ for each file:
 
 ### Phase 6: Validation & Success Report
 
-**Post-creation validation:**
+**Post-creation validation:** for each file in `successfulFiles`, confirm it exists and is
+non-zero; move any failure to `failedFiles`.
 
-For each file in `successfulFiles`:
-1. Verify file exists
-2. Verify non-zero size: File should be > 0 bytes
-3. If validation fails: Move to `failedFiles`
+**Report to the user** — cover these facts; no fixed layout required:
 
-**Generate success report:**
+- **Files written:** each path with its line count, and a total. Mark `mise.toml` as
+  created vs. preserved (an existing one is never overwritten).
+- **Detected values:** project name and binary name (from go.mod), main directory, owner
+  (from git remote), registry, the Go / golangci-lint / goreleaser versions pinned in
+  `mise.toml`, and the pre-commit hooks version.
+- **Key tasks:** `task` or `task -a` lists everything; highlight `task check-before-commit`,
+  `task lint`, `task test`, `task build`, `task snapshot`, `task release`, `task doc`,
+  `task dev:install-pre-commit`, `task dev:pre-commit`.
+- **Prerequisites:** tool versions are pinned in `mise.toml`, so mise is installed once per
+  machine (`brew install mise`, or `curl https://mise.run | sh` —
+  https://mise.jdx.dev/getting-started.html) and then provides go, task, golangci-lint and
+  goreleaser at the exact CI versions. Follow with `mise install`, plus either
+  `mise activate <shell>` in the shell rc or one-offs via `mise exec -- task lint`.
+  pre-commit installs separately (`brew install pre-commit` or `pip install pre-commit`),
+  then `task dev:install-pre-commit`.
+- **Missing configs:** if `linterMissing`, warn that `.golangci.yml` is absent and point at
+  `/gen-linter`; if `goreleaserMissing`, same for `.goreleaser.yml` and `/gen-goreleaser`.
+  Note that mise supplies both binaries either way — only the config is missing.
+- **Optional customizations:** multi-binary projects need the build task extended; the
+  commented-out `trailing-whitespace` and `end-of-file-fixer` hooks can be enabled; the
+  Docker image is already wired to `<REGISTRY>/<OWNER>/<PROJECT_NAME>:latest` and worth a
+  check.
+- **Pre-commit hooks:** installed with `task dev:install-pre-commit`, tested with
+  `task dev:pre-commit`, then run on every `git commit` — checking YAML syntax, large
+  files, unit tests, the linter and a snapshot build. `git commit --no-verify` bypasses
+  them in an emergency.
+- **Next steps:** install mise and run `mise install`, review `mise.toml` and
+  `Taskfile.yml`, install the hooks, generate any missing config, run `task lint`,
+  `task test` and `task build`, then `git add mise.toml Taskfile*.yml .pre-commit-config.yaml`
+  and `git commit -m "build: add mise, task automation and pre-commit hooks"`.
+- **Docs:** https://taskfile.dev · https://pre-commit.com · `task -a` for the task list.
 
-```
-[If all files succeeded:]
-✅ Task Configuration Created Successfully
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Created Files:
-✅ mise.toml (dev tool versions)   [or: ℹ️ preserved existing mise.toml]
-✅ Taskfile.yml (66 lines, ready to use)
-✅ Taskfile_dev.yml (14 lines)
-✅ .pre-commit-config.yaml (25 lines)
-
-Total: 4 files
-
-Auto-configured with detected values:
-  ✓ Project name: <PROJECT_NAME> (from go.mod)
-  ✓ Binary name: <PROJECT_NAME>
-  ✓ Main directory: <MAIN_DIR> (auto-detected)
-  ✓ Owner: <OWNER> (from git remote)
-  ✓ Registry: <REGISTRY>
-  ✓ Go: <GO_VERSION> · golangci-lint: <GOLANGCI_LINT_VERSION_BARE> · goreleaser: <GORELEASER_VERSION> (mise.toml)
-  ✓ Pre-commit hooks version: <PRE_COMMIT_HOOKS_VERSION>
-
-Available Tasks:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Run `task` or `task -a` to see all available tasks.
-
-Key Tasks:
-- task check-before-commit  # Run all quality checks
-- task lint                 # Run golangci-lint
-- task test                 # Run unit tests with race detection
-- task build                # Build binaries
-- task snapshot             # Create test release
-- task release              # Create production release
-- task doc                  # Start godoc server
-- task dev:install-pre-commit  # Install pre-commit hooks
-- task dev:pre-commit       # Run pre-commit hooks manually
-
-Required Dependencies:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✅ Tool versions are pinned in mise.toml — install mise ONCE and it provides
-   go, task, golangci-lint, and goreleaser at the exact versions used in CI.
-
-1. Install mise (one-time, per machine):
-   - macOS:  brew install mise
-   - Linux:  curl https://mise.run | sh
-   - Docs:   https://mise.jdx.dev/getting-started.html
-
-2. Install the project's pinned tools:
-   - mise install            # reads mise.toml, installs every tool
-   - mise activate <shell>   # add to your shell rc to put tools on PATH
-   - (or run one-offs through mise: `mise exec -- task lint`)
-
-3. pre-commit (for git hooks):
-   - macOS: brew install pre-commit
-   - Linux: pip install pre-commit
-   - After install: task dev:install-pre-commit
-
-4. golangci-lint config:
-   [If linterMissing == true:]
-   ⚠️  .golangci.yml not found
-   - Generate with: /gen-linter
-   (golangci-lint itself is provided by mise via mise.toml)
-
-5. goreleaser config:
-   [If goreleaserMissing == true:]
-   ⚠️  .goreleaser.yml not found
-   - Generate with: /gen-goreleaser
-   (goreleaser itself is provided by mise via mise.toml)
-
-Optional Customizations:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📝 Configuration is ready to use! Optional adjustments:
-
-1. Multi-binary projects:
-   - If your project has multiple binaries, update the build task
-   - Example: Add separate build commands for each binary
-
-2. Pre-commit hooks (.pre-commit-config.yaml):
-   - Uncomment trailing-whitespace and end-of-file-fixer if desired
-   - Customize which checks run before commits
-
-3. Docker image settings (already auto-configured):
-   - Verify registry and image name match your preferences
-   - Auto-detected: <REGISTRY>/<OWNER>/<PROJECT_NAME>:latest
-
-Pre-commit Hook Setup:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-To enable automatic quality checks on every commit:
-
-1. Install pre-commit tool (see above)
-2. Install hooks:
-   task dev:install-pre-commit
-
-3. Test hooks:
-   task dev:pre-commit
-
-4. Hooks will now run automatically on `git commit`
-   - Checks YAML syntax
-   - Prevents large files
-   - Runs unit tests
-   - Runs linter
-   - Runs snapshot build
-
-To bypass hooks (emergency only):
-   git commit --no-verify -m "message"
-
-Task Integration:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Tasks integrate with your development workflow:
-
-- CI/CD pipelines can call: task lint, task test, task snapshot
-- Pre-commit hooks run: task test, task lint, task snapshot
-- Local development: task build, task doc
-- Releases: task release (with git tags)
-
-Next Steps:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. Install mise (if not installed), then: mise install
-2. Review and customize mise.toml and Taskfile.yml
-3. Install pre-commit: task dev:install-pre-commit
-4. Generate missing configs:
-   - .golangci.yml: /gen-linter
-   - .goreleaser.yml: /gen-goreleaser
-
-5. Test tasks:
-   task lint
-   task test
-   task build
-
-6. Commit changes:
-   git add mise.toml Taskfile*.yml .pre-commit-config.yaml
-   git commit -m "build: add mise, task automation and pre-commit hooks"
-
-7. Verify pre-commit hooks:
-   - Make a test change
-   - Run: git commit
-   - Hooks should run automatically
-
-Documentation:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-- Task documentation: https://taskfile.dev
-- Pre-commit documentation: https://pre-commit.com
-- Task reference: Run `task -a` to list all tasks
-
-[If partial success:]
-⚠️  Task Configuration Partially Created
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Successfully Created:
-[List successful files]
-
-Failed to Create:
-[List failed files with error messages]
-
-Recommendation: Review errors and retry with --force flag
-
-[If all files failed:]
-❌ Task Configuration Creation Failed
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Errors:
-[List all failures with details]
-
-Possible causes:
-- Insufficient permissions
-- Disk space issues
-- File system restrictions
-
-Action: Check errors above and ensure write permissions in current directory
-```
+**On failure:** report which files were written, which failed and why, and that `--force`
+retries. Partial success is a warning, total failure an error — for a total failure also
+name the likely causes (permissions, disk space, filesystem restrictions).
 
 ## Command Arguments
 
@@ -733,21 +594,6 @@ All local hooks use `pass_filenames: false` to run full checks, not per-file.
 - Assumes standard Go project structure
 - Requires manual customization for multi-binary projects
 - Docker image task requires customization for your registry
-
-## Success Criteria
-
-✅ Prerequisites validated (git repo, Go project)
-✅ Template files read from skill assets (mise.toml + 3 task files)
-✅ Tool versions detected and pinned in mise.toml (existing mise.toml preserved)
-✅ Binary name detected from go.mod
-✅ User confirmation obtained (unless `--force`)
-✅ All files written successfully (or partial success reported)
-✅ Files validated (exist and non-zero size)
-✅ Comprehensive success report displayed
-✅ Customization instructions provided
-✅ Next steps guide shown
-✅ No Claude Code attribution in generated content
-✅ Total runtime < 5 seconds
 
 ## Examples
 

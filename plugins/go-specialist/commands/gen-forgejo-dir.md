@@ -347,110 +347,46 @@ for each file:
 
 ### Phase 6: Validation & Success Report
 
-**Post-creation validation:**
+**Post-creation validation:** for each file in `successfulFiles`, confirm it exists
+(e.g. `test -f .forgejo/workflows/linter.yml`) and is non-zero; move any failure to
+`failedFiles`.
 
-For each file in `successfulFiles`:
-1. Verify file exists: `test -f .forgejo/workflows/linter.yml`
-2. Verify non-zero size: File should be > 0 bytes
-3. If validation fails: Move to `failedFiles`
+**Report to the user** — cover these facts; no fixed layout required:
 
-**Generate success report:**
+- **Files written:** each path with a total count — `.forgejo/workflows/linter.yml` and
+  `.forgejo/workflows/release.yml`, plus `.forgejo/workflows/coverage.yml` and
+  `.forgejo/workflows/snapshot.yml` in standard mode. Mark `mise.toml` as created vs.
+  preserved.
+- **Detected values:** the runner label `<FORGEJO_RUNNER_LABEL>`, and — if `mise.toml` was
+  created — the pinned Go, golangci-lint and goreleaser versions.
+- **Verify the runner label:** `fgj actions runner list` should show a registered runner
+  advertising `<FORGEJO_RUNNER_LABEL>`. If none does, register one with
+  `fgj actions runner register`, or edit `runs-on:` in `.forgejo/workflows/*.yml` to match
+  an existing label.
+- **Confirm action mirroring:** the workflows reference only `actions/checkout` and
+  `jdx/mise-action`, which require the instance to mirror or proxy GitHub actions. If it
+  does not, replace those two `uses:` references with mirrored equivalents.
+- **Tool versions:** pinned in `mise.toml`, not the workflow files — editing it changes both
+  local (`mise install`) and CI versions.
+- **Release publisher (release.yml + .goreleaser.yml):** `release.yml` exports `GITEA_TOKEN`,
+  defaulting to the job token Forgejo auto-provides (`secrets.GITHUB_TOKEN`); for broader
+  scope, create a `GITEA_TOKEN` repo-level secret and reference it there. Add a
+  `gitea_urls:` block (the instance's api/download URLs) to `.goreleaser.yml` so goreleaser
+  publishes to Forgejo rather than github.com — generate or edit that file with
+  `/gen-goreleaser`.
+- **Optional customizations:** to publish Docker images, uncomment the docker tools
+  (buildx, docker-cli) in `mise.toml` and the QEMU + registry-login block in `snapshot.yml`
+  and `release.yml`, setting the login registry to `<REGISTRY>`. The coverage threshold is
+  `limit-coverage: 70` in `.forgejo/workflows/coverage.yml`.
+- **Next steps:** review the workflow files, confirm a runner is registered and online
+  (`fgj actions runner list`), then `git add .forgejo/ mise.toml` and
+  `git commit -m "ci: add mise-based Forgejo Actions workflows"`, `git push origin main`,
+  and check the repository's Actions tab — the workflows should run on the next push if a
+  runner is online.
 
-```
-[If all files succeeded:]
-✅ .forgejo Directory Created Successfully
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Created Files:
-✅ mise.toml [if created] / ℹ️ mise.toml preserved [if it already existed]
-✅ .forgejo/workflows/linter.yml
-✅ .forgejo/workflows/coverage.yml [if standard mode]
-✅ .forgejo/workflows/snapshot.yml [if standard mode]
-✅ .forgejo/workflows/release.yml
-
-Total: [N] files
-
-Auto-configured with detected values:
-  ✓ Runner label: <FORGEJO_RUNNER_LABEL>
-[If mise.toml was created:]
-  ✓ mise.toml: Go <GO_VERSION>, golangci-lint <GOLANGCI_LINT_VERSION_BARE>, goreleaser <GORELEASER_VERSION>
-
-Required Customizations:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. Verify the runner label:
-   - Run: fgj actions runner list
-   - Confirm a registered runner advertises "<FORGEJO_RUNNER_LABEL>"
-   - If not, register one: fgj actions runner register
-   - Or edit "runs-on:" in .forgejo/workflows/*.yml to match an existing label
-
-2. Confirm GitHub action mirroring:
-   - Workflows reference only actions/checkout and jdx/mise-action
-   - These require your instance to mirror/proxy GitHub actions
-   - If not configured, replace these two "uses:" references with mirrored equivalents
-
-3. Tool versions live in mise.toml (not the workflow files):
-   - Edit mise.toml to change Go / golangci-lint / goreleaser versions
-   - Same versions are used locally (`mise install`) and in CI
-
-4. Configure the Forgejo/Gitea release publisher (release.yml + .goreleaser.yml):
-   - release.yml exports GITEA_TOKEN (added by this command), defaulting to the
-     job token Forgejo auto-provides (secrets.GITHUB_TOKEN). For broader scope,
-     create a GITEA_TOKEN repo secret and reference it in release.yml.
-   - Add a `gitea_urls:` block to .goreleaser.yml (api/download URLs of your
-     instance) so goreleaser publishes the release to Forgejo, not github.com.
-   - Generate/edit .goreleaser.yml with /gen-goreleaser.
-
-5. (Optional) Publishing Docker images:
-   - Uncomment the docker tools in mise.toml (buildx, docker-cli)
-   - Uncomment the QEMU + registry-login block in snapshot.yml / release.yml
-   - Set the login registry to your instance host: "<REGISTRY>"
-
-6. (Optional) Customize coverage threshold:
-   - Edit .forgejo/workflows/coverage.yml
-   - Adjust "limit-coverage: 70" to your desired threshold
-
-Next Steps:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. Review and customize workflow files
-2. Ensure a Forgejo Actions runner is registered and online:
-   fgj actions runner list
-3. Commit changes:
-   git add .forgejo/ mise.toml
-   git commit -m "ci: add mise-based Forgejo Actions workflows"
-
-4. Push to your Forgejo instance:
-   git push origin main
-
-5. Verify workflows:
-   - Forgejo → repository → Actions tab
-   - Workflows should appear and run on next push (if a runner is online)
-
-[If partial success:]
-⚠️  .forgejo Directory Partially Created
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Successfully Created:
-[List successful files]
-
-Failed to Create:
-[List failed files with error messages]
-
-Recommendation: Review errors and retry with --force flag
-
-[If all files failed:]
-❌ .forgejo Directory Creation Failed
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Errors:
-[List all failures with details]
-
-Possible causes:
-- Insufficient permissions
-- Disk space issues
-- File system restrictions
-
-Action: Check errors above and ensure write permissions in current directory
-```
+**On failure:** report which files were written, which failed and why, and that `--force`
+retries. Partial success is a warning, total failure an error — for a total failure also
+name the likely causes (permissions, disk space, filesystem restrictions).
 
 ## Command Arguments
 
@@ -695,20 +631,6 @@ All template files include `# CUSTOMIZE:` comments marking required changes:
 - Only handles the `.forgejo/workflows/` directory structure
 - Reuses opinionated GitHub-Actions-compatible templates
 - Assumes standard Go project structure and an instance with action mirroring
-
-## Success Criteria
-
-✅ Prerequisites validated (git repo, Go project)
-✅ Template files read from shared assets (+ mise.toml asset)
-✅ mise.toml ensured (created with detected versions if missing, else preserved)
-✅ Runner label resolved (`fgj` detection or `docker` fallback)
-✅ `runs-on` rewritten from `ubuntu-latest` to the Forgejo label
-✅ User confirmation obtained (unless `--force`)
-✅ .forgejo/workflows/ directory created
-✅ All selected files written successfully (or partial success reported)
-✅ Files validated (exist and non-zero size)
-✅ Comprehensive success report displayed
-✅ No Claude Code attribution in any generated content
 
 ## Examples
 
