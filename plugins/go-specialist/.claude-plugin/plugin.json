@@ -1,6 +1,6 @@
 {
   "name": "go-specialist",
-  "version": "0.21.0",
+  "version": "0.21.1",
   "description": "Master Go 1.25+ development with modern patterns, advanced concurrency, performance optimization, and production-ready microservices. Skills: go-blackbox (black box test enforcement), go-bulma (Bulma CSS scaffolding), go-structure (project layout), go-tool (Go 1.24+ tool dependencies). MCP: context7",
   "keywords": [
     "go",
