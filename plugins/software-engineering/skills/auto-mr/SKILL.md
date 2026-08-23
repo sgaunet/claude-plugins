@@ -3,6 +3,7 @@ name: auto-mr
 description: Push current branch, create MR/PR on GitHub, GitLab, or Forgejo, wait for CI pipeline, merge, and clean up branch using auto-mr CLI
 argument-hint: '[--no-squash] [--msg "text"] [--labels "label1,label2"] [--list-labels] [--pipeline-timeout "30m"] [--log-level debug|info|warn|error]'
 user-invocable: true
+disable-model-invocation: true
 allowed-tools: Bash(auto-mr:*), Bash(git:*), AskUserQuestion
 ---
 

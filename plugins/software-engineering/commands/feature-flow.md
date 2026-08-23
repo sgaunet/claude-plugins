@@ -191,7 +191,7 @@ This check is read-only and always runs, including under `--dry-run` and `--forc
 
 1. Re-run lint and tests to confirm clean
 2. Display `git diff --stat` summary
-3. Show pass/fail gate: Lint ✓/⚠/✗, Tests ✓/⚠/✗, file stats
+3. Show pass/fail gate: Lint ✓/✗, Tests ✓/✗, file stats
 4. Ask confirmation: "Verification complete. Proceed to commit?" → "Yes, commit changes" / "Go back and fix issues" / "Cancel workflow"
 
 ### Phase I-7: Commit (User Confirmation)
@@ -205,7 +205,7 @@ This check is read-only and always runs, including under `--dry-run` and `--forc
 
 **On successful commit:** Immediately proceed to Phase I-8.
 
-### Phase I-8: Merge via auto-mr (Automatic, Skippable)
+### Phase I-8: Merge via auto-mr (User Confirmation, Skippable)
 
 **Parse flags:** `--skip-mr` → skip this phase.
 
@@ -213,7 +213,27 @@ This check is read-only and always runs, including under `--dry-run` and `--forc
 - `auto-mr` squashes by default; there is no `--squash` flag to forward. `--squash`/`-s` is a no-op kept for backward compatibility.
 - `--msg`: default `<type>(<scope>): <issue-title> (Closes #<N>)`, override with user's `--msg`
 
-**Execute:** Run `auto-mr` → on success display MR/PR URL → on failure warn and show manual push instructions.
+**Pre-flight (run before asking):**
+- `auto-mr --version` — if `auto-mr` is not installed, skip this phase entirely and
+  show `git push -u origin <branch-name>` instead.
+- `git rev-parse --abbrev-ref HEAD` — if this is the default branch
+  (`main`/`master`), **stop**. `auto-mr` will not refuse on its own, and merging a
+  default branch into itself then deleting it is not recoverable from here.
+- `git status --porcelain` — if the tree is dirty, list the uncommitted files
+  and let the user decide before proceeding.
+
+**Confirmation (required — never skip, never infer):** ask via `AskUserQuestion`:
+
+> Run `auto-mr` on `<branch-name>`? This pushes the branch, opens the MR/PR, waits
+> for CI, and then **merges it and deletes the branch automatically** if CI passes.
+
+Options: "Yes — push, merge and delete" / "Cancel — leave the commit local"
+
+Do not treat the Phase I-7 commit approval as covering this. Committing and
+merging are different decisions with very different blast radius, and this is the
+only irreversible step in the workflow.
+
+**Execute:** Run `auto-mr` → on success display MR/PR URL → on failure warn and show manual push instructions. If the failure looks like a pipeline timeout, verify the MR/PR is still open and unmerged (`gh pr view` / `glab mr view` / `fgj pr view`) before reporting the outcome.
 
 **Display summary** showing all completed steps (issue retrieved, branch, implementation, lint, tests, commit, MR) with URLs and hashes.
 

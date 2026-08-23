@@ -1,6 +1,6 @@
 ---
 name: go-tool
-description: Manage Go tool dependencies using the tool directive (Go 1.24+). Use when a Go project needs code generation tools like sqlc, moq, templ, swag, or stringer managed as reproducible Go tool dependencies.
+description: Manage Go tool dependencies using the tool directive (Go 1.24+). Use when a Go project needs code generation tools like sqlc, moq, templ, swag, stringer, or enumer managed as reproducible Go tool dependencies.
 user-invocable: false
 allowed-tools: Bash(go:*), Read, Glob, Grep
 ---
@@ -9,7 +9,7 @@ allowed-tools: Bash(go:*), Read, Glob, Grep
 
 Manage Go development tool dependencies using the `tool` directive introduced in Go 1.24. This ensures reproducible builds by tracking tool versions in `go.mod` — eliminating the old `tools.go` workaround and version drift across developers and CI.
 
-For detailed per-tool information, see the [reference catalog](${CLAUDE_SKILL_DIR}/../../docs/go-tool-catalog.md).
+For detailed per-tool information, see the [reference catalog](${CLAUDE_SKILL_DIR}/go-tool-catalog.md).
 
 ## When to Use
 
@@ -17,7 +17,6 @@ For detailed per-tool information, see the [reference catalog](${CLAUDE_SKILL_DI
 - Indicator files suggest a tool should be added (`.templ`, `.proto`, `sqlc.yml`, etc.)
 - The user explicitly requests adding a Go tool dependency
 - Auditing existing tool dependencies for consistency or cleanup
-- Migrating from `tools.go` pattern to the native `tool` directive
 
 ## Prerequisites
 
@@ -44,7 +43,7 @@ Use Glob to detect files that suggest specific tools:
 | `**/*.templ` | templ | `github.com/a-h/templ/cmd/templ` |
 | `swagger.yaml` / `swagger.json` | swag | `github.com/swaggo/swag/cmd/swag` |
 
-For **stringer** and **enumer**, detection requires context: `const` blocks with `iota` patterns. These are best suggested when the user is working with enum-like types.
+For **stringer** and **enumer**, detection requires context: `const` blocks with `iota` patterns. These are best suggested when the user is working with enum-like types. Prefer **enumer** over stringer when the type also needs JSON, SQL, or text marshalling; stringer only generates `String()`.
 
 ### Step 3: Report Findings
 
@@ -81,7 +80,7 @@ Confirm the tool runs without error.
 
 ### Step 4: Suggest go:generate Directive
 
-Based on the tool, suggest the appropriate `//go:generate` directive. See the [reference catalog](${CLAUDE_SKILL_DIR}/../../docs/go-tool-catalog.md) for canonical directives per tool.
+Based on the tool, suggest the appropriate `//go:generate` directive. See the [reference catalog](${CLAUDE_SKILL_DIR}/go-tool-catalog.md) for canonical directives per tool.
 
 General pattern:
 ```go

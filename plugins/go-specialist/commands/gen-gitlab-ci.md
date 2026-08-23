@@ -334,7 +334,7 @@ The go-specialist plugin may be corrupted. Try:
 **Missing .goreleaser.yml:**
 - Don't block creation
 - Warn in success report
-- Suggest using /goreleaser skill
+- Suggest using the `/gen-goreleaser` command
 
 ### Recovery Actions
 
@@ -445,7 +445,7 @@ All template files include `# CUSTOMIZE:` comments marking required changes:
 
 **After generation:**
 1. Review all `# CUSTOMIZE:` comments in .gitlab-ci.yml
-2. Generate .goreleaser.yml with /goreleaser skill
+2. Generate .goreleaser.yml with the `/gen-goreleaser` command
 3. Update runner tags (most critical customization)
 4. Update Go version to match your project
 5. Commit with meaningful message

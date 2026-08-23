@@ -425,7 +425,7 @@ The go-specialist plugin may be corrupted. Try:
 **Missing .golangci.yml or .goreleaser.yml:**
 - Don't block creation
 - Warn in success report
-- Suggest using /linter or /goreleaser skills
+- Suggest using the `/gen-linter` or `/gen-goreleaser` commands
 
 ### Recovery Actions
 
@@ -454,8 +454,8 @@ Current permissions: [show with ls -ld .]
 
 **Works with:**
 - `/commit`: Commit generated taskfiles
-- `/linter`: Generate .golangci.yml (required for lint task)
-- `/goreleaser`: Generate .goreleaser.yml (required for snapshot/release tasks)
+- `/gen-linter`: Generate .golangci.yml (required for lint task)
+- `/gen-goreleaser`: Generate .goreleaser.yml (required for snapshot/release tasks)
 - `/gen-github-dir`: GitHub workflows can call task commands
 - `/gen-gitlab-ci`: GitLab CI can call task commands
 
@@ -581,8 +581,8 @@ All local hooks use `pass_filenames: false` to run full checks, not per-file.
 ## Limitations
 
 **This command does NOT:**
-- Generate .golangci.yml (use `/linter` command)
-- Generate .goreleaser.yml (use `/goreleaser` command)
+- Generate .golangci.yml (use `/gen-linter` command)
+- Generate .goreleaser.yml (use `/gen-goreleaser` command)
 - Install Task runner or pre-commit tools (manual installation required)
 - Modify existing taskfiles intelligently (use `--force` to overwrite)
 - Install pre-commit hooks automatically (run `task dev:install-pre-commit`)

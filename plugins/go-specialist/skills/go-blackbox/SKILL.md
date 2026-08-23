@@ -1,8 +1,8 @@
 ---
 name: go-blackbox
-description: Detect white box Go tests and propose conversion to black box tests (package foo_test). Internal skill used by golang-pro agent to enforce black box testing conventions.
+description: Detect white box Go tests and propose conversion to black box tests (package foo_test), creating export_test.go bridges when tests need access to internals.
 user-invocable: false
-allowed-tools: Read, Glob, Grep, Bash(go test:*), Bash(go vet:*)
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash(go list:*), Bash(go test:*), Bash(go vet:*)
 ---
 
 # Go Black Box Test Enforcement
@@ -15,7 +15,6 @@ Detect Go test files using white box testing (same package name) and propose con
 - Reviewing existing test files in a Go project
 - User asks to audit or improve test quality
 - The golang-pro agent encounters `*_test.go` files during implementation
-- The golang-pro agent encounters goroutine-spawning code while writing or reviewing tests
 
 ## Prerequisites
 
@@ -24,35 +23,38 @@ Detect Go test files using white box testing (same package name) and propose con
 
 ## Workflow: Detect White Box Tests
 
-### Step 1: Scan Test Files
+### Step 1: Classify Test Files with `go list`
 
-Use Glob to find all test files:
+`go list` already reports the in-package/external split per package, and honours
+build constraints. Use it rather than globbing:
 
+```bash
+go list -f '{{.ImportPath}} {{.Name}} white={{.TestGoFiles}} black={{.XTestGoFiles}}' ./...
 ```
-**/*_test.go
-```
 
-Exclude `vendor/` and `export_test.go` files from analysis.
-
-### Step 2: Classify Each Test File
-
-For each `*_test.go` file, read the `package` declaration (first non-comment, non-blank line starting with `package`).
-
-**Classification rules:**
-
-| Package declaration | Source package | Classification |
+| Field | Package clause | Classification |
 |---|---|---|
-| `package foo_test` | `foo` | Black box (correct) |
-| `package foo` | `foo` | White box (needs conversion) |
-| `package foo_test` | N/A (no source) | Black box (standalone) |
+| `TestGoFiles` | `package foo` | White box — candidate for conversion |
+| `XTestGoFiles` | `package foo_test` | Black box — already correct |
 
-To determine the source package: look for non-test `.go` files in the same directory and read their `package` declaration.
+Two rules when reading the output:
 
-### Step 3: Check for export_test.go
+- **Drop `export_test.go` from the white box set.** It is a bridge file and belongs
+  to the source package by design, so it is never a conversion candidate.
+- **A package can legitimately hold both.** Seeing entries in `TestGoFiles` and
+  `XTestGoFiles` for the same package is normal, not a defect.
+
+Why not Glob `**/*_test.go` and read `package` lines: a test file behind a
+constraint like `//go:build linux` is matched by Glob on any OS but correctly
+excluded by `go list`, so the manual approach both over- and under-reports. `go
+list` also names the source package directly, removing the need to read sibling
+non-test files to infer it.
+
+### Step 2: Check for export_test.go
 
 For each directory containing test files, check whether an `export_test.go` already exists.
 
-### Step 4: Report Findings
+### Step 3: Report Findings
 
 Present a summary table:
 
@@ -114,99 +116,6 @@ go vet ./...
 
 If tests fail, diagnose: missing imports, renamed references, or unexported symbols not yet bridged via `export_test.go`.
 
-## Workflow: Add Goroutine Leak Detection
-
-After conversion (or during new test creation), detect test functions that exercise goroutine-spawning code and add `go.uber.org/goleak` verification.
-
-### Step 1: Identify Goroutine-Spawning Source Code
-
-For each package under test, scan the **non-test** `.go` source files for goroutine launches:
-
-```
-Grep pattern: `go\s+func\s*\(|go\s+[a-zA-Z]`
-```
-
-This matches:
-- `go func() { ... }()` — anonymous goroutine
-- `go myFunction(...)` — named function goroutine
-- `go obj.Method(...)` — method goroutine
-
-Exclude `vendor/` and generated files. Record which **exported functions/methods** directly or transitively spawn goroutines.
-
-### Step 2: Map Tests to Goroutine-Spawning Functions
-
-For each test file in the package, identify test functions that call (directly or via helpers) the goroutine-spawning functions found in Step 1.
-
-**Classification:**
-
-| Test Function | Calls Goroutine-Spawning Code | Action |
-|---|---|---|
-| `TestWorkerPool` | Yes (`StartWorkers` uses `go`) | Add `goleak.VerifyNone(t)` |
-| `TestParseConfig` | No | Skip — no goroutine risk |
-| `TestServerStart` | Yes (`Serve` uses `go`) | Add `goleak.VerifyNone(t)` |
-
-### Step 3: Add goleak to Test Functions
-
-For each test function classified as needing leak detection:
-
-1. **Add the defer call** as the first statement in the test function body:
-
-```go
-func TestWorkerPool(t *testing.T) {
-    defer goleak.VerifyNone(t)
-    // ... rest of test
-}
-```
-
-2. **Add the import** to the test file if not already present:
-
-```go
-import (
-    "testing"
-
-    "go.uber.org/goleak"
-)
-```
-
-3. **Install the module** if not already in `go.mod`:
-
-```bash
-go get go.uber.org/goleak@latest
-go mod tidy
-```
-
-### Step 4: Handle goleak Options
-
-Some goroutines are expected and should not trigger false positives. Common cases:
-
-| Scenario | Option |
-|---|---|
-| Known background goroutine from a dependency | `goleak.IgnoreTopFunction("package.function")` |
-| Goroutine matching a pattern | `goleak.IgnoreAnyFunction("package.glob*")` |
-
-If `goleak.VerifyNone(t)` fails due to known background goroutines (e.g., from `net/http` or logging libraries), add options:
-
-```go
-defer goleak.VerifyNone(t,
-    goleak.IgnoreTopFunction("net/http.(*Server).Serve"),
-)
-```
-
-Do not suppress unknown goroutines — investigate them first.
-
-### Step 5: Validate
-
-Run the tests with the race detector to confirm no leaks and no regressions:
-
-```bash
-go test -race -count=1 ./...
-```
-
-If `goleak.VerifyNone` reports leaked goroutines:
-1. Check if the tested code properly shuts down goroutines (context cancellation, channel close, `sync.WaitGroup`)
-2. If the goroutine is from a third-party dependency and cannot be controlled, add a targeted `goleak.IgnoreTopFunction` option
-3. Never blanket-ignore all goroutines — each ignore must be specific and documented
-
 ## export_test.go Conventions
 
 1. **File name**: Always `export_test.go` (Go convention)
@@ -225,6 +134,3 @@ If `goleak.VerifyNone` reports leaked goroutines:
 | All tests already black box | Report: "All test files use black box naming. No conversion needed." |
 | Test compilation fails after conversion | Diagnose missing imports or unexported references. Attempt fix (max 2 retries). |
 | `go vet` fails after conversion | Display errors and suggest manual review. |
-| `go get go.uber.org/goleak` fails | Display error. Check network connectivity and module proxy settings. |
-| `goleak.VerifyNone` reports leaked goroutines | Investigate source. Fix goroutine lifecycle first; use `IgnoreTopFunction` only for third-party goroutines that cannot be controlled. |
-| No goroutine-spawning code found in package | Skip goleak workflow: "No goroutine usage detected. Goroutine leak detection not needed." |

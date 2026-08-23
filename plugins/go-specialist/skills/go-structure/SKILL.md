@@ -1,8 +1,8 @@
 ---
 name: go-structure
-description: Recommend and scaffold Go project layouts based on project type (CLI, API, library, monorepo). Internal skill used by golang-pro agent when initializing projects or reviewing structure.
-user-invocable: false
-allowed-tools: Read, Glob, Grep, Bash(go:*), Bash(mkdir:*)
+description: Recommend and scaffold Go project layouts by type (CLI, API, library, monorepo). Use when starting a Go project, when asked about package organization, or when reviewing structure for anti-patterns (utils packages, over-nesting, misused pkg/).
+user-invocable: true
+allowed-tools: Read, Write, Glob, Grep, Bash(go:*), Bash(mkdir:*)
 ---
 
 # Go Project Structure
@@ -51,7 +51,8 @@ Analyze the codebase to classify:
 | Single `main.go` at root, flag/cobra imports | CLI tool |
 | `net/http` or framework imports (gin, chi, echo, fiber) | REST API service |
 | No `main.go`, only library packages | Reusable library |
-| Multiple `main.go` or `go.work` file | Monorepo / multi-binary |
+| Multiple `main.go` under `cmd/`, one `go.mod` | Monorepo / multi-binary (single module) |
+| Several `go.mod` files + a `go.work` | Multi-module workspace |
 | `go.mod` only, empty or minimal | New project (ask user) |
 
 ### Step 2: Recommend Layout
@@ -242,10 +243,30 @@ myproject/
 │   ├── api/               # API-specific code
 │   ├── worker/            # Worker-specific code
 │   └── scheduler/         # Scheduler-specific code
-├── go.work                # Go workspace file
-├── go.mod
+├── go.mod                 # ONE module for the whole repo
 └── README.md
 ```
+
+**Generator caveat:** `/gen-goreleaser` and `/gen-taskfiles` emit a *single-binary*
+build by default. After scaffolding several `cmd/*` binaries, add one `builds:`
+entry per binary to `.goreleaser.yml` and extend the `build` task in
+`Taskfile.yml`, or those binaries never get built or released.
+
+**No `go.work` here.** A workspace file exists to union *several* modules; a repo
+with a single `go.mod` does not need one, and the Go docs advise against
+committing `go.work` in the first place. Reach for a workspace only when the repo
+genuinely holds multiple `go.mod` files (each service its own module, no shared
+root module) — then `go.work` is a local-development convenience, typically
+git-ignored rather than checked in.
+
+## Note: `internal/` is enforced, not conventional
+
+`internal/` is a rule the Go compiler applies, not a naming habit: a package under
+`.../internal/x` can only be imported by code rooted at `...` — the directory
+*containing* `internal` — and this holds at any nesting depth. That is what makes
+it a real boundary rather than a hint, and why it is the right home for code you
+do not want external consumers importing. See
+<https://pkg.go.dev/cmd/go#hdr-Internal_Directories>.
 
 ## Workflow: Scaffold Structure
 

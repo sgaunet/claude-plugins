@@ -123,6 +123,7 @@ export PPLX_API_KEY="your-perplexity-api-key"
 **Agents**:
 - `code-review-enforcer` - Code quality, security, best practices
 - `debugger` - Error analysis and root cause investigation
+- `diagram-architect` - Software and infrastructure architecture diagrams via d2
 - `docs-architect` - Long-form technical documentation (uses Opus model)
 - `html-first-frontend` - HTMX, Alpine.js, Bootstrap development
 - `license-specialist` - Open source license compliance for SaaS
@@ -137,8 +138,16 @@ export PPLX_API_KEY="your-perplexity-api-key"
 - `/commit` - Generate conventional commit messages
 - `/create-issue` - Create GitHub, GitLab, or Forgejo issue
 - `/feature-flow` - Complete git workflow orchestration (branch, issue, commit)
+- `/feature-flow-w` - Same workflow, isolated in a git worktree
 - `/gen-claude` - Generate or enhance CLAUDE.md with project guidance
+- `/gen-diagram` - Generate a d2 architecture diagram with icons.terrastruct.com
 - `/upd-project-description` - Update GitHub/GitLab/Forgejo project metadata
+
+**Skills**:
+- `auto-mr` - Push, open MR/PR, wait for CI, merge, and clean up the branch
+- `detect-repo-host` - Detect GitHub/GitLab/Forgejo from the git remote
+- `run-lint` - Auto-detect and run the project linter
+- `run-tests` - Auto-detect and run the project test runner
 
 Platform-aware commands detect the host from the git remote and route to `gh` (GitHub), `glab` (GitLab), or `fgj` (Forgejo, `git.sylvlab.fr`).
 
@@ -162,19 +171,35 @@ Platform-aware commands detect the host from the git remote and route to `gh` (G
 - `/gen-goreleaser` - Generate GoReleaser configuration with multi-arch builds
 - `/gen-linter` - Generate .golangci.yml with 90+ linters
 - `/gen-taskfiles` - Generate Taskfile.yml and .pre-commit-config.yaml
-- `/verify-task` - Verify Go task implementation quality with TDD validation
+- `/go-tdd` - Implement a Go feature with TDD using up-to-date library docs
 
 **Skills**:
-- `linter` - golangci-lint configuration
-- `github-workflows` - GitHub Actions workflows for Go
-- `gitlab-ci` - GitLab CI/CD pipelines for Go
-- `goreleaser` - GoReleaser configuration for releases
+- `go-blackbox` - Detect white box tests and convert to black box (`package foo_test`)
+- `go-bulma` - Scaffold Bulma CSS into a Go web app with embedded assets
+- `go-structure` - Recommend and scaffold Go project layouts by project type
+- `go-tool` - Manage Go tool dependencies via the `tool` directive (Go 1.24+)
 
 **Use Cases**:
 - Go project scaffolding with best practices
 - CI/CD pipeline generation (GitHub Actions, GitLab CI, or Forgejo Actions)
 - Automated releases with GoReleaser
 - Code quality enforcement with golangci-lint
+
+---
+
+### bash-specialist
+
+**Agents**:
+- `bash-pro` - Production-quality bash, shellcheck compliance, gum-based terminal UX
+
+**Commands**: None
+
+**Skills**:
+- `gum-beautify` - Integrate Charmbracelet gum for TTY-safe terminal output
+
+**Use Cases**:
+- Shell script authoring and hardening
+- Interactive CLI tooling with a polished terminal UX
 
 ---
 

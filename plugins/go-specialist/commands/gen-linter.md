@@ -255,7 +255,6 @@ This command works seamlessly with other go-specialist commands:
 - `/gen-github-dir` - Includes linter workflow using this configuration
 - `/gen-gitlab-ci` - Includes lint job using this configuration
 - `/gen-taskfiles` - Includes lint tasks for local development
-- `/verify-task` - Validates task quality using linter output
 
 **Typical workflow:**
 ```bash

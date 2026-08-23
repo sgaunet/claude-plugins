@@ -21,7 +21,7 @@ Perform comprehensive analysis of a pull request including code review, security
      2. `git fetch origin`
      3. `git diff origin/<base>...origin/<head>`
 
-     This works for same-repo PRs (both branches exist on `origin`); it does **not** cover cross-fork PRs whose head lives in a different repository. As a secondary option, fetch the diff directly from the Forgejo API: `GET https://git.sylvlab.fr/api/v1/repos/<owner>/<repo>/pulls/<n>.diff`.
+     This works for same-repo PRs (both branches exist on `origin`); it does **not** cover cross-fork PRs whose head lives in a different repository. As a secondary option, fetch the diff directly from the Forgejo API: `GET <api_base>/repos/<owner>/<repo>/pulls/<n>.diff`, where `<api_base>` is the field returned by the `detect-repo-host` skill (e.g. `https://git.sylvlab.fr/api/v1`). Never hardcode a host — it breaks on every other Forgejo instance.
 
 3. **Analyze Changes**: Launch 4 parallel Sonnet agents to independently review the pull request:
 
@@ -70,7 +70,7 @@ pr_diff = Bash("gh pr diff ${pr_number}")
 # For Forgejo: pr_details = fgj pr view ${pr_number} -R <owner>/<repo> --json
 #              (fgj has no pr diff) read head/base from pr_details, then:
 #              git fetch origin; pr_diff = git diff origin/<base>...origin/<head>
-#              (same-repo PRs only; for cross-fork use GET https://git.sylvlab.fr/api/v1/repos/<owner>/<repo>/pulls/${pr_number}.diff)
+#              (same-repo PRs only; for cross-fork use GET <api_base>/repos/<owner>/<repo>/pulls/${pr_number}.diff)
 
 # Launch 4 parallel Sonnet agents for analysis
 Task(subagent_type: "code-review-enforcer", model: "sonnet", prompt: "Review PR #${pr_number} for code quality issues. Modified files: ${pr_files}. Diff: ${pr_diff}. Return findings with severity and line numbers.")

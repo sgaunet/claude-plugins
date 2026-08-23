@@ -1,8 +1,8 @@
 ---
 name: gum-beautify
-description: Integrate Charmbracelet gum for beautiful, TTY-safe terminal output in bash scripts. Internal skill used by bash-pro agent for interactive prompts, styled output, and structured logging.
-user-invocable: false
-allowed-tools: Read, Glob, Grep, Bash(gum:*)
+description: Integrate Charmbracelet gum for beautiful, TTY-safe terminal output in bash scripts: interactive prompts, styled output, spinners, and structured logging.
+user-invocable: true
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash(gum:*)
 ---
 
 # Gum Terminal UX Integration
@@ -21,7 +21,7 @@ Integrate Charmbracelet's `gum` CLI tool into bash scripts for beautiful termina
 ## Prerequisites
 
 1. **gum is installed**: The script must verify gum is available at runtime. This skill provides the detection boilerplate but does NOT handle gum installation -- the script should fail with a clear message directing the user to install gum.
-2. **Bash 4+**: Gum integration patterns use bash-specific features (`[[ ]]` tests, process substitution).
+2. **Bash 3.2+**: Gum integration patterns use bash-specific features (`[[ ]]` tests, process substitution). None of these patterns need bash-4-only features (associative arrays, `mapfile`), so they run on macOS's default `/bin/bash` 3.2.
 
 ## Gum Subcommand Reference
 
@@ -35,13 +35,15 @@ Integrate Charmbracelet's `gum` CLI tool into bash scripts for beautiful termina
 | `gum file` | File picker | Yes | stdout |
 | `gum pager` | Scrollable text viewer | Yes | none |
 | `gum spin` | Spinner during command | No | passthrough |
-| `gum table` | Formatted table display | No | stdout |
+| `gum table` | Interactive row picker; formatted display with `--print` | **Yes** (No with `--print`) | stdout |
 | `gum style` | Styled text block | No | stdout |
 | `gum format` | Markdown/emoji rendering | No | stdout |
 | `gum log` | Structured log messages | No | stderr |
 | `gum join` | Join styled blocks | No | stdout |
 
-**Key distinction**: Commands marked "Needs TTY stdin: Yes" require an interactive terminal on stdin. Commands like `gum style`, `gum format`, `gum table`, `gum log`, and `gum spin` work without a TTY on stdin, but display-oriented ones (`gum style`, `gum format`) should still fall back to plain text when stdout is piped.
+**Key distinction**: Commands marked "Needs TTY stdin: Yes" require an interactive terminal on stdin. Commands like `gum style`, `gum format`, `gum log`, and `gum spin` work without a TTY on stdin, but display-oriented ones (`gum style`, `gum format`) should still fall back to plain text when stdout is piped.
+
+**`gum table` is interactive by default**: with no `--print` flag it renders a row picker and blocks waiting for a keypress, which hangs any non-interactive script. Always pass `--print` when you only want formatted output.
 
 `gum log` is always safe -- it writes to stderr by default.
 
@@ -291,10 +293,12 @@ show_banner() {
 ```bash
 show_table() {
     # Arg: path to CSV file with header row
+    # --print is mandatory: without it `gum table` is an interactive row picker
+    # that blocks on a keypress. Output goes to stderr like every other show_*.
     if is_interactive_stdout; then
-        gum table < "$1"
+        gum table --print < "$1" >&2
     else
-        column -t -s',' < "$1"
+        column -t -s',' < "$1" >&2
     fi
 }
 ```
@@ -320,16 +324,21 @@ show_summary() {
 
 ## Workflow: Environment Variable Customization
 
-Gum supports theming via environment variables with the pattern `GUM_<COMMAND>_<OPTION>`.
+Gum supports theming via environment variables with the pattern `GUM_<COMMAND>_<OPTION>` -- but **not every flag has one**. `gum <command> --help` annotates each env-backed flag with its variable name (e.g. `--timeout ($GUM_CONFIRM_TIMEOUT)`); a flag with no annotation cannot be set from the environment.
 
 ### Step 1: Define Script Defaults
 
 ```bash
 # Set gum defaults for consistent branding (users can override)
 export GUM_INPUT_PLACEHOLDER="${GUM_INPUT_PLACEHOLDER:-Type here...}"
-export GUM_CONFIRM_AFFIRMATIVE="${GUM_CONFIRM_AFFIRMATIVE:-Yes}"
-export GUM_CONFIRM_NEGATIVE="${GUM_CONFIRM_NEGATIVE:-No}"
 export GUM_SPIN_SPINNER="${GUM_SPIN_SPINNER:-dot}"
+
+# `gum confirm` button labels have NO environment variable -- there is no
+# GUM_CONFIRM_AFFIRMATIVE / GUM_CONFIRM_NEGATIVE. Use a wrapper over the
+# --affirmative / --negative flags instead.
+confirm() {
+    gum confirm --affirmative "${BRAND_YES:-Yes}" --negative "${BRAND_NO:-No}" "$@"
+}
 ```
 
 ### Step 2: Document in Help
@@ -342,7 +351,8 @@ usage() {
 ...
 
 Environment Variables:
-    GUM_LOG_LEVEL       Log verbosity: debug, info, warn, error (default: info)
+    GUM_LOG_LEVEL       Minimum level to show: debug, info, warn, error
+                        (default: unset -- every level is shown)
     GUM_SPIN_SPINNER    Spinner style: dot, line, minidot, pulse (default: dot)
     NO_COLOR            Disable all color output (standard convention)
 EOF
@@ -386,115 +396,14 @@ show_status "warning" "WARN" "Deprecated API in use"
 
 ## Complete Integration Example
 
-A full script skeleton combining all patterns:
+A full runnable script combining every pattern above -- TTY detection, the
+dependency check, logging, display wrappers, interaction, spinner, and cleanup
+trap -- lives in `example.sh` alongside this file. Read it when the user wants a
+complete skeleton to start from; it is not needed for a one-off change like
+adding a single spinner.
 
-```bash
-#!/bin/bash
-# description: Example script with gum integration
-# usage: example.sh [OPTIONS] <target>
-
-set -euo pipefail
-
-readonly SCRIPT_NAME="$(basename "$0")"
-readonly VERSION="1.0.0"
-
-# --- TTY Detection ---
-is_interactive_stdin()  { [ -t 0 ]; }
-is_interactive_stdout() { [ -t 1 ]; }
-is_interactive() { is_interactive_stdin && is_interactive_stdout; }
-
-# --- Dependency Check ---
-require_gum() {
-    if ! command -v gum >/dev/null 2>&1; then
-        echo >&2 "Error: gum is not installed."
-        echo >&2 "Install: https://github.com/charmbracelet/gum#installation"
-        exit 1
-    fi
-}
-
-# --- Logging (gum log -> stderr, always safe) ---
-log_info()  { gum log --level info "$@"; }
-log_warn()  { gum log --level warn "$@"; }
-log_error() { gum log --level error "$@"; }
-
-# --- Display (TTY-aware, to stderr) ---
-show_header() {
-    if is_interactive_stdout; then
-        gum style --foreground 212 --border rounded --padding "0 2" --bold "$1" >&2
-    else
-        echo >&2 "=== $1 ==="
-    fi
-}
-
-show_success() {
-    if is_interactive_stdout; then
-        gum format -t emoji ":white_check_mark: $1" >&2
-    else
-        echo >&2 "OK $1"
-    fi
-}
-
-# --- Interaction (requires full TTY) ---
-prompt_choose() {
-    if is_interactive; then
-        gum choose "$@"
-    else
-        echo "$1"
-    fi
-}
-
-run_with_spinner() {
-    local title="$1"; shift
-    if is_interactive_stdout; then
-        gum spin --spinner dot --title "$title" -- "$@"
-    else
-        log_info "$title"
-        "$@"
-    fi
-}
-
-# --- Cleanup ---
-cleanup() { :; }
-
-# --- Main ---
-usage() {
-    cat <<EOF
-Usage: $SCRIPT_NAME [OPTIONS] <target>
-
-Options:
-    -h, --help    Show help
-    -v, --verbose Verbose output
-
-Environment:
-    GUM_LOG_LEVEL  Log level (debug|info|warn|error)
-EOF
-}
-
-main() {
-    require_gum
-    trap cleanup EXIT
-
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            -h|--help) usage; exit 0 ;;
-            --) shift; break ;;
-            -*) log_error "Unknown option: $1"; usage; exit 2 ;;
-            *) break ;;
-        esac
-    done
-
-    show_header "My Tool v$VERSION"
-    local env
-    env=$(prompt_choose "production" "staging" "development")
-    run_with_spinner "Deploying to $env..." sleep 2
-    show_success "Deployed to $env"
-
-    # Data output goes to stdout (clean, pipeable)
-    echo "$env"
-}
-
-main "$@"
-```
+It re-states the function definitions shown above so it stands alone as a script.
+It is shellcheck-clean under `set -euo pipefail`; keep it that way when editing.
 
 ## Error Handling
 

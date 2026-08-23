@@ -1,8 +1,8 @@
 ---
 name: detect-repo-host
-description: Detect repository hosting service (GitHub/GitLab/Forgejo) from git remote and extract owner/repo/project_path. Internal utility skill used by commands that need platform-aware routing.
+description: Detect repository hosting service (GitHub/GitLab/Forgejo) from the git remote and extract hostname, owner, repo, project_path, and api_base for platform-aware routing.
 user-invocable: false
-allowed-tools: Bash(git remote:*)
+allowed-tools: Bash(git remote:*), Bash(gh auth status:*), Bash(glab auth status:*), Bash(fgj auth status:*), AskUserQuestion
 ---
 
 # Detect Repository Host Skill
@@ -27,7 +27,7 @@ Many commands need to determine whether the current repository is hosted on GitH
 git remote -v
 ```
 
-Parse the output to find the `origin` remote (or the first available remote if `origin` is not set).
+Parse the output to find the `origin` remote. If `origin` is not set, prefer a remote named `upstream` before falling back to the first available one, and say which one you picked.
 
 ### Step 2: Parse Remote URL
 
@@ -57,11 +57,63 @@ https://git.sylvlab.fr/owner/repo.git
 
 **Parsing rules:**
 1. Strip trailing `.git` suffix if present
-2. Extract hostname from URL:
+2. Strip a trailing `/` if present. Do this *before* splitting path segments —
+   otherwise `.../group/project/` yields an empty last segment and `repo` comes
+   back blank.
+3. Extract hostname from URL:
    - scp-style (`[user@]host:path`): hostname is between `@` (if present) and the first `:`.
    - `ssh://[user@]host[:port]/path`: strip the `ssh://` scheme and any `user@`, then the hostname is up to the next `/` or `:` — **drop the `:<port>` segment** (e.g. `:2222`); it is not part of the path.
-   - `https://host/path`: hostname is between `://` and the next `/`.
-3. Extract path segments after the hostname (after the `:` for scp-style, after the host[:port] for `ssh://`, after the host for HTTPS). The port number is never an owner/path segment.
+   - `https://[user[:password]@]host/path`: drop the `https://` scheme, then take
+     everything up to the first `/` as the authority. **If the authority contains
+     `@`, keep only what follows the last `@`** — credentials are not part of the
+     hostname. This matters for tokenised CI remotes such as
+     `https://x-access-token:TOKEN@github.com/owner/repo.git`, which otherwise
+     produce the hostname `x-access-token:TOKEN@github.com` and fail the platform
+     lookup in Step 3. Drop a `:<port>` suffix here too.
+4. Extract path segments after the hostname (after the `:` for scp-style, after the host[:port] for `ssh://`, after the host for HTTPS). The port number is never an owner/path segment.
+
+**Never echo a parsed URL that contained credentials** back to the user or into a
+commit message, log, or issue body — report the sanitised `https://host/path`
+form instead.
+
+**Canonical recipe.** Six commands depend on this parse; derive it once rather
+than re-implementing the string handling per caller:
+
+```bash
+url=$(git remote get-url origin 2>/dev/null || git remote -v | awk 'NR==1{print $2}')
+raw="$url"
+url="${url%.git}"          # 1. strip .git
+url="${url%/}"             # 2. strip trailing slash
+
+case "$url" in
+  *://*)                   # scheme form: ssh:// or https://
+    rest="${url#*://}"
+    authority="${rest%%/*}"
+    path="${rest#*/}"
+    ;;
+  *:*)                     # scp-style: [user@]host:path
+    authority="${url%%:*}"
+    path="${url#*:}"
+    ;;
+  *) echo "unparseable remote: $raw" >&2; exit 1 ;;
+esac
+
+authority="${authority##*@}"   # 3. drop any user[:password]@ credentials
+hostname="${authority%%:*}"    #    drop any :port
+
+owner="${path%%/*}"            # first segment
+repo="${path##*/}"             # last segment
+project_path="$path"           # full path (nested GitLab subgroups included)
+```
+
+Verify against these cases before trusting a change to the recipe:
+
+| Remote | hostname | owner | repo |
+|---|---|---|---|
+| `git@github.com:sgaunet/claude-plugins.git` | `github.com` | `sgaunet` | `claude-plugins` |
+| `ssh://git@git.sylvlab.fr:2222/sylvain/blog.git` | `git.sylvlab.fr` | `sylvain` | `blog` |
+| `https://x-access-token:TOK@github.com/o/r.git` | `github.com` | `o` | `r` |
+| `https://gitlab.com/g/sub/deeper/proj/` | `gitlab.com` | `g` | `proj` |
 
 ### Step 3: Detect Platform
 
@@ -72,7 +124,35 @@ Map the extracted hostname against an explicit hostname table. Add new self-host
 | `github.com` | GitHub |
 | `gitlab.com` | GitLab |
 | `git.sylvlab.fr` | Forgejo |
-| *(any other host)* | Assume GitLab (self-hosted GitLab instances are common); **emit a warning** that the host is unrecognized so the user can verify the routing or add the host to this table |
+| *(any other host)* | **Do not guess** — run the fallback in Step 3b |
+
+### Step 3b: Fallback for an Unrecognized Host
+
+Never default to a platform. Guessing misroutes GitHub Enterprise, third-party
+self-hosted Forgejo, and even genuine GitHub remotes rewritten by a
+`url.<base>.insteadOf` rule — `git remote -v` reports the *rewritten* URL, so the
+hostname may not be the real one.
+
+Instead, ask the locally configured CLIs which hosts they know about. Each prints
+its authenticated hosts:
+
+```bash
+gh auth status      # GitHub / GitHub Enterprise hosts
+glab auth status    # GitLab (gitlab.com or self-hosted)
+fgj auth status     # Forgejo instances
+```
+
+1. If exactly one of the three reports the hostname as an authenticated host, use
+   that platform.
+2. If none report it, or more than one does, **ask the user** via
+   `AskUserQuestion`: "`<hostname>` isn't a known host. Which platform is it —
+   GitHub, GitLab, or Forgejo?" Then proceed with the answer.
+3. Offer to record the confirmed answer in the Step 3 table so the next run on
+   that instance is a fast path rather than another prompt.
+
+Never continue with an unresolved platform: an unrecognized host means the wrong
+CLI gets invoked against the wrong API, which at best fails and at worst targets
+somebody else's repository.
 
 ### Step 4: Extract Metadata
 
@@ -102,6 +182,10 @@ Return the following structured information:
 | `repo` | Repository name | `claude-plugins` | `myproject` | `mountain-blog-test` |
 | `project_path` | Full path | `sgaunet/claude-plugins` | `myorg/team/myproject` | `sylvain/mountain-blog-test` |
 | `remote_url` | Raw remote URL | `git@github.com:sgaunet/claude-plugins.git` | `https://gitlab.com/myorg/team/myproject.git` | `git@git.sylvlab.fr:sylvain/mountain-blog-test.git` |
+| `hostname` | Parsed host, credentials and port stripped | `github.com` | `gitlab.com` | `git.sylvlab.fr` |
+| `api_base` | Base URL for REST calls | `https://api.github.com` | `https://gitlab.com/api/v4` | `https://git.sylvlab.fr/api/v1` |
+
+`api_base` is derived from `hostname`, never hardcoded: GitHub → `https://api.github.com` (GitHub Enterprise → `https://<hostname>/api/v3`), GitLab → `https://<hostname>/api/v4`, Forgejo → `https://<hostname>/api/v1`. Commands that call a REST API directly **must** use this field so the skill works on any self-hosted instance, not just one.
 
 ## Error Handling
 
@@ -109,7 +193,7 @@ Return the following structured information:
 |-----------|--------|
 | Not a git repository | Abort: "Not a git repository. Initialize with `git init` first." |
 | No remotes configured | Abort: "No git remotes found. Add a remote with `git remote add origin <url>`." |
-| No `origin` remote | Fall back to first available remote, warn user |
+| No `origin` remote | Prefer a remote named `upstream` (the canonical repo in a fork workflow); otherwise fall back to the first available remote. Warn the user, naming which remote was chosen — targeting a fork by accident creates issues and PRs in the wrong place. |
 | URL format unrecognized | Abort: "Could not parse remote URL: `<url>`. Expected GitHub, GitLab, or Forgejo format." |
 
 ## Examples

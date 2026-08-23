@@ -102,6 +102,34 @@ User: "Add HTTP middleware for logging using Gin"
 
 This ensures generated Go code follows official library best practices and uses correct APIs.
 
+## Goroutine Leak Detection in Tests
+
+When you write or review tests that exercise goroutine-spawning code, add
+`go.uber.org/goleak` verification. Scan the package's non-test sources for `go
+func(`, `go name(`, or `go obj.Method(` to find which exported entry points spawn
+goroutines, then cover the tests that reach them.
+
+Prefer the package-wide form — one `TestMain` covers every test in the package,
+with no per-test bookkeeping:
+
+```go
+func TestMain(m *testing.M) {
+    goleak.VerifyTestMain(m)
+}
+```
+
+Fall back to per-test `defer goleak.VerifyNone(t)` when the package already has a
+custom `TestMain`, or when only a few tests touch concurrent code.
+
+Install with `go get go.uber.org/goleak@latest && go mod tidy`, and validate with
+`go test -race -count=1 ./...`.
+
+For expected background goroutines from dependencies, scope the exemption
+narrowly — `goleak.IgnoreTopFunction("net/http.(*Server).Serve")` — and document
+why. Never blanket-ignore: a leak you suppress is a leak you ship. If
+`VerifyNone` fires on your own code, fix the lifecycle (context cancellation,
+channel close, `sync.WaitGroup`) rather than adding an ignore.
+
 ## Example Interactions
 - "Design a high-performance worker pool with graceful shutdown"
 - "Optimize this Go application for better memory usage and throughput"
@@ -112,8 +140,8 @@ This ensures generated Go code follows official library best practices and uses 
 ## Multi-Agent Coordination
 
 - Uses specialized commands: /gen-linter (golangci-lint setup), /gen-github-dir (GitHub Actions CI/CD), /gen-gitlab-ci (GitLab pipelines), /gen-forgejo-dir (Forgejo Actions CI/CD), /gen-goreleaser (release automation), /gen-taskfiles (task runner setup). These emit a shared `mise.toml` so local development and CI install identical tool versions; the CI workflows install via mise (`jdx/mise-action` on GitHub/Forgejo, `jdx/mise` image on GitLab) and run `task …`.
-- **go-tool skill**: Manages Go tool dependencies via `go get -tool` (Go 1.24+). Invoke automatically when setting up code generation tools (sqlc, templ, buf, moq, swag, wire, stringer, oapi-codegen) or when indicator files are detected (.templ, .proto, sqlc.yml, swagger.yaml, openapi.yaml). Reference catalog at `docs/go-tool-catalog.md`.
-- **go-blackbox skill**: Detects white box tests and proposes conversion to black box (`package foo_test`). Invoke automatically when reviewing or creating test files. Handles `export_test.go` creation for internals that need external test access. Also adds `go.uber.org/goleak` goroutine leak detection to test functions that exercise goroutine-spawning code.
+- **go-tool skill**: Manages Go tool dependencies via `go get -tool` (Go 1.24+). Invoke automatically when setting up code generation tools (sqlc, moq, templ, swag, stringer, enumer) or when indicator files are detected (.templ, sqlc.yml, swagger.yaml). Reference catalog at `skills/go-tool/go-tool-catalog.md`.
+- **go-blackbox skill**: Detects white box tests and proposes conversion to black box (`package foo_test`). Invoke automatically when reviewing or creating test files. Handles `export_test.go` creation for internals that need external test access.
 - **go-structure skill**: Recommends and scaffolds idiomatic project layouts (flat, cmd/internal, hexagonal/DDD, monorepo). Invoke when initializing projects, reviewing structure, or detecting anti-patterns (generic package names, over-nesting, circular deps).
 - **go-bulma skill**: Scaffolds the Bulma CSS framework into Go web apps with embedded assets (`//go:embed`) for zero-dependency binaries. Invoke when the user asks for a classes-based HTML UI without a JS framework or Node toolchain, when `bulma.min.css` is present in the repo, or when an `html/template`/`templ` project needs a styling baseline. Always embeds assets — never references CDN URLs at runtime. Includes a small vanilla JS helpers file for Bulma's interactive components (navbar, modal, dropdown, tabs).
 - **code-review-enforcer**: Shares implementation patterns for Go-specific quality checks

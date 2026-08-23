@@ -23,14 +23,16 @@ Update the description and topics of the current project. This command automatic
    - **GitHub**: `gh repo edit --description "<description>"`
    - **GitLab**: `glab repo edit --description "<description>"`
    - **Forgejo**: `fgj` has no `repo edit` subcommand — call the Forgejo REST API with `curl`, using the token from `fgj auth token`:
-     `curl -X PATCH -H "Authorization: token <TOKEN>" -H "Content-Type: application/json" -d '{"description":"<description>"}' https://git.sylvlab.fr/api/v1/repos/<owner>/<repo>`
+     `curl -X PATCH -H "Authorization: token <TOKEN>" -H "Content-Type: application/json" -d '{"description":"<description>"}' <api_base>/repos/<owner>/<repo>`
+
+     `<api_base>` is the field returned by the `detect-repo-host` skill (e.g. `https://git.sylvlab.fr/api/v1`). Never hardcode a host.
    - Return: success/failure status
 
    **Agent #2: Update Project Topics/Tags**
    - **GitHub**: `gh repo edit --add-topic "<topic>"` (one per topic)
    - **GitLab**: `glab repo edit --tag "<topic>"` (one per topic)
    - **Forgejo**: `fgj` has no `repo edit` subcommand — call the Forgejo REST API with `curl`, using the token from `fgj auth token` (sets the full topic list in one call):
-     `curl -X PUT -H "Authorization: token <TOKEN>" -H "Content-Type: application/json" -d '{"topics":["<topic1>","<topic2>"]}' https://git.sylvlab.fr/api/v1/repos/<owner>/<repo>/topics`
+     `curl -X PUT -H "Authorization: token <TOKEN>" -H "Content-Type: application/json" -d '{"topics":["<topic1>","<topic2>"]}' <api_base>/repos/<owner>/<repo>/topics`
    - Return: success/failure status
 
 4. **Verify Updates**: Confirm both description and topics were updated successfully.
@@ -56,8 +58,8 @@ elif host_info.platform == "gitlab":
     Task(tool: "Bash", params: {command: 'glab repo edit --tag "topic1" --tag "topic2"'})
 elif host_info.platform == "forgejo":
     # fgj has no `repo edit`; get the token from `fgj auth token` and call the Forgejo REST API
-    Task(tool: "Bash", params: {command: 'curl -X PATCH -H "Authorization: token $(fgj auth token)" -H "Content-Type: application/json" -d \'{"description":"description"}\' https://git.sylvlab.fr/api/v1/repos/owner/repo'})
-    Task(tool: "Bash", params: {command: 'curl -X PUT -H "Authorization: token $(fgj auth token)" -H "Content-Type: application/json" -d \'{"topics":["topic1","topic2"]}\' https://git.sylvlab.fr/api/v1/repos/owner/repo/topics'})
+    Task(tool: "Bash", params: {command: 'curl -X PATCH -H "Authorization: token $(fgj auth token)" -H "Content-Type: application/json" -d \'{"description":"description"}\' <api_base>/repos/owner/repo'})
+    Task(tool: "Bash", params: {command: 'curl -X PUT -H "Authorization: token $(fgj auth token)" -H "Content-Type: application/json" -d \'{"topics":["topic1","topic2"]}\' <api_base>/repos/owner/repo/topics'})
 
 # Step 4: Verify both operations completed successfully
 ```

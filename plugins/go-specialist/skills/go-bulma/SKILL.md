@@ -1,8 +1,8 @@
 ---
 name: go-bulma
-description: Scaffold the Bulma CSS framework into a Go web app with embedded assets for zero-dependency binaries. Internal skill used by golang-pro agent when building HTML UIs with a classes-based CSS framework and no Node toolchain.
+description: Scaffold the Bulma CSS framework into a Go web app with embedded assets for zero-dependency binaries. Use when building an HTML UI with a classes-based CSS framework and no Node toolchain.
 user-invocable: false
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash(go:*), Bash(curl:*), Bash(mkdir:*), Bash(shasum:*), Bash(sha256sum:*)
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash(go:*), Bash(curl:*), Bash(mkdir:*), Bash(shasum:*), Bash(sha256sum:*), Bash(sleep:*), Bash(kill:*)
 ---
 
 # Bulma for Go
@@ -71,8 +71,10 @@ Prefer `internal/ui/` when there is already an `internal/` tree. Otherwise use `
 VERSION=1.0.4  # confirm latest via the release API before running
 DEST=internal/ui/static
 mkdir -p "$DEST"
-curl -sSLo "$DEST/bulma.min.css" "https://cdn.jsdelivr.net/npm/bulma@${VERSION}/css/bulma.min.css"
+curl -fsSL -o "$DEST/bulma.min.css" "https://cdn.jsdelivr.net/npm/bulma@${VERSION}/css/bulma.min.css"
 ```
+
+`-f` is required: without it curl exits `0` on a 404 and writes jsdelivr's plain-text error page into `bulma.min.css`, silently shipping a broken stylesheet. Abort the workflow if this command exits non-zero.
 
 The jsdelivr npm path uses a bare version like `1.0.4` (no `v` prefix); GitHub release tags happen to match (also `1.0.4`, no `v`).
 
@@ -123,9 +125,26 @@ func registerStatic(mux *http.ServeMux) {
     if err != nil {
         panic(err) // compile-time constant; impossible at runtime
     }
-    mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.FS(sub))))
+    fileServer := http.FileServer(http.FS(sub))
+    mux.Handle("/static/", http.StripPrefix("/static/", immutable(fileServer)))
+}
+
+// immutable marks embedded assets as permanently cacheable. This is safe
+// precisely because they are embedded: the only way an asset changes is a new
+// binary, which is a new deployment. Without this, every page load re-fetches
+// every asset -- embed.FS entries carry a zero mtime, so http.FileServer cannot
+// send Last-Modified and the browser has nothing to revalidate against.
+func immutable(h http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+        h.ServeHTTP(w, r)
+    })
 }
 ```
+
+If assets are served from a path that does *not* change between releases, add a
+cache-busting query or a content-hashed filename before using `immutable`;
+otherwise clients keep the old file for a year.
 
 ### Step 6: Create a minimal Bulma-styled template
 
@@ -211,11 +230,20 @@ Parse at startup with `template.ParseFS(ui.Templates, "templates/*.html")`.
 ### Step 7: Verify zero-dependency build
 
 ```bash
-go build -o app ./...
-./app &
-curl -sI http://localhost:PORT/static/bulma.min.css | head -1   # expect 200
-curl -sI http://localhost:PORT/static/app.js | head -1          # expect 200
-# kill the app, disable network, rerun — it still works
+# 1. Build check. Use `.` (the main package), not `./...`: with `-o <file>`,
+#    a package set containing more than one package fails with
+#    "cannot write multiple packages to non-directory app".
+go build -o app .
+
+# 2. Runtime check. Replace 8080 with the port your app actually listens on.
+go run . &
+APP_PID=$!
+sleep 1
+curl -fsI http://localhost:8080/static/bulma.min.css | head -1   # expect 200
+curl -fsI http://localhost:8080/static/app.js | head -1          # expect 200
+kill "$APP_PID"
+
+# 3. Disable the network and rerun — it still works (assets are embedded).
 ```
 
 ## Workflow: Upgrade Bulma
@@ -228,81 +256,18 @@ curl -sI http://localhost:PORT/static/app.js | head -1          # expect 200
 
 ## Pattern: Vanilla JS helpers (`app.js`)
 
-Write this verbatim to `static/app.js`. It covers navbar burger, modal open/close, dropdown toggle, and tabs — Bulma's four interactive patterns. Zero dependencies, plain DOM API.
+`app.js` ships alongside this file. Copy it verbatim to the project's
+`static/app.js` -- do not retype or paraphrase it:
 
-```javascript
-// internal/ui/static/app.js
-// Vanilla JS helpers for Bulma's interactive components.
-// Bulma ships zero JS by design; this file wires the standard idioms
-// documented at https://bulma.io/documentation/.
-
-(() => {
-  // Navbar burger: toggle .is-active on burger + matching menu.
-  document.querySelectorAll('.navbar-burger').forEach((burger) => {
-    burger.addEventListener('click', () => {
-      const target = document.getElementById(burger.dataset.target);
-      burger.classList.toggle('is-active');
-      if (target) target.classList.toggle('is-active');
-    });
-  });
-
-  // Modal: any element with data-target="modal-id" opens that modal.
-  // .modal-background, .modal-close, .delete (inside .modal), and Escape close it.
-  const openModal = (el) => el.classList.add('is-active');
-  const closeModal = (el) => el.classList.remove('is-active');
-  const closeAllModals = () =>
-    document.querySelectorAll('.modal.is-active').forEach(closeModal);
-
-  document.querySelectorAll('[data-target]').forEach((trigger) => {
-    const target = document.getElementById(trigger.dataset.target);
-    if (target && target.classList.contains('modal')) {
-      trigger.addEventListener('click', () => openModal(target));
-    }
-  });
-
-  document
-    .querySelectorAll('.modal-background, .modal-close, .modal-card-head .delete, .modal .delete')
-    .forEach((el) => {
-      const modal = el.closest('.modal');
-      if (modal) el.addEventListener('click', () => closeModal(modal));
-    });
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeAllModals();
-  });
-
-  // Dropdown: click .dropdown-trigger to toggle, click outside to close.
-  document.querySelectorAll('.dropdown:not(.is-hoverable)').forEach((dropdown) => {
-    const trigger = dropdown.querySelector('.dropdown-trigger');
-    if (!trigger) return;
-    trigger.addEventListener('click', (e) => {
-      e.stopPropagation();
-      dropdown.classList.toggle('is-active');
-    });
-  });
-  document.addEventListener('click', () => {
-    document
-      .querySelectorAll('.dropdown.is-active:not(.is-hoverable)')
-      .forEach((d) => d.classList.remove('is-active'));
-  });
-
-  // Tabs: <div class="tabs"><ul><li data-tab="panel-id">...</li></ul></div>
-  // Panels are any elements with id matching data-tab; only the active one shows.
-  document.querySelectorAll('.tabs').forEach((tabs) => {
-    const items = tabs.querySelectorAll('li[data-tab]');
-    items.forEach((item) => {
-      item.addEventListener('click', () => {
-        items.forEach((i) => i.classList.remove('is-active'));
-        item.classList.add('is-active');
-        items.forEach((i) => {
-          const panel = document.getElementById(i.dataset.tab);
-          if (panel) panel.hidden = i !== item;
-        });
-      });
-    });
-  });
-})();
+```bash
+cp "${CLAUDE_SKILL_DIR}/app.js" internal/ui/static/app.js
 ```
+
+It covers navbar burger, modal open/close, dropdown toggle, and tabs -- Bulma's
+four interactive patterns. Zero dependencies, plain DOM API, guarded so each
+block is a no-op when the corresponding markup is absent. Bulma ships no JS of
+its own by design; these are the standard idioms from
+<https://bulma.io/documentation/>.
 
 ## Pattern: Pair with templ
 
@@ -333,7 +298,7 @@ templ Layout(title string) {
 }
 ```
 
-If templ is not yet set up in the project, defer to the **go-tool** skill to add it via `go get -tool github.com/a-h/templ/cmd/templ`, then return here.
+If templ is not yet set up in the project, defer to the **go-tool** skill to add it via `go get -tool github.com/a-h/templ/cmd/templ@latest`, then return here.
 
 ## Pattern: Theming via CSS custom properties
 
@@ -407,6 +372,6 @@ A completed setup looks like:
 |---|---|
 | No `go.mod` | Abort: "Not a Go module — run `go mod init` first." |
 | Go version `< 1.16` | Abort: "`//go:embed` requires Go 1.16+. Update the `go` directive in go.mod." |
-| `curl` returns non-200 for `bulma.min.css` | Verify the version exists on npm: `https://www.npmjs.com/package/bulma`. The release tag and the npm version should match. |
+| `curl -f` exits non-zero for `bulma.min.css` | Abort — do not proceed with a partial download. Verify the version exists on npm: `https://www.npmjs.com/package/bulma`. The release tag and the npm version should match. |
 | User insists on CDN at runtime | Push back: the skill's reason for existing is offline, zero-dep, fully standalone binaries. If they still want CDN, decline and let them wire it manually without this skill. |
 | Bulma assets already present in the repo | Skip download; verify checksums against `BULMA_VERSION` and proceed to wire the handler, write `app.js` if missing, and add the template. |
