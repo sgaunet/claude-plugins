@@ -1,8 +1,8 @@
 # Claude Code Plugin Marketplace
 
-[![Plugins](https://img.shields.io/badge/plugins-3-blue)](./plugins)
-[![Agents](https://img.shields.io/badge/agents-14-green)](./plugins)
-[![Commands](https://img.shields.io/badge/commands-23-orange)](./plugins)
+[![Plugins](https://img.shields.io/badge/plugins-4-blue)](./plugins)
+[![Agents](https://img.shields.io/badge/agents-15-green)](./plugins)
+[![Commands](https://img.shields.io/badge/commands-21-orange)](./plugins)
 [![License](https://img.shields.io/badge/license-MIT-purple)](./LICENSE)
 
 A curated collection of specialized Claude Code plugins designed to enhance your development workflow with intelligent agents, skills, and commands.
@@ -141,6 +141,8 @@ export PPLX_API_KEY="your-perplexity-api-key"
 - `/feature-flow-w` - Same workflow, isolated in a git worktree
 - `/gen-claude` - Generate or enhance CLAUDE.md with project guidance
 - `/gen-diagram` - Generate a d2 architecture diagram with icons.terrastruct.com
+- `/gen-readme-diagram` - Add or update a README Architecture section with Mermaid diagrams
+- `/gen-vhs-demo` - Record a verified CLI demo GIF with VHS and embed it in the README
 - `/upd-project-description` - Update GitHub/GitLab/Forgejo project metadata
 
 **Skills**:

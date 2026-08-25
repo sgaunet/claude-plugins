@@ -1,8 +1,8 @@
 ---
 name: gen-diagram
 description: Generate a d2 architecture diagram (https://d2lang.com/) using icons from icons.terrastruct.com. Renders SVG when the d2 binary is installed.
-argument-hint: "[--type=arch|sequence|er|deployment|c4|pipeline] [--no-render] [--output=<path>] [--dry-run] [<description>]"
-allowed-tools: Read, Write, Edit, Grep, Glob, Bash(d2:*), Bash(git:*), Bash(test:*), Bash(mkdir:*), Bash(command:*), Task, AskUserQuestion
+argument-hint: "[--type=arch|sequence|er|deployment|c4|pipeline] [--no-render] [--no-mise] [--output=<path>] [--dry-run] [<description>]"
+allowed-tools: Read, Write, Edit, Grep, Glob, Bash(d2:*), Bash(mise:*), Bash(git:*), Bash(test:*), Bash(grep:*), Bash(mkdir:*), Bash(command:*), Task, AskUserQuestion
 ---
 
 # Generate d2 Diagram Command
@@ -38,12 +38,21 @@ Produce a `.d2` source file (and a rendered `.svg` when the `d2` binary is insta
    ```
    - If fails: Exit with error "Not a git repository. Run 'git init' first."
 
-2. **Detect d2 binary** (non-blocking):
+2. **Detect d2 and the mise toolchain** (non-blocking, and **no writes in this phase**):
    ```bash
    command -v d2
+   command -v mise
+   test -f mise.toml && grep -qE '^[[:space:]]*"?d2"?[[:space:]]*=' mise.toml
    ```
-   - If found: Store `d2Installed = true`. Capture version: `d2 --version`.
-   - If not found: Store `d2Installed = false` (will warn later, but proceed).
+   - `d2` on PATH: store `d2Installed = true`. Capture version: `d2 --version`.
+   - `d2` absent: store `d2Installed = false` (will warn later, but proceed — the `.d2`
+     source is produced either way).
+   - `mise` on PATH: store `miseAvailable = true`.
+   - `mise.toml` already pins d2: store `d2Pinned = true`.
+
+   When `miseAvailable && !d2Pinned && !--no-mise`, the pin is added in **Phase 5** and
+   disclosed in the Phase 4 preview first. `mise use` edits `mise.toml`, which is a project
+   file change and must pass through the confirmation gate like any other write.
 
 3. **Verify command assets:**
    - Use Read to confirm `${CLAUDE_PLUGIN_ROOT}/commands/assets/gen-diagram/d2-cheatsheet.md` exists.
@@ -64,6 +73,7 @@ Parse `$ARGUMENTS` (or `$argument`, depending on host syntax). Tokenize on space
 - `--no-render` — skip the SVG render step even if d2 is installed.
 - `--output=<path>` — explicit target path for the `.d2` file. Default: `docs/diagrams/<slug>.d2`.
 - `--dry-run` — produce the preview only; do not write any files.
+- `--no-mise` — never touch `mise.toml`; rely on whatever `d2` is already on PATH.
 
 **Everything else** is joined back with spaces as `description`.
 
@@ -134,6 +144,7 @@ Type:        <type>
 Description: <description or "(auto-detected from repo)">
 Output:      <relative path>.d2
 Render:      <"yes (d2 → SVG)" if d2Installed && !--no-render else "no (source only)">
+d2 tooling:  <"mise.toml → pin d2 0.7.1 (new)" | "mise.toml already pins d2" | "PATH d2 <version>" | "none — source only">
 
 Planned content:
   • Layout: <direction> / <layout-engine>
@@ -148,11 +159,22 @@ Planned content:
 If `d2Installed = false`:
 ```
 ℹ️  d2 binary not found
-    .d2 source will be created, but rendering is skipped.
-    Install:
+    .d2 source will be created; rendering depends on provisioning d2.
+    Preferred — pins the version for this repo, local dev and CI alike:
+      • mise use d2@0.7.1     # adds d2 to mise.toml [tools] and installs it
+    Without mise:
       • macOS:  brew install d2
       • Linux:  curl -fsSL https://d2lang.com/install.sh | sh -s --
       • Verify: d2 --version
+```
+
+If `miseAvailable && !d2Pinned && !--no-mise`:
+```
+ℹ️  mise.toml will gain a d2 pin
+    Adding:  d2 = "0.7.1"   (under [tools])
+    <"mise.toml will be created" | "existing pins are preserved">
+    This keeps local renders and CI on the same d2 version.
+    Skip with --no-mise.
 ```
 
 If target `.d2` file already exists:
@@ -208,11 +230,28 @@ Use AskUserQuestion:
 
 3. **Write the file** with Write to the resolved output path.
 
+4. **Pin d2 in `mise.toml`** when `miseAvailable && !d2Pinned && !--no-mise`:
+   ```bash
+   mise use d2@0.7.1
+   ```
+   Run it from `repoRoot`. `mise use` is idempotent: it records `d2 = "0.7.1"` under
+   `[tools]`, creates `mise.toml` when absent, leaves every other pin untouched, and
+   installs the binary — so the Phase 6 render can proceed even if d2 was missing.
+   On success set `d2Installed = true` and `misePinWritten = true`.
+   - On failure (no network, unknown version, untrusted config) report the stderr as a
+     **soft failure**, leave `d2Installed` unchanged, and continue — the `.d2` source is
+     written regardless. A first run may need `mise trust` before `mise use` succeeds.
+
 ### Phase 6: Render & Success Report
 
 1. **Render to SVG** when `d2Installed && !--no-render && !--dry-run`:
    ```bash
    d2 <output>.d2 <output>.svg
+   ```
+   If d2 was just provisioned by the Phase 5 `mise use` it may not be on PATH in this
+   shell yet — route through mise instead:
+   ```bash
+   mise exec -- d2 <output>.d2 <output>.svg
    ```
    Capture exit code. If non-zero, report the d2 error to the user but treat as a soft failure (the `.d2` source was still produced).
 
@@ -229,6 +268,7 @@ Use AskUserQuestion:
    Files:
      ✓ <output>.d2 (<N> lines)
      ✓ <output>.svg              # only if render succeeded
+     ✓ mise.toml (d2 = "0.7.1")  # only if misePinWritten
 
    Type:        <type>
    Layout:      <direction> / <layout-engine>
@@ -278,7 +318,8 @@ Use AskUserQuestion:
    ```
 
    ⚠️  Install d2 to render automatically next time:
-        brew install d2
+        mise use d2@0.7.1      # preferred: pins it in mise.toml for dev + CI
+        # or: brew install d2
         # or: curl -fsSL https://d2lang.com/install.sh | sh -s --
    ```
 
@@ -289,6 +330,42 @@ Use AskUserQuestion:
         <stderr from d2>
         Try manually: d2 <output>.d2 <output>.svg
    ```
+
+## Tool Provisioning (mise)
+
+d2 is pinned through [mise](https://mise.jdx.dev) rather than installed ad hoc, so the
+version that renders a diagram locally is the version CI renders it with.
+
+**Pinned version: `d2@0.7.1`.** Bump it in one place — this section — and in the Phase 4/5/6
+strings above.
+
+```bash
+mise use d2@0.7.1
+```
+
+What that does:
+- Records `d2 = "0.7.1"` under `[tools]` in the repo-root `mise.toml`
+- Creates `mise.toml` if the repo has none; preserves every existing pin if it does
+- Installs the binary, so a render can follow immediately in the same run
+- Is idempotent — re-running it is a no-op once the pin matches
+
+Rules this command follows:
+- **Detect in Phase 1, write in Phase 5.** `mise use` mutates a tracked project file, so it
+  sits behind the same confirmation gate as the `.d2` output and never runs under `--dry-run`.
+- **Never rewrite an existing pin.** If `mise.toml` already lists d2 at any version, leave it
+  alone and use it — the project's choice wins over this command's default.
+- **Opt out with `--no-mise`** for repos that manage tooling another way (Nix, Homebrew,
+  devcontainer, distro packages).
+- **Soft-fail only.** A failed `mise use` never blocks the `.d2` source from being written.
+
+Once pinned, collaborators and CI get d2 from:
+```bash
+mise install          # provision every pinned tool
+mise exec -- d2 --version
+```
+
+CI needs no extra step when the pipeline already uses `jdx/mise-action` (GitHub/Forgejo) or
+the `jdx/mise` image (GitLab) — the same pattern the go-specialist CI generators emit.
 
 ## Integration with Other Commands
 
@@ -322,7 +399,7 @@ Use AskUserQuestion:
 
 ## Limitations & Caveats
 
-- **d2 binary required for SVG**: only the source file is produced when `d2` is missing.
+- **d2 binary required for SVG**: only the source file is produced when `d2` is missing and cannot be provisioned. `mise use d2@0.7.1` fixes that permanently for the repo; `--no-mise` opts out.
 - **Icon catalog drift**: only icons listed in the cheatsheet are guaranteed to resolve. Add more by browsing https://icons.terrastruct.com/ and updating the cheatsheet.
 - **Repo analysis is best-effort**: when `description` is empty, the Explore subagent summarizes what it can find — clean up the resulting diagram by hand for unusual layouts.
 - **No PNG/PDF**: only SVG is rendered by default. Use `d2 --target=png` manually for raster output.
@@ -330,8 +407,14 @@ Use AskUserQuestion:
 
 ## Error Recovery
 
+**If `mise use d2@0.7.1` fails:**
+1. Untrusted config is the usual cause: `mise trust` in the repo root, then retry.
+2. Unknown version — check what the registry offers: `mise ls-remote d2`.
+3. No network or a locked-down environment: fall back to `brew install d2`, or re-run with
+   `--no-mise` to skip the pin entirely. The `.d2` source is written either way.
+
 **If `d2 --version` errors or `d2` rendering fails:**
-1. Check version: `d2 --version` (require ≥ 0.6).
+1. Check version: `d2 --version` (require ≥ 0.6), or `mise exec -- d2 --version` when pinned.
 2. Try a different layout: `d2 --layout=elk <file>.d2`.
 3. Validate syntax by reading the d2 stderr — it usually points at the offending line.
 
@@ -347,6 +430,8 @@ Use AskUserQuestion:
 ## Additional Resources
 
 - d2 documentation: https://d2lang.com/
+- mise (tool version manager): https://mise.jdx.dev/
+- mise registry (d2 backend): https://mise.jdx.dev/registry.html
 - d2 tour: https://d2lang.com/tour/intro
 - d2 themes: https://d2lang.com/tour/themes
 - Icon catalog: https://icons.terrastruct.com/

@@ -21,8 +21,8 @@
     {
       "name": "software-engineering",
       "source": "./plugins/software-engineering",
-      "description": "Code review, debugging, documentation, license compliance (AGPL/MIT/Apache), payment integration (Stripe/PayPal), frontend development (HTMX/Alpine.js), and architecture diagrams (d2). Skills: auto-mr, detect-repo-host, run-lint, run-tests. MCP: context7",
-      "version": "0.20.0",
+      "description": "Code review, debugging, documentation, license compliance (AGPL/MIT/Apache), payment integration (Stripe/PayPal), frontend development (HTMX/Alpine.js), architecture diagrams (d2), and terminal demo GIFs (VHS). Skills: auto-mr, detect-repo-host, run-lint, run-tests. MCP: context7",
+      "version": "0.21.0",
       "author": {
         "name": "Sylvain"
       }

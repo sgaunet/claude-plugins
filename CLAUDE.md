@@ -25,7 +25,7 @@ plugins/
 │   ├── .claude-plugin/
 │   │   └── plugin.json
 │   ├── agents/               # Agent definitions (8 agents)
-│   ├── commands/             # Custom slash commands (11 commands)
+│   ├── commands/             # Custom slash commands (13 commands)
 │   ├── skills/               # Reusable skills (4 skills)
 │   └── .mcp.json             # MCP server integration (context7)
 │
@@ -205,7 +205,7 @@ See existing agents in `plugins/*/agents/*.md` for advanced patterns (multi-agen
 - **Marketplace metadata**: `.claude-plugin/marketplace.json`
 - **Plugin metadata**: `plugins/*/\.claude-plugin/plugin.json`
 - **Agent definitions**: `plugins/*/agents/*.md` (15 total agents)
-- **Commands**: `plugins/*/commands/*.md` (19 custom commands)
+- **Commands**: `plugins/*/commands/*.md` (21 custom commands)
 - **Skills**: `plugins/*/skills/*/` (9 total skills)
 - **MCP config**: `plugins/*/.mcp.json` (only `bash-specialist`, `go-specialist`, `software-engineering`; `devops-infrastructure` has none)
 
@@ -263,6 +263,8 @@ User-invoked workflows in `plugins/*/commands/`:
 - `/analyze-pr`: Comprehensive PR/MR review (GitHub/GitLab/Forgejo)
 - `/analyze-db-performance`: PostgreSQL performance analysis
 - `/gen-diagram`: Generate d2 architecture diagram with icons.terrastruct.com
+- `/gen-readme-diagram`: Add or update a README Architecture section with Mermaid diagrams sized to app complexity
+- `/gen-vhs-demo`: Record a verified CLI demo GIF with VHS, wire `task demo`, embed it in the README
 - `/gen-forgejo-dir`: Generate `.forgejo/workflows/` for Forgejo Actions
 
 The go-specialist CI generators (`/gen-github-dir`, `/gen-forgejo-dir`, `/gen-gitlab-ci`) are **mise-based**: workflows install tools via mise (`jdx/mise-action` on GitHub/Forgejo, the `jdx/mise` image on GitLab) and run `task …`. Tool versions live in a shared `mise.toml` (asset: `plugins/go-specialist/commands/assets/mise/mise.toml`) so local dev and CI stay in sync. `mise.toml` is owned canonically by `/gen-taskfiles` and auto-created (when missing) by the CI generators.
