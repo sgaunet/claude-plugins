@@ -30,6 +30,7 @@ go = "[GO_VERSION]"
 
 # Release tooling (https://goreleaser.com). Uses the v-prefixed release tag.
 goreleaser = "[GORELEASER_VERSION]"
+"go:golang.org/x/tools/gopls" = "0.23.0"
 
 # Docker tooling — uncomment if your .goreleaser.yml builds/publishes images.
 # Also uncomment the matching QEMU + registry-login steps in the CI workflows
