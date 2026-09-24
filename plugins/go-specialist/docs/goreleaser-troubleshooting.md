@@ -311,7 +311,7 @@ FROM gcr.io/distroless/base-debian11  # Includes libc
 
 ## Homebrew Issues
 
-### Issue: "Homebrew formula creation failed"
+### Issue: "Homebrew cask creation failed"
 
 **Symptoms**:
 - Release succeeds but Homebrew tap not updated
@@ -332,15 +332,26 @@ FROM gcr.io/distroless/base-debian11  # Includes libc
 
 3. **Check .goreleaser.yml configuration**:
    ```yaml
-   brews:
-     - repository:
+   homebrew_casks:
+     - name: myapp
+       repository:
          owner: johndoe
          name: homebrew-tools  # Not "tools"
          token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
-       folder: Formula
+       directory: Casks        # Not "folder: Formula" — that was the old `brews:` block
+       binaries:
+         - myapp
        homepage: "https://github.com/johndoe/myapp"
-       description: "My application"
+       description: "Does the thing"  # Must not be empty or start with the name/an article
    ```
+
+   Use `homebrew_casks:`, not the deprecated `brews:` block. If a tool still has
+   `brews:`, migrate it: drop `install:`/`test:`, rename `folder`/`directory: Formula`
+   to `directory: Casks`, nest `url_template` under `url: { template: ... }`, and add
+   `name:` plus `binaries:`. Then delete the stale `Formula/*.rb` from the tap and add a
+   `tap_migrations.json` entry mapping the name to itself (`{"myapp": "myapp"}`), which
+   is how Homebrew recognises a formula-to-cask move and migrates existing users on
+   `brew update`. Leaving the old formula in place makes it shadow the new cask.
 
 4. **Ensure token is set in CI/CD**:
    ```bash
@@ -351,25 +362,45 @@ FROM gcr.io/distroless/base-debian11  # Includes libc
    HOMEBREW_TAP_TOKEN: $HOMEBREW_TAP_TOKEN  # Set in CI/CD variables
    ```
 
-### Issue: "Homebrew formula testing fails"
+### Issue: "Homebrew cask install fails"
 
 **Symptoms**:
-- Formula created but `brew install` fails
-- Error: "bottle" or "dependency" issues
+- Cask created but `brew install` fails
+- Error: "cannot be opened because the developer cannot be verified" (Gatekeeper)
 
-**Solution**: Test formula locally
+**Solution**: Test the cask locally
 
 ```bash
+# Render the cask without publishing anything
+goreleaser release --snapshot --clean --skip=publish
+cat dist/homebrew/Casks/myapp.rb
+
 # Install from local tap
 brew tap johndoe/tools https://github.com/johndoe/homebrew-tools
 brew install myapp
 
-# Test formula
-brew test myapp
-
-# Audit formula
-brew audit --strict johndoe/tools/myapp
+# Audit the cask (casks have no `brew test`)
+brew audit --cask --strict johndoe/tools/myapp
 ```
+
+A Gatekeeper error means the quarantine hook is missing. Unsigned release binaries
+need it in the cask config:
+
+```yaml
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}"]
+          end
+```
+
+Use `pre:` instead of `post:` when the cask also uses
+`generate_completions_from_executable` — that generator has to execute the staged
+binary, which a quarantined binary cannot do. Completions additionally require
+`formats: ["tar.gz"]` in `archives:`; with a raw `binary` archive the generator's
+`executable` (not templated, defaults to `binaries[0]`) can never match the versioned
+artifact filename, so it falls back to a bare PATH lookup and fails with exit 127.
 
 ## Release Issues
 

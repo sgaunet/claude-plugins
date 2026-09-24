@@ -211,18 +211,22 @@ tags:
 ### Issue: GoReleaser can't push to Homebrew
 
 **Symptoms**:
-- Release succeeds but Homebrew formula not updated
+- Release succeeds but the Homebrew cask is not updated
 - Error: "permission denied" for tap repository
 
 **Solution**: Configure Homebrew token
 
 1. Create personal access token with `repo` scope
 2. Add to repository secrets as `HOMEBREW_TAP_TOKEN`
-3. Update `.goreleaser.yml`:
+3. Update `.goreleaser.yml` (use `homebrew_casks:`, not the deprecated `brews:`):
 
 ```yaml
-brews:
-  - repository:
+homebrew_casks:
+  - name: myapp
+    directory: Casks
+    binaries:
+      - myapp
+    repository:
       owner: your-username
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
