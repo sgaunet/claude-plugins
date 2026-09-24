@@ -48,11 +48,11 @@ jobs:
           claude plugin validate .
         continue-on-error: false
 
-      - name: Count agents and commands
+      - name: Count agents and skills
         run: |
           echo "=== Plugin: ${{ matrix.plugin }} ==="
           echo "Agents: $(find plugins/${{ matrix.plugin }}/agents -name '*.md' 2>/dev/null | wc -l)"
-          echo "Commands: $(find plugins/${{ matrix.plugin }}/commands -name '*.md' 2>/dev/null | wc -l)"
+          echo "Skills: $(find plugins/${{ matrix.plugin }}/skills -name 'SKILL.md' 2>/dev/null | wc -l)"
 
   validate-marketplace:
     name: Validate Marketplace

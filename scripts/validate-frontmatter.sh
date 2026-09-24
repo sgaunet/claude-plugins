@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Frontmatter Validation Script for Claude Code Plugins
-# Validates agent and command frontmatter fields against the official Claude Code spec:
+# Validates agent and skill frontmatter fields against the official Claude Code spec:
 #   - Agents: https://code.claude.com/docs/en/sub-agents
-#   - Skills/Commands: https://code.claude.com/docs/en/skills
+#   - Skills:  https://code.claude.com/docs/en/skills
 
 set -e
 
@@ -26,7 +26,7 @@ STRICT=false
 while [[ $# -gt 0 ]]; do
     case $1 in
         --agents-only)  FILTER="agents"; shift ;;
-        --commands-only) FILTER="commands"; shift ;;
+        --skills-only)  FILTER="skills"; shift ;;
         --verbose)      VERBOSE=true; shift ;;
         --strict)       STRICT=true; shift ;;
         -h|--help)
@@ -36,7 +36,7 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "Options:"
             echo "  --agents-only    Only validate agent files"
-            echo "  --commands-only  Only validate command/skill files"
+            echo "  --skills-only    Only validate skill files"
             echo "  --verbose        Show passing files"
             echo "  --strict         Treat warnings as errors"
             echo "  -h, --help       Show this help"
@@ -54,14 +54,15 @@ AGENT_FIELDS="name description tools disallowedTools model permissionMode maxTur
 AGENT_WARN_FIELDS=""
 AGENT_WRONG_FIELDS="allowed-tools"
 
-COMMAND_FIELDS="name description argument-hint disable-model-invocation user-invocable allowed-tools model context agent hooks effort paths shell"
-COMMAND_WRONG_FIELDS="tools"
+# Per https://code.claude.com/docs/en/skills (frontmatter reference)
+SKILL_FIELDS="name description when_to_use argument-hint arguments disable-model-invocation user-invocable allowed-tools disallowed-tools model effort context agent background hooks paths shell metadata license compatibility"
+SKILL_WRONG_FIELDS="tools"
 
 # Valid values
 VALID_MODELS="sonnet opus haiku inherit"
 VALID_PERMISSION_MODES="default acceptEdits auto dontAsk bypassPermissions plan"
 VALID_COLORS="red blue green yellow purple orange pink cyan"
-VALID_EFFORTS="low medium high max"
+VALID_EFFORTS="low medium high xhigh max"
 VALID_MEMORY="user project local"
 VALID_SHELL="bash powershell"
 
@@ -95,6 +96,17 @@ in_list() {
     return 1
 }
 
+# Check if a value is a valid YAML boolean as accepted by Claude Code
+# (true/false plus yes/no/on/off/1/0, any letter case, since v2.1.218)
+is_bool() {
+    local val
+    val=$(echo "$1" | tr '[:upper:]' '[:lower:]')
+    case "$val" in
+        true|false|yes|no|on|off|1|0) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
 # Extract value of a specific field from frontmatter
 # Args: field_name frontmatter_text
 get_field_value() {
@@ -110,7 +122,7 @@ get_description_value() {
 }
 
 # Validate a single file
-# Args: file_path component_type(agent|command)
+# Args: file_path component_type(agent|skill)
 validate_file() {
     local file="$1"
     local type="$2"
@@ -144,8 +156,8 @@ validate_file() {
         wrong_fields="$AGENT_WRONG_FIELDS"
         warn_fields="$AGENT_WARN_FIELDS"
     else
-        valid_fields="$COMMAND_FIELDS"
-        wrong_fields="$COMMAND_WRONG_FIELDS"
+        valid_fields="$SKILL_FIELDS"
+        wrong_fields="$SKILL_WRONG_FIELDS"
         warn_fields=""
     fi
 
@@ -155,7 +167,7 @@ validate_file() {
             if [ "$type" = "agent" ]; then
                 messages="${messages}\n  ${RED}ERROR${NC}: Field '$field' is not valid for agents (use 'tools' instead)"
             else
-                messages="${messages}\n  ${RED}ERROR${NC}: Field '$field' is not valid for commands (use 'allowed-tools' instead)"
+                messages="${messages}\n  ${RED}ERROR${NC}: Field '$field' is not valid for skills (use 'allowed-tools' instead)"
             fi
             file_errors=$((file_errors + 1))
         elif in_list "$field" "$warn_fields"; then
@@ -212,7 +224,7 @@ validate_file() {
             file_errors=$((file_errors + 1))
         fi
     elif echo "$fields" | grep -qx "permissionMode"; then
-        messages="${messages}\n  ${RED}ERROR${NC}: Field 'permissionMode' is not valid for commands"
+        messages="${messages}\n  ${RED}ERROR${NC}: Field 'permissionMode' is not valid for skills"
         file_errors=$((file_errors + 1))
     fi
 
@@ -236,7 +248,7 @@ validate_file() {
         fi
     fi
 
-    # Validate effort value if present (both agents and commands)
+    # Validate effort value if present (both agents and skills)
     local effort_val
     effort_val=$(get_field_value "effort" "$fm")
     if [ -n "$effort_val" ] && ! in_list "$effort_val" "$VALID_EFFORTS"; then
@@ -264,20 +276,15 @@ validate_file() {
         fi
     fi
 
-    if [ "$type" = "command" ]; then
-        local dmi_val
-        dmi_val=$(get_field_value "disable-model-invocation" "$fm")
-        if [ -n "$dmi_val" ] && [ "$dmi_val" != "true" ] && [ "$dmi_val" != "false" ]; then
-            messages="${messages}\n  ${RED}ERROR${NC}: Field 'disable-model-invocation' must be true or false (got '$dmi_val')"
-            file_errors=$((file_errors + 1))
-        fi
-
-        local ui_val
-        ui_val=$(get_field_value "user-invocable" "$fm")
-        if [ -n "$ui_val" ] && [ "$ui_val" != "true" ] && [ "$ui_val" != "false" ]; then
-            messages="${messages}\n  ${RED}ERROR${NC}: Field 'user-invocable' must be true or false (got '$ui_val')"
-            file_errors=$((file_errors + 1))
-        fi
+    if [ "$type" = "skill" ]; then
+        local bool_field bool_val
+        for bool_field in disable-model-invocation user-invocable background; do
+            bool_val=$(get_field_value "$bool_field" "$fm")
+            if [ -n "$bool_val" ] && ! is_bool "$bool_val"; then
+                messages="${messages}\n  ${RED}ERROR${NC}: Field '$bool_field' must be a boolean (got '$bool_val')"
+                file_errors=$((file_errors + 1))
+            fi
+        done
     fi
 
     # Validate isolation value if present (agents only)
@@ -290,8 +297,8 @@ validate_file() {
         fi
     fi
 
-    # Validate context value if present (commands only)
-    if [ "$type" = "command" ]; then
+    # Validate context value if present (skills only)
+    if [ "$type" = "skill" ]; then
         local context_val
         context_val=$(get_field_value "context" "$fm")
         if [ -n "$context_val" ] && [ "$context_val" != "fork" ]; then
@@ -300,8 +307,8 @@ validate_file() {
         fi
     fi
 
-    # Validate shell value if present (commands only)
-    if [ "$type" = "command" ]; then
+    # Validate shell value if present (skills only)
+    if [ "$type" = "skill" ]; then
         local shell_val
         shell_val=$(get_field_value "shell" "$fm")
         if [ -n "$shell_val" ] && ! in_list "$shell_val" "$VALID_SHELL"; then
@@ -326,8 +333,8 @@ validate_file() {
         fi
     fi
 
-    # Warn if command/skill description exceeds 250 chars (truncated in listing)
-    if [ "$type" = "command" ]; then
+    # Warn if skill description exceeds 250 chars (truncated in listing)
+    if [ "$type" = "skill" ]; then
         local desc_val
         desc_val=$(get_description_value "$fm")
         if [ -n "$desc_val" ] && [ ${#desc_val} -gt 250 ]; then
@@ -364,7 +371,7 @@ echo "==================================="
 echo ""
 
 # Find and validate agent files
-if [ "$FILTER" != "commands" ]; then
+if [ "$FILTER" != "skills" ]; then
     agent_files=$(find "$PROJECT_ROOT/plugins" -path "*/agents/*.md" -type f 2>/dev/null | sort)
     if [ -n "$agent_files" ]; then
         echo "--- Agents ---"
@@ -375,25 +382,13 @@ if [ "$FILTER" != "commands" ]; then
     fi
 fi
 
-# Find and validate command files
-if [ "$FILTER" != "agents" ]; then
-    command_files=$(find "$PROJECT_ROOT/plugins" -path "*/commands/*.md" -not -path "*/commands/*/*" -type f 2>/dev/null | sort)
-    if [ -n "$command_files" ]; then
-        echo "--- Commands ---"
-        while IFS= read -r file; do
-            validate_file "$file" "command"
-        done <<< "$command_files"
-        echo ""
-    fi
-fi
-
 # Find and validate skill files
 if [ "$FILTER" != "agents" ]; then
     skill_files=$(find "$PROJECT_ROOT/plugins" -path "*/skills/*/SKILL.md" -type f 2>/dev/null | sort)
     if [ -n "$skill_files" ]; then
         echo "--- Skills ---"
         while IFS= read -r file; do
-            validate_file "$file" "command"
+            validate_file "$file" "skill"
         done <<< "$skill_files"
         echo ""
     fi

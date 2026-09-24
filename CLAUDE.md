@@ -18,30 +18,30 @@ plugins/
 │   ├── .claude-plugin/
 │   │   └── plugin.json
 │   ├── agents/               # Agent definitions (5 agents)
-│   └── commands/             # Custom slash commands (1 command)
+│   └── skills/               # Skills (1 skill)
 │                             # (no .mcp.json — declares no MCP servers)
 │
 ├── software-engineering/     # General engineering workflows
 │   ├── .claude-plugin/
 │   │   └── plugin.json
 │   ├── agents/               # Agent definitions (8 agents)
-│   ├── commands/             # Custom slash commands (13 commands)
-│   ├── skills/               # Reusable skills (5 skills)
+│   ├── skills/               # Skills (18 skills)
+│   ├── assets/               # Templates shared by skills
 │   └── .mcp.json             # MCP server integration (context7)
 │
 ├── go-specialist/            # Go language expertise
 │   ├── .claude-plugin/
 │   │   └── plugin.json
 │   ├── agents/               # Agent definitions (1 agent)
-│   ├── commands/             # Custom slash commands (7 commands)
-│   ├── skills/               # Reusable skills (4 skills)
+│   ├── skills/               # Skills (11 skills)
+│   ├── assets/               # Templates shared by skills
 │   └── .mcp.json             # MCP server integration (context7)
 │
 └── bash-specialist/          # Bash scripting expertise
     ├── .claude-plugin/
     │   └── plugin.json
     ├── agents/               # Agent definitions (1 agent)
-    ├── skills/               # Reusable skills (1 skill)
+    ├── skills/               # Skills (1 skill)
     └── .mcp.json             # MCP server integration (context7)
 ```
 
@@ -165,7 +165,7 @@ Or link locally for development:
 1. **Proactive Activation**: Define clear file patterns and keyword triggers so agents activate automatically
 2. **Scoped Expertise**: Each agent should have a focused domain (DevOps, database, payments, etc.)
 3. **Actionable Outputs**: Specify concrete deliverables (code, configs, documentation)
-4. **Tool Restrictions**: Use `tools` field for agents, `allowed-tools` for commands/skills
+4. **Tool Restrictions**: Use `tools` field for agents, `allowed-tools` for skills
 5. **Model Selection**: Use `sonnet` for code/speed, `opus` for complex analysis/documentation, `haiku` for fast/simple tasks
 6. **Multi-Agent Coordination**: Document collaboration patterns in the markdown body (not frontmatter) so they reach the agent's system prompt
 
@@ -205,8 +205,8 @@ See existing agents in `plugins/*/agents/*.md` for advanced patterns (multi-agen
 - **Marketplace metadata**: `.claude-plugin/marketplace.json`
 - **Plugin metadata**: `plugins/*/\.claude-plugin/plugin.json`
 - **Agent definitions**: `plugins/*/agents/*.md` (15 total agents)
-- **Commands**: `plugins/*/commands/*.md` (21 custom commands)
-- **Skills**: `plugins/*/skills/*/` (10 total skills)
+- **Skills**: `plugins/*/skills/<name>/SKILL.md` (31 total skills)
+- **Skill assets**: `plugins/*/assets/` (`go-specialist`, `software-engineering`)
 - **MCP config**: `plugins/*/.mcp.json` (only `bash-specialist`, `go-specialist`, `software-engineering`; `devops-infrastructure` has none)
 
 ## Design Patterns
@@ -243,55 +243,57 @@ Plugin descriptions include inline keywords and MCP server lists for better sear
 ```
 
 ### Correct Tool Field Names
-Agents and commands use **different** field names per the official spec:
+Agents and skills use **different** field names per the official spec:
 - **Agents** use `tools` (per [sub-agents spec](https://code.claude.com/docs/en/sub-agents))
-- **Commands/Skills** use `allowed-tools` (per [skills spec](https://code.claude.com/docs/en/skills))
+- **Skills** use `allowed-tools` (per [skills spec](https://code.claude.com/docs/en/skills))
 
 ### MCP Integration
 `context7` (library documentation lookup) is the only MCP server actually declared, in the
 `.mcp.json` of `bash-specialist`, `go-specialist`, and `software-engineering`. The
 `devops-infrastructure` plugin declares no MCP server (it has no `.mcp.json`).
 
-GitHub, GitLab, and Forgejo operations use the `gh`, `glab`, and `fgj` CLIs instead of MCP servers. Platform-aware commands route via the `detect-repo-host` skill, which maps `git.sylvlab.fr` remotes to Forgejo (`fgj`).
+GitHub, GitLab, and Forgejo operations use the `gh`, `glab`, and `fgj` CLIs instead of MCP servers. Platform-aware skills route via the `detect-repo-host` skill, which maps `git.sylvlab.fr` remotes to Forgejo (`fgj`).
 
-## Commands vs Skills vs Agents
-
-### Commands
-User-invoked workflows in `plugins/*/commands/`:
-- `/commit`: Generate git commits with conventional format
-- `/create-issue`: Create GitHub/GitLab/Forgejo issues
-- `/analyze-pr`: Comprehensive PR/MR review (GitHub/GitLab/Forgejo)
-- `/analyze-db-performance`: PostgreSQL performance analysis
-- `/gen-diagram`: Generate d2 architecture diagram with icons.terrastruct.com
-- `/gen-readme-diagram`: Add or update a README Architecture section with Mermaid diagrams sized to app complexity
-- `/gen-vhs-demo`: Record a verified CLI demo GIF with VHS, wire `task demo`, embed it in the README
-- `/gen-forgejo-dir`: Generate `.forgejo/workflows/` for Forgejo Actions
-
-The go-specialist CI generators (`/gen-github-dir`, `/gen-forgejo-dir`, `/gen-gitlab-ci`) are **mise-based**: workflows install tools via mise (`jdx/mise-action` on GitHub/Forgejo, the `jdx/mise` image on GitLab) and run `task …`. Tool versions live in a shared `mise.toml` (asset: `plugins/go-specialist/commands/assets/mise/mise.toml`) so local dev and CI stay in sync. `mise.toml` is owned canonically by `/gen-taskfiles` and auto-created (when missing) by the CI generators.
-
-Platform-aware commands (`/create-issue`, `/analyze-and-create-issue`, `/feature-flow`, `/feature-flow-w`, `/analyze-pr`, `/upd-project-description`) detect the host via `detect-repo-host` and route to `gh` (GitHub), `glab` (GitLab), or `fgj` (Forgejo, `git.sylvlab.fr`).
+## Skills vs Agents
 
 ### Skills
-Reusable sub-workflows invoked by agents or commands (10 total, under `plugins/*/skills/*/`):
+Claude Code merged custom slash commands into skills, so every workflow in this marketplace lives
+in `plugins/<plugin>/skills/<name>/SKILL.md` (31 total) — there are no `commands/` directories.
+A skill is invoked as `/<plugin>:<name>` and may also be auto-invoked by Claude unless it sets
+`disable-model-invocation: true`.
 
-**go-specialist:**
-- `go-blackbox`: Detect white box Go tests and convert to black box (`package foo_test`)
-- `go-bulma`: Scaffold the Bulma CSS framework into a Go web app with embedded assets
-- `go-structure`: Recommend and scaffold Go project layouts by project type
-- `go-tool`: Manage Go tool dependencies via the `tool` directive (Go 1.24+)
+**Frontmatter** (per the [skills spec](https://code.claude.com/docs/en/skills)): `name`,
+`description`, `argument-hint`, `allowed-tools`, `user-invocable`, `disable-model-invocation`.
+The directory name must equal `name`. Skills use `allowed-tools`, never `tools`.
 
-**software-engineering:**
-- `auto-mr`: Push, open MR/PR, wait for CI, merge, and clean up the branch
-- `detect-repo-host`: Detect host (GitHub/GitLab/Forgejo) from the git remote
-- `run-lint`: Auto-detect and run the project linter
-- `run-tests`: Auto-detect and run the project test runner
-- `vscode-settings`: Configure `.vscode/settings.json` with a per-project title bar/status bar color
+**Invocation control convention:**
+- State-changing or interactive skills (`commit`, `create-issue`, `feature-flow`, `feature-flow-w`,
+  `upd-project-description`, `auto-mr`, every `gen-*`) set `disable-model-invocation: true` so they
+  run only when explicitly invoked.
+- Read-mostly skills (`analyze-pr`, `analyze-and-create-issue`, `audit-codebase`,
+  `check-claude-md-tokens`, `analyze-db-performance`, `go-tdd`) stay model-invocable.
+- Background knowledge skills (`detect-repo-host`, `go-blackbox`, `go-bulma`, `go-tool`) set
+  `user-invocable: false` — Claude only.
 
-**bash-specialist:**
-- `gum-beautify`: Integrate Charmbracelet gum for TTY-safe terminal output
+**devops-infrastructure**: `analyze-db-performance`
 
-(The former `linter`, `github-workflows`, `gitlab-ci`, and `goreleaser` skills are now
-commands: `/gen-linter`, `/gen-github-dir`, `/gen-gitlab-ci`, `/gen-goreleaser`.)
+**go-specialist**: `gen-forgejo-dir`, `gen-github-dir`, `gen-gitlab-ci`, `gen-goreleaser`,
+`gen-linter`, `gen-taskfiles`, `go-blackbox`, `go-bulma`, `go-structure`, `go-tdd`, `go-tool`
+
+**software-engineering**: `analyze-and-create-issue`, `analyze-pr`, `audit-codebase`, `auto-mr`,
+`check-claude-md-tokens`, `commit`, `create-issue`, `detect-repo-host`, `feature-flow`,
+`feature-flow-w`, `gen-claude`, `gen-diagram`, `gen-readme-diagram`, `gen-vhs-demo`, `run-lint`,
+`run-tests`, `upd-project-description`, `vscode-settings`
+
+**bash-specialist**: `gum-beautify`
+
+Templates a skill writes into a project live in `plugins/<plugin>/assets/` and are referenced as
+`${CLAUDE_PLUGIN_ROOT}/assets/...` — plugin-level rather than skill-local because several skills
+share them (`detection-functions.md`, `mise/mise.toml`, `github-workflows/`).
+
+The go-specialist CI generators (`/gen-github-dir`, `/gen-forgejo-dir`, `/gen-gitlab-ci`) are **mise-based**: workflows install tools via mise (`jdx/mise-action` on GitHub/Forgejo, the `jdx/mise` image on GitLab) and run `task …`. Tool versions live in a shared `mise.toml` (asset: `plugins/go-specialist/assets/mise/mise.toml`) so local dev and CI stay in sync. `mise.toml` is owned canonically by `/gen-taskfiles` and auto-created (when missing) by the CI generators.
+
+Platform-aware skills (`/create-issue`, `/analyze-and-create-issue`, `/feature-flow`, `/feature-flow-w`, `/analyze-pr`, `/upd-project-description`) detect the host via `detect-repo-host` and route to `gh` (GitHub), `glab` (GitLab), or `fgj` (Forgejo, `git.sylvlab.fr`).
 
 ### Agents
 Proactive specialists in `plugins/*/agents/` that auto-activate based on context:
