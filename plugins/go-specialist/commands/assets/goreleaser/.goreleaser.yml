@@ -69,13 +69,16 @@ archives:
 
     # Archive format (binary = no compression, faster)
     # Options: tar.gz, zip, binary
+    # NOTE: use tar.gz instead if the Homebrew cask below generates shell
+    # completions — see the homebrew_casks section for why binary cannot work
+    # there. tar.gz also lets `files:` (LICENSE, README) ship in the archive.
     formats: ["binary"]
 
     # Alternative: Use compressed archives
     # formats: ["tar.gz"]
     # format_overrides:
     #   - goos: windows
-    #     format: zip
+    #     formats: [zip]
 
 # Generate checksums file for verification
 checksum:
@@ -199,19 +202,48 @@ docker_manifests:
       - [REGISTRY_URL]/[OWNER]/{{ .ProjectName }}:latest-armv6
       - [REGISTRY_URL]/[OWNER]/{{ .ProjectName }}:latest-armv7
 
-# Homebrew formula publishing (macOS package manager)
+# Homebrew cask publishing
 # OPTIONAL: Remove this section if not publishing to Homebrew
-brews:
-  - # Project homepage
+#
+# Use `homebrew_casks:`, NOT the deprecated `brews:` block. A cask installs a
+# release binary directly; a formula is meant for source builds. Casks work on
+# both macOS and Linux (Homebrew only rejects a cask that declares
+# `depends_on macos:`).
+homebrew_casks:
+  - # Cask token — the name users type in `brew install`
+    # CUSTOMIZE: Replace with your project name
+    name: '[PROJECT_NAME]'
+
+    # Project homepage
     # CUSTOMIZE: Replace with your GitHub/GitLab URL
     homepage: 'https://github.com/[OWNER]/[PROJECT_NAME]'
 
     # Project description
-    # CUSTOMIZE: Add meaningful description
+    # CUSTOMIZE: Add a meaningful description. Must not be empty, must not start
+    # with the project name or an article ("A"/"The") — `brew audit` rejects both.
     description: 'A tool for [describe your project]'
 
-    # Tap repository directory
-    directory: Formula
+    # Tap repository directory (casks live in Casks/, formulas lived in Formula/)
+    directory: Casks
+
+    # Command name(s) users invoke. Note the key is plural: singular `binary:`
+    # is deprecated.
+    binaries:
+      - '[PROJECT_NAME]'
+
+    # Download URL template for the release artifact
+    # CUSTOMIZE: Update URL to match your repository
+    url:
+      template: 'https://github.com/[OWNER]/[PROJECT_NAME]/releases/download/{{ .Tag }}/{{ .ArtifactName }}'
+
+    # Unsigned binaries are quarantined by macOS Gatekeeper; strip the attribute
+    # or the installed command dies with "cannot be opened".
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}"]
+          end
 
     # Commit author for tap updates
     # CUSTOMIZE: Replace with your GitHub info
@@ -228,22 +260,21 @@ brews:
       # Set HOMEBREW_TAP_TOKEN in CI/CD secrets
       token: '{{ .Env.HOMEBREW_TAP_TOKEN }}'
 
-    # Download URL template for binaries
-    # CUSTOMIZE: Update URL to match your repository
-    url_template: 'https://github.com/[OWNER]/[PROJECT_NAME]/releases/download/{{ .Tag }}/{{ .ArtifactName }}'
-
-    # Installation script
-    install: |
-      bin.install "{{ .ArtifactName }}" => "[PROJECT_NAME]"
-
-    # Test script (validates installation)
-    test: |
-      system "#{bin}/[PROJECT_NAME]", "--help"
-
-    # Optional: Add dependencies
+    # Optional: runtime dependencies. Note the cask shape is `- formula: name`,
+    # not the formula-era `- name: name`.
     # dependencies:
-    #   - name: git
-    #   - name: docker
+    #   - formula: git
+    #   - cask: some-cask
+
+    # Optional: shell completions for a Cobra CLI. Requires BOTH:
+    #   1. `formats: ["tar.gz"]` in archives — `executable` is not templated and
+    #      defaults to binaries[0], so it can never match a versioned raw-binary
+    #      filename (Homebrew then does a bare PATH lookup, which fails because
+    #      `brew` resets PATH during install: exit 127, warning only).
+    #   2. `hooks: pre:` above instead of `post:` — the generator has to execute
+    #      the staged binary, so the quarantine xattr must already be gone.
+    # generate_completions_from_executable:
+    #   shell_parameter_format: cobra
 
 # Optional: Snapcraft (Linux Snap packages)
 # Uncomment to publish to Snap Store
