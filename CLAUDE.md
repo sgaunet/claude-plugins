@@ -26,7 +26,7 @@ plugins/
 │   │   └── plugin.json
 │   ├── agents/               # Agent definitions (8 agents)
 │   ├── commands/             # Custom slash commands (13 commands)
-│   ├── skills/               # Reusable skills (4 skills)
+│   ├── skills/               # Reusable skills (5 skills)
 │   └── .mcp.json             # MCP server integration (context7)
 │
 ├── go-specialist/            # Go language expertise
@@ -206,7 +206,7 @@ See existing agents in `plugins/*/agents/*.md` for advanced patterns (multi-agen
 - **Plugin metadata**: `plugins/*/\.claude-plugin/plugin.json`
 - **Agent definitions**: `plugins/*/agents/*.md` (15 total agents)
 - **Commands**: `plugins/*/commands/*.md` (21 custom commands)
-- **Skills**: `plugins/*/skills/*/` (9 total skills)
+- **Skills**: `plugins/*/skills/*/` (10 total skills)
 - **MCP config**: `plugins/*/.mcp.json` (only `bash-specialist`, `go-specialist`, `software-engineering`; `devops-infrastructure` has none)
 
 ## Design Patterns
@@ -272,7 +272,7 @@ The go-specialist CI generators (`/gen-github-dir`, `/gen-forgejo-dir`, `/gen-gi
 Platform-aware commands (`/create-issue`, `/analyze-and-create-issue`, `/feature-flow`, `/feature-flow-w`, `/analyze-pr`, `/upd-project-description`) detect the host via `detect-repo-host` and route to `gh` (GitHub), `glab` (GitLab), or `fgj` (Forgejo, `git.sylvlab.fr`).
 
 ### Skills
-Reusable sub-workflows invoked by agents or commands (9 total, under `plugins/*/skills/*/`):
+Reusable sub-workflows invoked by agents or commands (10 total, under `plugins/*/skills/*/`):
 
 **go-specialist:**
 - `go-blackbox`: Detect white box Go tests and convert to black box (`package foo_test`)
@@ -285,6 +285,7 @@ Reusable sub-workflows invoked by agents or commands (9 total, under `plugins/*/
 - `detect-repo-host`: Detect host (GitHub/GitLab/Forgejo) from the git remote
 - `run-lint`: Auto-detect and run the project linter
 - `run-tests`: Auto-detect and run the project test runner
+- `vscode-settings`: Configure `.vscode/settings.json` with a per-project title bar/status bar color
 
 **bash-specialist:**
 - `gum-beautify`: Integrate Charmbracelet gum for TTY-safe terminal output
