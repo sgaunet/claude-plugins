@@ -1,7 +1,7 @@
 {
   "name": "sylvain-marketplace",
   "metadata": {
-    "version": "0.19.1",
+    "version": "0.20.1",
     "description": "Specialized Claude Code agents for DevOps infrastructure, software engineering workflows, and Go development. Includes proactive agents for IaC, CI/CD, database optimization, code review, debugging, documentation, and more."
   },
   "owner": {
@@ -21,8 +21,8 @@
     {
       "name": "software-engineering",
       "source": "./plugins/software-engineering",
-      "description": "Code review, debugging, documentation, license compliance (AGPL/MIT/Apache), payment integration (Stripe/PayPal), frontend development (HTMX/Alpine.js), architecture diagrams (d2), and terminal demo GIFs (VHS). Skills: auto-mr, detect-repo-host, run-lint, run-tests. MCP: context7",
-      "version": "0.21.0",
+      "description": "Code review, debugging, documentation, license compliance (AGPL/MIT/Apache), payment integration (Stripe/PayPal), frontend development (HTMX/Alpine.js), architecture diagrams (d2), and terminal demo GIFs (VHS). Skills: auto-mr, detect-repo-host, run-lint, run-tests, vscode-settings. MCP: context7",
+      "version": "0.22.1",
       "author": {
         "name": "Sylvain"
       }
@@ -31,7 +31,7 @@
       "name": "go-specialist",
       "source": "./plugins/go-specialist",
       "description": "Master Go 1.25+ development with modern patterns, advanced concurrency, performance optimization, and production-ready microservices. Skills: go-blackbox, go-bulma, go-structure, go-tool. MCP: context7",
-      "version": "0.22.1",
+      "version": "0.22.2",
       "author": {
         "name": "Sylvain"
       }
@@ -40,7 +40,7 @@
       "name": "bash-specialist",
       "source": "./plugins/bash-specialist",
       "description": "Production-quality bash scripting with shellcheck compliance, error handling, and beautiful terminal UX via Charmbracelet gum. Skills: gum-beautify. MCP: context7",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "author": {
         "name": "Sylvain"
       }

@@ -150,6 +150,7 @@ export PPLX_API_KEY="your-perplexity-api-key"
 - `detect-repo-host` - Detect GitHub/GitLab/Forgejo from the git remote
 - `run-lint` - Auto-detect and run the project linter
 - `run-tests` - Auto-detect and run the project test runner
+- `vscode-settings` - Configure .vscode/settings.json with a per-project window color
 
 Platform-aware commands detect the host from the git remote and route to `gh` (GitHub), `glab` (GitLab), or `fgj` (Forgejo, `git.sylvlab.fr`).
 
