@@ -1,7 +1,7 @@
 {
   "name": "software-engineering",
-  "version": "0.22.1",
-  "description": "Code review, debugging, documentation, license compliance (AGPL/MIT/Apache), payment integration (Stripe/PayPal), frontend development (HTMX/Alpine.js), architecture diagrams (d2 via diagram-architect + /gen-diagram), and terminal demo GIFs (VHS via /gen-vhs-demo). Skills: auto-mr (push/MR/merge), detect-repo-host (platform routing), run-lint, run-tests, vscode-settings (.vscode/settings.json). MCP: context7",
+  "version": "0.23.0",
+  "description": "Code review, debugging, documentation, license compliance (AGPL/MIT/Apache), payment integration (Stripe/PayPal), frontend development (HTMX/Alpine.js), architecture diagrams (d2 via diagram-architect + /gen-diagram), and terminal demo GIFs (VHS via /gen-vhs-demo). Skills: analyze-and-create-issue, analyze-pr, audit-codebase, auto-mr, check-claude-md-tokens, commit, create-issue, detect-repo-host, feature-flow, feature-flow-w, gen-claude, gen-diagram, gen-readme-diagram, gen-vhs-demo, run-lint, run-tests, upd-project-description, vscode-settings. MCP: context7",
   "keywords": [
     "code-review",
     "security",

@@ -2,10 +2,10 @@
 
 [![Plugins](https://img.shields.io/badge/plugins-4-blue)](./plugins)
 [![Agents](https://img.shields.io/badge/agents-15-green)](./plugins)
-[![Commands](https://img.shields.io/badge/commands-21-orange)](./plugins)
+[![Skills](https://img.shields.io/badge/skills-31-orange)](./plugins)
 [![License](https://img.shields.io/badge/license-MIT-purple)](./LICENSE)
 
-A curated collection of specialized Claude Code plugins designed to enhance your development workflow with intelligent agents, skills, and commands.
+A curated collection of specialized Claude Code plugins designed to enhance your development workflow with intelligent agents and skills.
 
 Official claude code marketplace: [https://github.com/anthropics/claude-code](https://github.com/anthropics/claude-code)
 
@@ -17,7 +17,7 @@ This marketplace provides three comprehensive plugin collections:
 - **software-engineering**: Code review, debugging, documentation, license compliance, payment integration, and HTML-first frontend development tools
 - **go-specialist**: Advanced Go 1.25+ development with modern patterns, concurrency optimization, and production-ready tooling (linting, GitHub workflows, GitLab CI, Forgejo Actions, GoReleaser)
 
-Each plugin includes proactive agents that automatically assist with their specialized domains, plus skills and commands to streamline common development tasks.
+Each plugin includes proactive agents that automatically assist with their specialized domains, plus skills to streamline common development tasks.
 
 ## Adding this Marketplace
 
@@ -61,7 +61,7 @@ glab auth login
 fgj auth login
 ```
 
-Platform-aware commands detect the repository host from the git remote and route to the matching CLI (`git.sylvlab.fr` → `fgj`).
+Platform-aware skills detect the repository host from the git remote and route to the matching CLI (`git.sylvlab.fr` → `fgj`).
 
 ### MCP Server (Optional)
 
@@ -106,10 +106,8 @@ export PPLX_API_KEY="your-perplexity-api-key"
 - `devops-specialist` - Terraform, Ansible, CloudFormation, cloud automation
 - `postgresql-specialist` - PostgreSQL 16+ advanced features, query optimization, replication
 
-**Commands**:
-- `/analyze-db-performance` - PostgreSQL performance analysis with query and index insights
-
-**Skills**: None yet
+**Skills**:
+- `analyze-db-performance` - PostgreSQL performance analysis with query and index insights
 
 **Use Cases**:
 - Infrastructure as Code (Terraform, Ansible)
@@ -130,29 +128,27 @@ export PPLX_API_KEY="your-perplexity-api-key"
 - `payment-integrator` - Stripe, PayPal, subscription billing
 - `security-auditor` - Security vulnerability detection
 
-**Commands**:
-- `/analyze-and-create-issue` - Analyze codebase issues and create GitHub/GitLab/Forgejo issues
-- `/analyze-pr` - Comprehensive PR/MR review for quality, security, and coverage (GitHub/GitLab/Forgejo)
-- `/audit-codebase` - Security and performance audit
-- `/check-claude-md-tokens` - Monitor and optimize CLAUDE.md token count
-- `/commit` - Generate conventional commit messages
-- `/create-issue` - Create GitHub, GitLab, or Forgejo issue
-- `/feature-flow` - Complete git workflow orchestration (branch, issue, commit)
-- `/feature-flow-w` - Same workflow, isolated in a git worktree
-- `/gen-claude` - Generate or enhance CLAUDE.md with project guidance
-- `/gen-diagram` - Generate a d2 architecture diagram with icons.terrastruct.com
-- `/gen-readme-diagram` - Add or update a README Architecture section with Mermaid diagrams
-- `/gen-vhs-demo` - Record a verified CLI demo GIF with VHS and embed it in the README
-- `/upd-project-description` - Update GitHub/GitLab/Forgejo project metadata
-
 **Skills**:
+- `analyze-and-create-issue` - Analyze codebase issues and create GitHub/GitLab/Forgejo issues
+- `analyze-pr` - Comprehensive PR/MR review for quality, security, and coverage (GitHub/GitLab/Forgejo)
+- `audit-codebase` - Security and performance audit
 - `auto-mr` - Push, open MR/PR, wait for CI, merge, and clean up the branch
+- `check-claude-md-tokens` - Monitor and optimize CLAUDE.md token count
+- `commit` - Generate conventional commit messages
+- `create-issue` - Create GitHub, GitLab, or Forgejo issue
 - `detect-repo-host` - Detect GitHub/GitLab/Forgejo from the git remote
+- `feature-flow` - Complete git workflow orchestration (branch, issue, commit)
+- `feature-flow-w` - Same workflow, isolated in a git worktree
+- `gen-claude` - Generate or enhance CLAUDE.md with project guidance
+- `gen-diagram` - Generate a d2 architecture diagram with icons.terrastruct.com
+- `gen-readme-diagram` - Add or update a README Architecture section with Mermaid diagrams
+- `gen-vhs-demo` - Record a verified CLI demo GIF with VHS and embed it in the README
 - `run-lint` - Auto-detect and run the project linter
 - `run-tests` - Auto-detect and run the project test runner
+- `upd-project-description` - Update GitHub/GitLab/Forgejo project metadata
 - `vscode-settings` - Configure .vscode/settings.json with a per-project window color
 
-Platform-aware commands detect the host from the git remote and route to `gh` (GitHub), `glab` (GitLab), or `fgj` (Forgejo, `git.sylvlab.fr`).
+Platform-aware skills detect the host from the git remote and route to `gh` (GitHub), `glab` (GitLab), or `fgj` (Forgejo, `git.sylvlab.fr`).
 
 **Use Cases**:
 - Automated code review and security scanning
@@ -167,19 +163,17 @@ Platform-aware commands detect the host from the git remote and route to `gh` (G
 **Agents**:
 - `golang-pro` - Go 1.25+ expert with generics, concurrency, performance optimization
 
-**Commands**:
-- `/gen-github-dir` - Generate complete .github directory with workflows and configs
-- `/gen-gitlab-ci` - Generate GitLab CI/CD pipeline for Go projects
-- `/gen-forgejo-dir` - Generate complete .forgejo/workflows directory with Forgejo Actions for Go projects
-- `/gen-goreleaser` - Generate GoReleaser configuration with multi-arch builds
-- `/gen-linter` - Generate .golangci.yml with 90+ linters
-- `/gen-taskfiles` - Generate Taskfile.yml and .pre-commit-config.yaml
-- `/go-tdd` - Implement a Go feature with TDD using up-to-date library docs
-
 **Skills**:
+- `gen-forgejo-dir` - Generate complete .forgejo/workflows directory with Forgejo Actions for Go projects
+- `gen-github-dir` - Generate complete .github directory with workflows and configs
+- `gen-gitlab-ci` - Generate GitLab CI/CD pipeline for Go projects
+- `gen-goreleaser` - Generate GoReleaser configuration with multi-arch builds
+- `gen-linter` - Generate .golangci.yml with 90+ linters
+- `gen-taskfiles` - Generate Taskfile.yml and .pre-commit-config.yaml
 - `go-blackbox` - Detect white box tests and convert to black box (`package foo_test`)
 - `go-bulma` - Scaffold Bulma CSS into a Go web app with embedded assets
 - `go-structure` - Recommend and scaffold Go project layouts by project type
+- `go-tdd` - Implement a Go feature with TDD using up-to-date library docs
 - `go-tool` - Manage Go tool dependencies via the `tool` directive (Go 1.24+)
 
 **Use Cases**:
@@ -194,8 +188,6 @@ Platform-aware commands detect the host from the git remote and route to `gh` (G
 
 **Agents**:
 - `bash-pro` - Production-quality bash, shellcheck compliance, gum-based terminal UX
-
-**Commands**: None
 
 **Skills**:
 - `gum-beautify` - Integrate Charmbracelet gum for TTY-safe terminal output
@@ -270,7 +262,8 @@ cd plugins/go-specialist && claude plugin validate .
 │   │   ├── .claude-plugin/
 │   │   │   └── plugin.json      # Plugin metadata
 │   │   ├── agents/               # Agent definitions (*.md)
-│   │   ├── commands/             # Slash commands (*.md)
+│   │   ├── skills/               # Skills (<name>/SKILL.md)
+│   │   ├── assets/               # Templates shared by skills
 │   │   ├── hooks.json            # Event hooks
 │   │   └── .mcp.json             # MCP server config
 │   ├── software-engineering/
