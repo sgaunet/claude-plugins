@@ -17,6 +17,8 @@ fi
 model=$(echo "$input" | jq -r '.model.display_name // .model.id // "unknown"')
 ctx_size=$(echo "$input" | jq -r '.context_window.context_window_size // 200000')
 used_pct=$(echo "$input" | jq -r '.context_window.used_percentage // 0')
+# Reasoning effort (low/medium/high/xhigh/max); absent when the model doesn't support it
+effort=$(echo "$input" | jq -r '.effort.level // empty')
 
 # Round percentage to integer
 used_pct=${used_pct%.*}
@@ -56,4 +58,18 @@ fi
 # Short model name: strip "Claude " prefix if present
 short_model="${model#Claude }"
 
-printf '%b' "${cyan}[${short_model}]${reset} ${color}${bar} ${used_pct}%${reset} ${dim}| ${ctx_label} ctx${reset}"
+# Effort segment, color-coded by level (empty when effort is not reported)
+effort_seg=""
+if [[ -n "$effort" ]]; then
+  case "$effort" in
+    low)    effort_color="$dim" ;;
+    medium) effort_color='\033[32m' ;;  # Green
+    high)   effort_color='\033[33m' ;;  # Yellow
+    xhigh)  effort_color='\033[35m' ;;  # Magenta
+    max)    effort_color='\033[1;31m' ;;  # Bold red
+    *)      effort_color="" ;;
+  esac
+  effort_seg="${effort_color}⚡${effort}${reset} "
+fi
+
+printf '%b' "${cyan}[${short_model}]${reset} ${effort_seg}${color}${bar} ${used_pct}%${reset} ${dim}| ${ctx_label} ctx${reset}"

@@ -1,14 +1,18 @@
 # Custom Claude Code Statusline
 
-A lightweight bash statusline for Claude Code that displays the active model, context window usage with a color-coded progress bar, and total context size.
+A lightweight bash statusline for Claude Code that displays the active model, the reasoning effort level, context window usage with a color-coded progress bar, and total context size.
 
 ## Example Output
 
 ```
-[Opus] ▓▓▓░░░░░░░ 30% | 200k ctx     (green)
-[Sonnet] ▓▓▓▓▓▓░░░░ 60% | 200k ctx   (yellow)
-[Opus] ▓▓▓▓▓▓▓▓░░ 85% | 200k ctx     (red)
+[Opus] ⚡high ▓▓▓░░░░░░░ 30% | 200k ctx      (green)
+[Sonnet] ⚡medium ▓▓▓▓▓▓░░░░ 60% | 200k ctx  (yellow)
+[Opus] ⚡xhigh ▓▓▓▓▓▓▓▓░░ 85% | 1M ctx       (red)
+[Haiku] ▓▓▓░░░░░░░ 30% | 200k ctx           (model without effort support)
 ```
+
+The effort segment reads `effort.level` from the statusline JSON. It reflects the live session
+value, including mid-session `/effort` changes, and is hidden when the model doesn't support effort.
 
 ## Prerequisites
 
@@ -72,6 +76,9 @@ echo '{"model":{"display_name":"Sonnet"},"context_window":{"used_percentage":60,
 
 # Red (> 75%)
 echo '{"model":{"display_name":"Opus"},"context_window":{"used_percentage":85,"context_window_size":200000}}' | ~/.claude/statusline.sh
+
+# Effort segment (low / medium / high / xhigh / max)
+echo '{"model":{"display_name":"Opus"},"context_window":{"used_percentage":25,"context_window_size":1000000},"effort":{"level":"xhigh"}}' | ~/.claude/statusline.sh
 ```
 
 ## Customization
@@ -86,6 +93,7 @@ Edit `~/.claude/statusline.sh` to adjust:
 | Red threshold | `used_pct > 75` | > 75% |
 | Filled character | `bar+="▓"` | `▓` |
 | Empty character | `bar+="░"` | `░` |
+| Effort colors | `case "$effort"` block | low dim, medium green, high yellow, xhigh magenta, max bold red |
 
 ### Adding extra info
 

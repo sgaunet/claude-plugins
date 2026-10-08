@@ -60,4 +60,4 @@ echo ""
 echo "Done! Restart Claude Code to activate the new statusline."
 echo ""
 echo "Test it with:"
-echo '  echo '\''{"model":{"display_name":"Opus"},"context_window":{"used_percentage":25,"context_window_size":200000}}'\'' | ~/.claude/statusline.sh'
+echo '  echo '\''{"model":{"display_name":"Opus"},"context_window":{"used_percentage":25,"context_window_size":200000},"effort":{"level":"high"}}'\'' | ~/.claude/statusline.sh'
